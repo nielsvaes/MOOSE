@@ -1819,6 +1819,94 @@ do -- COORDINATE
     return self
   end
 
+  ---AmmoDumpExplosionCircular
+  ---@param InitialIntensity number How big the first explosion should be, 0 if there shouldn't be one
+  ---@param RadiusMeters number Sub explosions will happen in this radius
+  ---@param SubExplosionChance number What the odds are of a sub explosion happening when the timer ticks
+  ---@param SubExplosionMinIntensity number Min intensityf or the sub explosions
+  ---@param SubExplosionMaxIntensity number Max intensityf or the sub explosions
+  ---@param FlarePercentage number How much of a chance there will be flares coming from the sub explosions
+  ---@param SubExplosionInterval number Interval when a sub explosion will be triggered
+  ---@param CookOffTime number How many seconds the sub explosions should continue to explode
+  function COORDINATE:AmmoDumpExplosionCircular(InitialIntensity, RadiusMeters, SubExplosionChance, SubExplosionMinIntensity, SubExplosionMaxIntensity, FlarePercentage, SubExplosionInterval, CookOffTime)
+    SubExplosionMinIntensity = SubExplosionMaxIntensity or 0.5
+    SubExplosionMaxIntensity = SubExplosionMaxIntensity or 10
+    FlarePercentage = FlarePercentage or 85
+    SubExplosionInterval = SubExplosionInterval or 0.9
+    CookOffTime = CookOffTime or 20
+
+    BASE:I(SubExplosionMinIntensity)
+    BASE:I(SubExplosionMaxIntensity)
+    BASE:I(FlarePercentage)
+    BASE:I(SubExplosionInterval)
+    BASE:I(CookOffTime)
+
+    self:Explosion(InitialIntensity)
+
+    local cookoff_timer = TIMER:New(function()
+      if CCUTILS.percentage_chance(SubExplosionChance) then
+        local new_pos = self:Translate(math.random(0, RadiusMeters * -1, RadiusMeters), math.random(0, 360), false, false)
+        new_pos:Explosion(math.random(SubExplosionMinIntensity, SubExplosionMaxIntensity))
+
+        if CCUTILS.percentage_chance(FlarePercentage) then
+          for i=0, math.random(0, 5) do
+            new_pos:FlareRed(math.random(0, 90))
+          end
+        end
+
+      end
+    end)
+    cookoff_timer:Start(math.random(CookOffTime / 2), SubExplosionInterval, CookOffTime)
+  end
+
+  ---AmmoDumpExplosionRectangular
+  ---@param InitialIntensity number How big the first explosion should be, 0 if there shouldn't be one
+  ---@param Vertices table Made out of 4 pairs of coordinates in the form of {[x] = 1, [y] = 3} in a counter clockwise order
+  ---@param SubExplosionChance number What the odds are of a sub explosion happening when the timer ticks
+  ---@param SubExplosionMinIntensity number Min intensity for the sub explosions
+  ---@param SubExplosionMaxIntensity number Max intensity for the sub explosions
+  ---@param FlarePercentage number How much of a chance there will be flares coming from the sub explosions
+  ---@param SubExplosionInterval number Interval when a sub explosion will be triggered
+  ---@param CookOffTime number How many seconds the sub explosions should continue to explode
+  function COORDINATE:AmmoDumpExplosionRectangular(InitialIntensity, Vertices, SubExplosionChance, SubExplosionMinIntensity, SubExplosionMaxIntensity, FlarePercentage, SubExplosionInterval, CookOffTime)
+    SubExplosionMinIntensity = SubExplosionMaxIntensity or 0.5
+    SubExplosionMaxIntensity = SubExplosionMaxIntensity or 10
+    FlarePercentage = FlarePercentage or 85
+    SubExplosionInterval = SubExplosionInterval or 0.9
+    CookOffTime = CookOffTime or 20
+
+    BASE:I(SubExplosionMinIntensity)
+    BASE:I(Vertices)
+    BASE:I(SubExplosionMaxIntensity)
+    BASE:I(FlarePercentage)
+    BASE:I(SubExplosionInterval)
+    BASE:I(CookOffTime)
+
+    self:Explosion(InitialIntensity)
+
+
+    local triangles = {
+      {Vertices[1], Vertices[2], Vertices[3]},
+      {Vertices[3], Vertices[4], Vertices[1]},
+    }
+
+    local cookoff_timer = TIMER:New(function()
+      if CCUTILS.percentage_chance(SubExplosionChance) then
+        local triangle = triangles[math.random(1, 2)]
+        local vec2 = CCUTILS.random_point_in_triangle(triangle[1], triangle[2], triangle[3])
+        local new_pos = self:NewFromVec2(vec2)
+        new_pos:Explosion(math.random(SubExplosionMinIntensity, SubExplosionMaxIntensity))
+
+        if CCUTILS.percentage_chance(FlarePercentage) then
+          for i=0, math.random(0, 5) do
+            new_pos:FlareRed(math.random(0, 90))
+          end
+        end
+      end
+    end)
+    cookoff_timer:Start(math.random(CookOffTime / 2), SubExplosionInterval, CookOffTime)
+  end
+
   --- Creates an illumination bomb at the point.
   -- @param #COORDINATE self
   -- @param #number Power Power of illumination bomb in Candela. Default 1000 cd.
