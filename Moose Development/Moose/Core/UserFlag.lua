@@ -49,12 +49,16 @@ do -- UserFlag
     return self
   end
 
+  function USERFLAG:GetFlagValue(FlagName)
+    return trigger.misc.getUserFlag(FlagName)
+  end
+
   --- Get the userflag name.
   -- @param #USERFLAG self
   -- @return #string Name of the user flag.
   function USERFLAG:GetName()
     return self.UserFlagName
-  end  
+  end
 
   --- Set the userflag to a given Number.
   -- @param #USERFLAG self
@@ -64,7 +68,7 @@ do -- UserFlag
   -- @usage
   --   local BlueVictory = USERFLAG:New( "VictoryBlue" )
   --   BlueVictory:Set( 100 ) -- Set the UserFlag VictoryBlue to 100.
-  --   
+  --
   function USERFLAG:Set( Number, Delay ) --R2.3
 
     if Delay and Delay>0 then
@@ -83,7 +87,7 @@ do -- UserFlag
   -- @usage
   --   local BlueVictory = USERFLAG:New( "VictoryBlue" )
   --   local BlueVictoryValue = BlueVictory:Get() -- Get the UserFlag VictoryBlue value.
-  --   
+  --
   function USERFLAG:Get() --R2.3
 
     return trigger.misc.getUserFlag( self.UserFlagName )
