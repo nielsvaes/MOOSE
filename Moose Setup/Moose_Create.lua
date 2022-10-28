@@ -13,7 +13,7 @@ print( "Moose setup path          : " .. MooseSetupPath )
 print( "Moose target path         : " .. MooseTargetPath )
 
 local MooseModulesFilePath =  MooseDevelopmentPath .. "/Modules.lua"
-local LoaderFilePath = MooseTargetPath .. "/Moose.lua"
+local LoaderFilePath = MooseTargetPath .. "/CCMoose.lua"
 
 print( "Reading Moose source list : " .. MooseModulesFilePath )
 
