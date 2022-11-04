@@ -1907,6 +1907,12 @@ do -- COORDINATE
     cookoff_timer:Start(math.random(CookOffTime / 2), SubExplosionInterval, CookOffTime)
   end
 
+  --- Creates a debris/dust reaction without the explosion
+  function COORDINATE:InertReaction()
+      self.y = self.y - 13
+      self:Explosion(50)
+  end
+
   --- Creates an illumination bomb at the point.
   -- @param #COORDINATE self
   -- @param #number Power Power of illumination bomb in Candela. Default 1000 cd.
