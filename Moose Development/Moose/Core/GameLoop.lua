@@ -10,8 +10,7 @@ function GAMELOOPFUNCTION:New(func, args, times_to_call, execute_on_creation)
     self.times_called = 0
     self.return_value = nil
     self.has_completed = false
-    self.exit_function = nil
-
+    self.exit_function = function() return false  end
 
     execute_on_creation = execute_on_creation or false
     if execute_on_creation then
@@ -27,6 +26,7 @@ end
 
 function GAMELOOPFUNCTION:CanExec()
     if self.has_completed then
+        self:I("Function has been marked completed")
         return false
     elseif self.times_to_call == -1 then
         return true
@@ -76,7 +76,7 @@ end
 
 function GAMELOOP:Execute()
     local i=1
-    while i <= #self.gameloopfunctions do
+    while i <= #self.gameloopfunctions do                   -- more performant than a pair loop
         local gameloopfunction = self.gameloopfunctions[i]
 
         if gameloopfunction:HasCompleted() then
