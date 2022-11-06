@@ -33,6 +33,7 @@ __Moose.Include( 'Scripts/Moose/Core/Goal.lua' )
 __Moose.Include( 'Scripts/Moose/Core/Spot.lua' )
 __Moose.Include( 'Scripts/Moose/Core/MarkerOps_Base.lua' )
 __Moose.Include( 'Scripts/Moose/Core/TextAndSound.lua' )
+__Moose.Include( 'Scripts/Moose/Core/GameLoop.lua' )
 
 __Moose.Include( 'Scripts/Moose/Draw/Line.lua' )
 
