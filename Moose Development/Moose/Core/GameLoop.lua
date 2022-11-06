@@ -66,9 +66,10 @@ GAMELOOP = {
 
 function GAMELOOP:New(tickrate)
     self = BASE:Inherit(self, BASE:New())
-    self.tickrate = tickrate or 0.1 -- 0.03 -> 30hz
+    self.tickrate = tickrate or 0.03 -- 0.03 -> 30hz
     self.gameloopfunctions = {}
     self.timer = nil
+    self.is_running = false
 
     return self
 end
@@ -85,39 +86,62 @@ function GAMELOOP:Execute()
             if gameloopfunction:CanExec() then
                 gameloopfunction:Exec()
             end
-            i = i + 1
         end
+        i = i + 1
     end
 end
 
-
-
 function GAMELOOP:Add(gameloopfunction, position)
+    local was_running = self.is_running
+    self:Stop()
     position = position or #self.gameloopfunctions + 1
     table.insert(self.gameloopfunctions, position, gameloopfunction)
+    if was_running then
+        self:Start()
+    end
 end
 
 function GAMELOOP:Remove(func)
+    self:Stop()
+
     local return_value = self.gameloopfunctions[func]:GetReturnValue()
     table.remove_key(self.gameloopfunctions, func)
+
     self:I(tostring(#self.gameloopfunctions) .. " loaded")
+
+    self:Start()
+
     return return_value
 end
 
 function GAMELOOP:Start()
-    self:I("Starting loop, " .. tostring(#self.gameloopfunctions) .. " functions loaded")
-    self.timer = TIMER:New(self.Execute, self)
-    self.timer:Start(nil, self.tickrate)
+    if not self.is_running then
+        self:I("Starting loop, " .. tostring(#self.gameloopfunctions) .. " functions loaded")
+        self.timer = self.timer or TIMER:New(self.Execute, self)
+        self.timer:Start(nil, self.tickrate)
+    end
+
+    self.is_running = true
     return self
 end
 
 function GAMELOOP:Stop()
     self:I("Stopping!")
     self.timer:Stop()
+    self.is_running = false
 end
 
 function GAMELOOP:UpdateTickRate(value)
     self.tickrate = value
     self:Stop()
     self:Start()
+end
+
+function GAMELOOP:ClearAll()
+    self.gameloopfunctions = {}
+end
+
+function GAMELOOP:Reset()
+    self:ClearAll()
+    self:Stop()
 end
