@@ -21,8 +21,10 @@ do
 
     function IMPACT_AREA:ContainsPoint(point)
         if self.type == IMPACT_AREA.TYPE.ZONE then
+            self:I("We're a zone")
             return UTILS.IsInRadius(point, self.area:GetVec2(), self.area:GetRadius())
         else
+            self:I("We're a shape")
             return self.area:ContainsPoint(point)
         end
     end

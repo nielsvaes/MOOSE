@@ -8,7 +8,6 @@ do
         self = BASE:Inherit(self, BASE:New())
 
         self.weapons = {}
-        --self.missiles = {}
 
         self:HandleEvent(EVENTS.Shot)
         self:HandleEvent(EVENTS.ShootingStart)
@@ -19,19 +18,19 @@ do
 
     function WEAPONMANAGER:UpdateWeapons(_)
         for _, ccweapon in pairs(self.weapons) do
+            ccweapon:GetCoordinate() -- actually fucking set the coordinate
+
             if not ccweapon:IsAlive() and not ccweapon.has_impacted then -- only update weapon one time after it has impacted
-                MessageToAll("Weapon is no longer alive")
+                self:I("Weapon[" .. ccweapon.id .. "] is no longer alive")
                 ccweapon.has_impacted = true
                 ccweapon.impact_coordinate = ccweapon:GetLastCoordinate()
                 ccweapon.impact_coordinate_terrain = COORDINATE:NewFromVec2(ccweapon.impact_coordinate:GetVec2())
 
-                MessageToAll("Removing weapon")
-                self:I(self.weapons)
+                self:I("Removing weapon[" .. ccweapon.id .. "]")
                 self:RemoveWeapon(ccweapon)
-                self:I(self.weapons)
 
-                MessageToAll("Informing ImpactAreaManager")
-                CCMISSION.IMPACT_AREA_MANAGER:WeaponImpactedAt(ccweapon.impact_coordinate:GetVec2())
+                self:I("Informing ImpactAreaManager of weapon["  .. ccweapon.id .. "] impact")
+                IMPACT_AREA_MANAGER:Get():WeaponImpactedAt(ccweapon.impact_coordinate_terrain:GetVec2())
             end
         end
     end
@@ -84,33 +83,5 @@ do
         ccweapon.impact_coordinate_terrain = nil
 
         table.insert(self.weapons, ccweapon)
-
-
-        --if not UTILS.IsInRadius(COORDINATE:NewFromVec3(weapon_dcs_object:getPoint()):GetVec2(),
-        --                                               self.centroid_coord:GetVec2(),
-        --                                               UTILS.NMToMeters(self.perimeter_distance_from_centroid)) then
-        --    MessageToAll("Release not in bombing range area")
-        --    return
-        --end
-        --
-        --local weapon_timer = TIMER:New(self.UpdateWeaponPosition, self, weapon_dcs_object)
-        --weapon_timer:SetMaxFunctionCalls(3000) -- don't think there's a weapon that won't impact within 5 minutes
-        --weapon_timer:Start(nil, 0.1)
-        --
-        --table.insert_unique(self.weapon_data, weapon_dcs_object)
-        --self.weapon_data[weapon_dcs_object] = {
-        --    fired_by = player_unit,
-        --    release_heading = heading,
-        --    release_altitude = UTILS.MetersToFeet(player_unit:GetAltitude()),
-        --    release_point =  weapon_dcs_object:getPoint(),
-        --    position = weapon_dcs_object:getPoint(),
-        --    timer = weapon_timer,
-        --    has_impacted = false,
-        --    target = nil,
-        --    foul = false
-        --}
-
-        --self:BroadcastMessage(self.AUDIOFILES[1])
-
     end
 end

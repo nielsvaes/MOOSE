@@ -43,6 +43,9 @@ do
     end
 
     function CIRCLE:ContainsPoint(point)
+        self:I(point)
+        self:I(self.CenterVec2)
+        self:I(self.Radius)
         if ((point.x - self.CenterVec2.x ) ^2 + (point.y - self.CenterVec2.y) ^2 ) ^ 0.5 <= self.Radius then
             return true
         end
