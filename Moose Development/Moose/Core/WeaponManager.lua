@@ -29,6 +29,9 @@ do
                 self:I(self.weapons)
                 self:RemoveWeapon(ccweapon)
                 self:I(self.weapons)
+
+                MessageToAll("Informing ImpactAreaManager")
+                CCMISSION.IMPACT_AREA_MANAGER:WeaponImpactedAt(ccweapon.impact_coordinate:GetVec2())
             end
         end
     end

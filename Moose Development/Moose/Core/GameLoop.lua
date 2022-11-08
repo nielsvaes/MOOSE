@@ -64,14 +64,20 @@ GAMELOOP = {
     ClassName = "GAMELOOP"
 }
 
-function GAMELOOP:New(tickrate)
-    self = BASE:Inherit(self, BASE:New())
-    self.tickrate = tickrate or 0.03 -- 0.03 -> 30hz
-    self.gameloopfunctions = {}
-    self.timer = nil
-    self.is_running = false
 
-    return self
+function GAMELOOP:Get()
+    if _G["game_loop"] == nil then
+        self = BASE:Inherit(self, BASE:New())
+        self.tickrate = 0.03 -- 0.03 -> 30hz
+        self.gameloopfunctions = {}
+        self.timer = nil
+        self.is_running = false
+        self.name = "Nissagirl!"
+
+        _G["game_loop"] = self
+    end
+
+    return _G["game_loop"]
 end
 
 function GAMELOOP:Execute()

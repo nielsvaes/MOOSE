@@ -36,8 +36,12 @@ __Moose.Include( 'Scripts/Moose/Core/Spot.lua' )
 __Moose.Include( 'Scripts/Moose/Core/MarkerOps_Base.lua' )
 __Moose.Include( 'Scripts/Moose/Core/TextAndSound.lua' )
 __Moose.Include( 'Scripts/Moose/Core/GameLoop.lua' )
+__Moose.Include( 'Scripts/Moose/Core/ImpactArea.lua' )
+__Moose.Include( 'Scripts/Moose/Core/ImpactAreaManager.lua' )
 
 __Moose.Include( 'Scripts/Moose/Draw/Line.lua' )
+__Moose.Include( 'Scripts/Moose/Draw/Circle.lua' )
+__Moose.Include( 'Scripts/Moose/Draw/Polygon.lua' )
 
 __Moose.Include( 'Scripts/Moose/Wrapper/Object.lua' )
 __Moose.Include( 'Scripts/Moose/Wrapper/Identifiable.lua' )
