@@ -7,7 +7,8 @@ do
     LINE = {
         ClassName = "LINE",
         Points = {},
-        Coords = {}
+        Coords = {},
+        Name = nil
     }
 
     function LINE:Find(line_name)
@@ -17,19 +18,14 @@ do
             for _, object in pairs(layer["objects"]) do
                 if string.find(object["name"], line_name) then
                     if object["primitiveType"] == "Line" then
-                        for index, point in UTILS.spairs(object["points"]) do
+                        self.Name = object["name"]
+                        for _, point in UTILS.spairs(object["points"]) do
                             local p = {x = object["mapX"] + point["x"],
                                        y = object["mapY"] + point["y"] }
                             local coord = COORDINATE:NewFromVec2(p)
                             table.insert(self.Points, p)
                             table.insert(self.Coords, coord)
                         end
-
-                        --for _, point in UTILS.spairs(self.Points) do
-                        --    local p = { x = object["mapX"] + point["x"], y = object["mapY"] + point["y"] }
-                        --    self:I(p)
-                        --    table.insert(self.Coords, COORDINATE:NewFromVec2(p))
-                        --end
                     end
                 end
             end
