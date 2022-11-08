@@ -58,4 +58,8 @@ do
     function LINE:GetEndPoint()
         return self.Points[#self.Points]
     end
+
+    function LINE:GetName()
+        return self.Name()
+    end
 end
