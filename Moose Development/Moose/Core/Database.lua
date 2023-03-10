@@ -71,6 +71,7 @@ DATABASE = {
   STATICS = {},
   GROUPS = {},
   PLAYERS = {},
+  SHAPES = {},
   PLAYERSJOINED = {},
   PLAYERUNITS = {},
   CLIENTS = {},
@@ -138,6 +139,7 @@ function DATABASE:New()
   self:_RegisterGroupsAndUnits()
   self:_RegisterClients()
   self:_RegisterStatics()
+  self:_RegisterShapes()
   --self:_RegisterPlayers()
   --self:_RegisterAirbases()
 
@@ -211,6 +213,72 @@ function DATABASE:FindStatic( StaticName )
   local StaticFound = self.STATICS[StaticName]
   return StaticFound
 end
+
+--- Adds a polygonal shape based on the name in the DATABASE.
+-- @param #DATABASE self
+-- @param #string name Name of the shape.
+-- @return Shpaes.Polygon#POLYGON The polygon shape
+function DATABASE:AddPolygon(name)
+    self.SHAPES[name] = POLYGON:FindOnMap(name)
+end
+
+--- Adds a circle shape based on the name in the DATABASE.
+-- @param #DATABASE self
+-- @param #string name Name of the shape.
+-- @return Shpaes.Circle#CIRCLE The circle shape
+function DATABASE:AddCircle(name)
+    self.SHAPES[name] = CIRCLE:FindOnMap(name)
+end
+
+--- Adds a circle shape based on the name in the DATABASE.
+-- @param #DATABASE self
+-- @param #string name Name of the shape.
+-- @return Shapes.Circle#CIRCLE The circle shape
+function DATABASE:AddOval(name)
+    self.SHAPES[name] = OVAL:FindOnMap(name)
+end
+
+--- Adds a line shape based on the name in the DATABASE.
+-- @param #DATABASE self
+-- @param #string name Name of the shape.
+-- @return Shapes.Line#LINE The Line shape
+function DATABASE:AddLine(name)
+    self.SHAPES[name] = LINE:FindOnMap(name)
+end
+
+--- Finds a SHAPE based on the name.
+-- @param #DATABASE self
+-- @param #string name
+-- @return Shapes.ShapeBase The found SHAPE.
+function DATABASE:FindShape(name)
+    return self.SHAPES[name]
+end
+
+--- Registers the shapes found on the map in the DATABASE. It gets this from the env.mission table
+function DATABASE:_RegisterShapes()
+    if env.mission.drawings == nil then
+        self:I("Mission doesn't have any shapes, skipping")
+        return
+    end
+    for _, layer in pairs(env.mission.drawings.layers) do
+        for _, object in pairs(layer["objects"]) do
+            if object["polygonMode"] == "circle" then
+                self:AddCircle(object["name"])
+                self:I(string.format("Register CIRCLE: %s ", object["name"]))
+            elseif object["polygonMode"] == "oval" then
+                self:AddOval(object["name"])
+                self:I(string.format("Register OVAL: %s ", object["name"]))
+            elseif (object["primitiveType"] == "Line" and object["closed"] == true) or (object["polygonMode"] == "free") then
+                self:AddPolygon(object["name"])
+                self:I(string.format("Register POLYGON: %s ", object["name"]))
+            elseif object["primitiveType"] == "Line" and object["lineMode"] == "segment" then
+                self:AddLine(object["name"])
+                self:I(string.format("Register LINE: %s ", object["name"]))
+            end
+        end
+    end
+end
+
 
 --- Adds a Airbase based on the Airbase Name in the DATABASE.
 -- @param #DATABASE self
