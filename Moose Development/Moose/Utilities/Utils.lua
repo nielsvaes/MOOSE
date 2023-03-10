@@ -2915,3 +2915,427 @@ function UTILS.PlotRacetrack(Coordinate, Altitude, Speed, Heading, Leg, Coalitio
     circle_center_two_three:CircleToAll(UTILS.NMToMeters(turn_radius), coalition, color, alpha, nil, 0, lineType)--, ReadOnly, Text)
 
 end
+
+---AmmoDumpExplosionCircular
+--@param InitialIntensity number How big the first explosion should be, 0 if there shouldn't be one
+--@param RadiusMeters number Sub explosions will happen in this radius
+--@param SubExplosionChance number What the odds are of a sub explosion happening when the timer ticks
+--@param SubExplosionMinIntensity number Min intensity for the sub explosions
+--@param SubExplosionMaxIntensity number Max intensity for the sub explosions
+--@param FlarePercentage number How much of a chance there will be flares coming from the sub explosions
+--@param SubExplosionInterval number Interval when a sub explosion will be triggered
+--@param CookOffTime number How many seconds the sub explosions should continue to explode
+function COORDINATE:AmmoDumpExplosionCircular(Coordinate, InitialIntensity, RadiusMeters, SubExplosionChance, SubExplosionMinIntensity, SubExplosionMaxIntensity, FlarePercentage, SubExplosionInterval, CookOffTime)
+    SubExplosionMinIntensity = SubExplosionMaxIntensity or 0.5
+    SubExplosionMaxIntensity = SubExplosionMaxIntensity or 10
+    FlarePercentage = FlarePercentage or 85
+    SubExplosionInterval = SubExplosionInterval or 0.9
+    CookOffTime = CookOffTime or 20
+
+    Coordinate:Explosion(InitialIntensity)
+
+    local cookoff_timer = TIMER:New(function()
+        if UTILS.PercentageChance(SubExplosionChance) then
+            local new_pos = Coordinate:Translate(math.random(0, RadiusMeters * -1, RadiusMeters), math.random(0, 360), false, false)
+            new_pos:Explosion(math.random(SubExplosionMinIntensity, SubExplosionMaxIntensity))
+
+            if UTILS.PercentageChance(FlarePercentage) then
+                for i = 0, math.random(0, 5) do
+                    new_pos:FlareRed(math.random(0, 90))
+                end
+            end
+
+        end
+    end)
+    cookoff_timer:Start(0, math.random(CookOffTime / 2), SubExplosionInterval, CookOffTime)
+end
+
+---AmmoDumpExplosionRectangular
+--@param InitialIntensity number How big the first explosion should be, 0 if there shouldn't be one
+--@param Vertices table Made out of 4 pairs of coordinates in the form of {[x] = 1, [y] = 3} in a counter clockwise order
+--@param SubExplosionChance number What the odds are of a sub explosion happening when the timer ticks
+--@param SubExplosionMinIntensity number Min intensity for the sub explosions
+--@param SubExplosionMaxIntensity number Max intensity for the sub explosions
+--@param FlarePercentage number How much of a chance there will be flares coming from the sub explosions
+--@param SubExplosionInterval number Interval when a sub explosion will be triggered
+--@param CookOffTime number How many seconds the sub explosions should continue to explode
+function COORDINATE:AmmoDumpExplosionRectangular(Coordinate, InitialIntensity, Vertices, SubExplosionChance, SubExplosionMinIntensity, SubExplosionMaxIntensity, FlarePercentage, SubExplosionInterval, CookOffTime)
+    SubExplosionMinIntensity = SubExplosionMaxIntensity or 0.5
+    SubExplosionMaxIntensity = SubExplosionMaxIntensity or 10
+    FlarePercentage = FlarePercentage or 85
+    SubExplosionInterval = SubExplosionInterval or 0.9
+    CookOffTime = CookOffTime or 20
+
+    Coordinate:Explosion(InitialIntensity)
+
+    local triangles = {
+        { Vertices[1], Vertices[2], Vertices[3] },
+        { Vertices[3], Vertices[4], Vertices[1] },
+    }
+
+    local cookoff_timer = TIMER:New(function()
+        if UTILS.PercentageChance(SubExplosionChance) then
+            local triangle = triangles[math.random(1, 2)]
+            local vec2 = UTILS.RandomPointInTriangle(triangle[1], triangle[2], triangle[3])
+            local new_pos = self:NewFromVec2(vec2)
+            new_pos:Explosion(math.random(SubExplosionMinIntensity, SubExplosionMaxIntensity))
+
+            if UTILS.PercentageChance(FlarePercentage) then
+                for i = 0, math.random(0, 5) do
+                    new_pos:FlareRed(math.random(0, 90))
+                end
+            end
+        end
+    end)
+    cookoff_timer:Start(math.random(5, CookOffTime / 2), SubExplosionInterval, CookOffTime)
+end
+
+
+---TimeNow
+function UTILS.TimeNow()
+    return UTILS.SecondsToClock(timer.getAbsTime(), false, false)
+end
+
+function UTILS.TimeDifferenceInSeconds(start_time, end_time)
+    return UTILS.ClockToSeconds(end_time) - UTILS.ClockToSeconds(start_time)
+end
+
+function UTILS.TimeLaterThan(time_string)
+    if timer.getAbsTime() > UTILS.ClockToSeconds(time_string) then
+        return true
+    end
+    return false
+end
+
+function UTILS.TimeBefore(time_string)
+    if timer.getAbsTime() < UTILS.ClockToSeconds(time_string) then
+        return true
+    end
+    return false
+end
+
+function UTILS.CombineTimeStrings(time_string_01, time_string_02)
+    local hours1, minutes1, seconds1 = time_string_01:match("(%d+):(%d+):(%d+)")
+    local hours2, minutes2, seconds2 = time_string_02:match("(%d+):(%d+):(%d+)")
+    local total_seconds = tonumber(seconds1) + tonumber(seconds2) + tonumber(minutes1) * 60 + tonumber(minutes2) * 60 + tonumber(hours1) * 3600 + tonumber(hours2) * 3600
+
+    total_seconds = total_seconds % (24 * 3600)
+    if total_seconds < 0 then
+        total_seconds = total_seconds + 24 * 3600
+    end
+
+    local hours = math.floor(total_seconds / 3600)
+    total_seconds = total_seconds - hours * 3600
+    local minutes = math.floor(total_seconds / 60)
+    local seconds = total_seconds % 60
+
+    return string.format("%02d:%02d:%02d", hours, minutes, seconds)
+end
+
+function UTILS.SubtractTimeStrings(time_string_01, time_string_02)
+    local hours1, minutes1, seconds1 = time_string_01:match("(%d+):(%d+):(%d+)")
+    local hours2, minutes2, seconds2 = time_string_02:match("(%d+):(%d+):(%d+)")
+    local total_seconds = tonumber(seconds1) - tonumber(seconds2) + tonumber(minutes1) * 60 - tonumber(minutes2) * 60 + tonumber(hours1) * 3600 - tonumber(hours2) * 3600
+
+    total_seconds = total_seconds % (24 * 3600)
+    if total_seconds < 0 then
+        total_seconds = total_seconds + 24 * 3600
+    end
+
+    local hours = math.floor(total_seconds / 3600)
+    total_seconds = total_seconds - hours * 3600
+    local minutes = math.floor(total_seconds / 60)
+    local seconds = total_seconds % 60
+
+    return string.format("%02d:%02d:%02d", hours, minutes, seconds)
+end
+
+
+function UTILS.TimeBetween(start_time, end_time)
+    return UTILS.TimeAfter(start_time) and UTILS.TimeBefore(end_time)
+end
+
+function UTILS.ChimeMessage(message, time, delay)
+    time = time or 10
+    delay = delay or 0.01
+    BASE:ScheduleOnce(delay, function()
+        CCMISSION.CHIME:ToAll()
+        MessageToAll(message, time)
+    end)
+end
+
+
+--- tanker_menu = MENU_COALITION:New(
+---         coalition.side.BLUE,
+---         "TANKER"
+--- )
+---
+--- local speed = { {2, 3, 4}, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9} }
+--- UTILS.NestedMenu(speed,
+---                  1,
+---                  tanker_menu,
+---                  coalition.side.BLUE,
+---                  nil,
+---                  true,
+---                  function(speed, message) BASE:I("Setting speed to " .. tostring(speed) .. " and printing " .. message) end, "hellloooo!!")
+
+
+local menu_text = ""
+function UTILS.NestedMenu(list, depth, parent_menu, coa, label, last_item_is_first_arg, f, ...)
+    local args = {...}
+    coa = coa or coalition.side.BLUE
+    depth = depth or 1
+
+    local root = {}
+    for _, item in ipairs(list[depth]) do
+        if label == nil then
+            menu_text = tostring(item)
+        else
+            menu_text = label .. tostring(item)
+        end
+        --BASE:I("menu text is " .. menu_text)
+
+        local sub_menu = MENU_COALITION:New(coa, menu_text, parent_menu)
+        root[sub_menu] = {}
+        if depth + 1 < #list then
+            root[sub_menu] = UTILS.NestedMenu(list, depth + 1, sub_menu, coa, menu_text, last_item_is_first_arg, f, unpack(args))
+        else
+            local prev_menu_text = menu_text
+            for _, last_item in ipairs(list[depth + 1]) do
+                menu_text = prev_menu_text .. tostring(last_item)
+                --BASE:I("menu text for last item is " .. menu_text)
+
+                local exec_command
+                if last_item_is_first_arg then
+                    exec_command = MENU_COALITION_COMMAND:New(
+                                        coa,
+                                        tostring(menu_text),
+                                        sub_menu,
+                                        f, menu_text, unpack(args)
+                    )
+                else
+                    exec_command = MENU_COALITION_COMMAND:New(
+                                        coa,
+                                        tostring(menu_text),
+                                        sub_menu,
+                                        f, unpack(args)
+                    )
+                end
+                table.insert(root[sub_menu], exec_command)
+            end
+            menu_text = ""
+        end
+    end
+    return root
+end
+
+function UTILS.PercentageChance(chance)
+    chance = chance or math.random(0, 100)
+    chance = UTILS.Clamp(chance, 0, 100)
+    local percentage = math.random(0, 100)
+    if percentage < chance then
+        return true
+    end
+    return false
+end
+
+function UTILS.Clamp(value, min, max)
+    if value < min then value = min end
+    if value > max then value = max end
+
+    return value
+end
+
+function UTILS.ExplodeAlongFreeHandLine(line, explosion_min, explosion_max, interval)
+    explosion_min = explosion_min or 1
+    explosion_max = explosion_max or 10
+    interval = interval or 0.05
+    local explosion_index = 1
+    local timer = TIMER:New(
+       function()
+        local coord = line:Coordinates()[explosion_index]
+        coord:Explosion(math.random(explosion_min, explosion_max))
+        explosion_index = explosion_index + 1
+       end
+    )
+    timer:SetMaxFunctionCalls(#line:Coordinates())
+    timer:Start(nil, interval)
+end
+
+function UTILS.ExplodeAlongStraightLine(line, num_points, skip_point_chance, explosion_min, explosion_max, interval)
+    explosion_min = explosion_min or 1
+    explosion_max = explosion_max or 10
+    skip_point_chance = skip_point_chance or 25
+    interval = interval or 0.05
+
+    local points = line:GetPointsInbetween(num_points)
+
+    local explosion_index = 1
+    local timer = TIMER:New(
+       function()
+           if not UTILS.PercentageChance(skip_point_chance) then
+                local coord = COORDINATE:NewFromVec2(points[explosion_index])
+                coord:Explosion(math.random(explosion_min, explosion_max))
+           end
+           explosion_index = explosion_index + 1
+       end
+    )
+    timer:SetMaxFunctionCalls(num_points)
+    timer:Start(nil, interval)
+end
+
+
+function UTILS.RandomPointInTriangle(pt1, pt2, pt3)
+    local pt = {math.random(), math.random()}
+    table.sort(pt)
+    local s = pt[1]
+    local t = pt[2] - pt[1]
+    local u = 1 - pt[2]
+
+    return {x = s * pt1.x + t * pt2.x + u * pt3.x,
+            y = s * pt1.y + t * pt2.y + u * pt3.y}
+end
+
+function UTILS.AngleBetween(angle, min, max)
+    angle = (360 + (angle % 360)) % 360
+    min = (360 + min % 360) % 360
+    max = (360 + max % 360) % 360
+
+    if min < max then return min <= angle and angle <= max end
+    return min <= angle or angle <= max
+end
+
+function UTILS.GetSimpleAmmo(unit)
+    local ammo_dict = {}
+    for _, info_dict in pairs(unit:GetAmmo()) do
+        ammo_dict[info_dict["desc"]["displayName"]] = info_dict["count"]
+    end
+    return ammo_dict
+end
+
+function string.startswith(str, value)
+   return string.sub(str,1,string.len(value)) == value
+end
+
+function string.endswith(str, value)
+    return value == "" or str:sub(-#value) == value
+end
+
+function table.contains(tbl, element)
+    if element == nil or tbl == nil then return false end
+
+    for _, value in pairs(tbl) do
+        if value == element then
+            return true
+        end
+    end
+    return false
+end
+
+function table.contains_key(tbl, key)
+    if tbl[key] ~= nil then return true else return false end
+end
+
+function table.insert_unique(tbl, element)
+    if element == nil or tbl == nil then return end
+
+    if not table.contains(tbl, element) then
+        table.insert(tbl, element)
+    end
+end
+
+function table.remove_by_value(tbl, element)
+    local indices_to_remove = {}
+    local index = 1
+    for _, value in pairs(tbl) do
+        if value == element then
+            table.insert(indices_to_remove, index)
+        end
+        index = index + 1
+    end
+
+    for _, idx in pairs(indices_to_remove) do
+        table.remove(tbl, idx)
+    end
+end
+
+function table.remove_key(table, key)
+    local element = table[key]
+    table[key] = nil
+    return element
+end
+
+function table.index_of(table, element)
+    for i, v in ipairs(table) do
+        if v == element then
+            return i
+        end
+    end
+    return nil
+end
+
+function table.length(T)
+  local count = 0
+  for _ in pairs(T) do count = count + 1 end
+  return count
+end
+
+function table.slice(tbl, first, last, step)
+  local sliced = {}
+  local start = first or 1
+  local stop = last or table.length(tbl)
+  local count = 1
+
+  for key, value in pairs(tbl) do
+      if count >= start and count <= stop then
+          sliced[key] = value
+      end
+      count = count + 1
+  end
+
+  return sliced
+end
+
+function table.count_value(tbl, value)
+    local count = 0
+    for _, item in pairs(tbl) do
+        if item == value then count = count + 1 end
+    end
+    return count
+end
+
+function table.combine(t1, t2)
+    for i=1,#t2 do
+        t1[#t1+1] = t2[i]
+    end
+    return t1
+end
+
+function table.merge(t1, t2)
+    for k, v in pairs(t2) do
+        if (type(v) == "table") and (type(t1[k] or false) == "table") then
+            table.merge(t1[k], t2[k])
+        else
+            t1[k] = v
+        end
+    end
+    return t1
+end
+
+function table.add(tbl, item)
+    tbl[#tbl + 1] = item
+end
+
+function table.find_key_value_pair(tbl, key, value)
+    for k, v in pairs(tbl) do
+        if type(v) == "table" then
+            local result = table.find_key_value_pair(v, key, value)
+            if result ~= nil then
+                return result
+            end
+        elseif k == key and v == value then
+            return tbl
+        end
+    end
+    return nil
+end
