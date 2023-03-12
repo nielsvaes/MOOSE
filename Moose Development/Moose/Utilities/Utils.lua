@@ -2925,7 +2925,7 @@ end
 --@param FlarePercentage number How much of a chance there will be flares coming from the sub explosions
 --@param SubExplosionInterval number Interval when a sub explosion will be triggered
 --@param CookOffTime number How many seconds the sub explosions should continue to explode
-function COORDINATE:AmmoDumpExplosionCircular(Coordinate, InitialIntensity, RadiusMeters, SubExplosionChance, SubExplosionMinIntensity, SubExplosionMaxIntensity, FlarePercentage, SubExplosionInterval, CookOffTime)
+function UTILS.AmmoDumpExplosionCircular(Coordinate, InitialIntensity, RadiusMeters, SubExplosionChance, SubExplosionMinIntensity, SubExplosionMaxIntensity, FlarePercentage, SubExplosionInterval, CookOffTime)
     SubExplosionMinIntensity = SubExplosionMaxIntensity or 0.5
     SubExplosionMaxIntensity = SubExplosionMaxIntensity or 10
     FlarePercentage = FlarePercentage or 85
@@ -2959,7 +2959,7 @@ end
 --@param FlarePercentage number How much of a chance there will be flares coming from the sub explosions
 --@param SubExplosionInterval number Interval when a sub explosion will be triggered
 --@param CookOffTime number How many seconds the sub explosions should continue to explode
-function COORDINATE:AmmoDumpExplosionRectangular(Coordinate, InitialIntensity, Vertices, SubExplosionChance, SubExplosionMinIntensity, SubExplosionMaxIntensity, FlarePercentage, SubExplosionInterval, CookOffTime)
+function UTILS.AmmoDumpExplosionRectangular(Coordinate, InitialIntensity, Vertices, SubExplosionChance, SubExplosionMinIntensity, SubExplosionMaxIntensity, FlarePercentage, SubExplosionInterval, CookOffTime)
     SubExplosionMinIntensity = SubExplosionMaxIntensity or 0.5
     SubExplosionMaxIntensity = SubExplosionMaxIntensity or 10
     FlarePercentage = FlarePercentage or 85
@@ -3143,6 +3143,12 @@ function UTILS.Clamp(value, min, max)
     if value < min then value = min end
     if value > max then value = max end
 
+    return value
+end
+
+function UTILS.ClampAngle(value)
+    if value > 360 then return value - 360 end
+    if value < 0 then return value + 360 end
     return value
 end
 
