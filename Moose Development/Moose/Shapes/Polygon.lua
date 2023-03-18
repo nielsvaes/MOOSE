@@ -34,6 +34,14 @@ function POLYGON:FindOnMap(line_name)
     return self
 end
 
+function POLYGON:FromZone(zone_name)
+    for _, zone in pairs(env.mission.triggers.zones) do
+        if zone["name"] == zone_name then
+            return POLYGON:New(unpack(zone["verticies"] or {}))
+        end
+    end
+end
+
 function POLYGON:Find(shape_name)
     return _DATABASE:FindShape(shape_name)
 end
