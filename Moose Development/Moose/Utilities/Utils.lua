@@ -3232,6 +3232,74 @@ function UTILS.GetSimpleAmmo(unit)
     return ammo_dict
 end
 
+function UTILS.GetHashFromString(str)
+    local hash = 0
+    for i = 1, #str do
+        local char = string.byte(str, i)
+        hash = hash + char
+    end
+    return tostring(hash)
+end
+
+function UTILS.WriteJSON(data, file_path)
+    --package.path  = package.path ..  ";.\\LuaSocket\\?.lua"
+    --package.cpath = package.cpath .. ";.\\LuaSocket\\?.dll"
+    --package.path  = package.path ..  ";.\\Scripts\\?.lua"
+
+    local JSON = require("json")
+    local pretty_json_text = JSON:encode_pretty(data)
+    local write_file = io.open(file_path, "w")
+    write_file:write(pretty_json_text)
+    write_file:close()
+end
+
+function UTILS.ReadJSON(file_path)
+    local JSON = require("json")
+    local read_file = io.open(file_path, "r")
+    local contents = read_file:read( "*a" )
+    io.close(read_file)
+    return JSON:decode(contents)
+end
+
+function UTILS.GetZoneProperties(zone_name)
+    local return_table = {}
+    for _, zone in pairs(env.mission.triggers.zones) do
+        if zone["name"] == zone_name then
+            if table.length(zone["properties"]) > 0 then
+                for _, property in pairs(zone["properties"]) do
+                    return_table[property["key"]] = property["value"]
+                end
+    	        return return_table
+            else
+                BASE:I(string.format("%s doesn't have any properties", zone_name))
+                return {}
+            end
+        end
+    end
+end
+
+function UTILS.RotatePointAroundPivot(point, pivot, angle)
+    local radians = math.rad(angle)
+
+    -- Translate the point to the origin
+    local x = point.x - pivot.x
+    local y = point.y - pivot.y
+
+    -- Apply the rotation
+    local rotated_x = x * math.cos(radians) - y * math.sin(radians)
+    local rotatex_y = x * math.sin(radians) + y * math.cos(radians)
+
+    -- Translate the point back to its original position
+    local original_x = rotated_x + pivot.x
+    local original_y = rotatex_y + pivot.y
+
+    return { x = original_x, y = original_y }
+end
+
+function UTILS.UniqueName(base)
+    return base .. "_" .. tostring(math.random(0, 100000))
+end
+
 function string.startswith(str, value)
    return string.sub(str,1,string.len(value)) == value
 end
