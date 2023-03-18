@@ -3050,6 +3050,19 @@ function UTILS.SubtractTimeStrings(time_string_01, time_string_02)
     return string.format("%02d:%02d:%02d", hours, minutes, seconds)
 end
 
+function UTILS.Vec2Subtract(a, b)
+    return {x=a.x-b.x, y=a.y-b.y}
+end
+
+function UTILS.VecAngleFromTo(a, b)
+    local len = math.sqrt(( a.x - b.x )^2 + (a.y - b.y)^2 + (a.z - b.z)^2)
+    local rise = b.y - a.y
+    local run = math.sqrt((len ^ 2) - (rise ^ 2))
+    local angle = UTILS.ToDegree(math.atan(rise/run))
+    return math.abs(angle)
+end
+
+
 
 function UTILS.TimeBetween(start_time, end_time)
     return UTILS.TimeAfter(start_time) and UTILS.TimeBefore(end_time)
