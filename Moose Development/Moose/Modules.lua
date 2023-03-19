@@ -7,6 +7,9 @@ __Moose.Include( 'Scripts/Moose/Utilities/STTS.lua' )
 __Moose.Include( 'Scripts/Moose/Utilities/FiFo.lua' )
 __Moose.Include( 'Scripts/Moose/Utilities/Socket.lua' )
 
+
+
+
 __Moose.Include( 'Scripts/Moose/Core/Base.lua' )
 __Moose.Include( 'Scripts/Moose/Core/Astar.lua' )
 __Moose.Include( 'Scripts/Moose/Core/Beacon.lua' )
@@ -145,5 +148,35 @@ __Moose.Include( 'Scripts/Moose/Tasking/Task_Cargo_CSAR.lua' )
 __Moose.Include( 'Scripts/Moose/Tasking/Task_Cargo_Dispatcher.lua' )
 __Moose.Include( 'Scripts/Moose/Tasking/Task_Capture_Zone.lua' )
 __Moose.Include( 'Scripts/Moose/Tasking/Task_Capture_Dispatcher.lua' )
+
+
+__Moose.Include( 'Scripts/Moose/Utilities/DebugDraw.lua' )
+__Moose.Include( 'Scripts/Moose/Utilities/ObjectiveManager.lua' )
+
+__Moose.Include( 'Scripts/Moose/Core/CCMissionDB.lua' )
+__Moose.Include( 'Scripts/Moose/Core/GameLoop.lua' )
+__Moose.Include( 'Scripts/Moose/Core/ImpactArea.lua' )
+__Moose.Include( 'Scripts/Moose/Core/ImpactAreaManager.lua' )
+__Moose.Include( 'Scripts/Moose/Core/PatrolArea.lua' )
+__Moose.Include( 'Scripts/Moose/Core/Rule.lua' )
+__Moose.Include( 'Scripts/Moose/Core/Conversation.lua' )
+__Moose.Include( 'Scripts/Moose/Core/WeaponManager.lua' )
+
+__Moose.Include( 'Scripts/Moose/Functional/RangeCircle.lua' )
+
+__Moose.Include( 'Scripts/Moose/Shapes/ShapeBase.lua' )
+__Moose.Include( 'Scripts/Moose/Shapes/Circle.lua' )
+__Moose.Include( 'Scripts/Moose/Shapes/Cube.lua' )
+__Moose.Include( 'Scripts/Moose/Shapes/Line.lua' )
+__Moose.Include( 'Scripts/Moose/Shapes/Oval.lua' )
+__Moose.Include( 'Scripts/Moose/Shapes/Polygon.lua' )
+
+__Moose.Include( 'Scripts/Moose/Wrapper/AC130.lua' )
+__Moose.Include( 'Scripts/Moose/Wrapper/CCWeapon.lua' )
+__Moose.Include( 'Scripts/Moose/Wrapper/GroundTransport.lua' )
+__Moose.Include( 'Scripts/Moose/Wrapper/StrobeUnit.lua' )
+__Moose.Include( 'Scripts/Moose/Wrapper/UAV.lua' )
+
+
 
 __Moose.Include( 'Scripts/Moose/Globals.lua' )

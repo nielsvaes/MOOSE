@@ -322,9 +322,9 @@ end
 --- https://wiki.hoggitworld.com/view/DCS_enum_country
 --- https://wiki.hoggitworld.com/view/DCS_enum_coalition
 function CCMISSIONDB:Add(group_table, category, country_id, coalition_id)
-    country_id = country_id or CCMISSIONDB.DEFAULTS.country_id
-    coalition_id = coalition_id or CCMISSIONDB.DEFAULTS.coalition_id
-    category = category or CCMISSIONDB.DEFAULTS.category
+    country_id = country_id or group_table["CountryID"]
+    coalition_id = coalition_id or group_table["CoalitionID"]
+    category = category or group_table["CategoryID"]
 
     coalition.addGroup(country_id, category, group_table)
     local grp = GROUP:NewTemplate(group_table, coalition_id, category, country_id)

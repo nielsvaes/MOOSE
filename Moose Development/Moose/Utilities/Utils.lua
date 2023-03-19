@@ -3242,10 +3242,8 @@ function UTILS.GetHashFromString(str)
 end
 
 function UTILS.WriteJSON(data, file_path)
-    --package.path  = package.path ..  ";.\\LuaSocket\\?.lua"
-    --package.cpath = package.cpath .. ";.\\LuaSocket\\?.dll"
-    --package.path  = package.path ..  ";.\\Scripts\\?.lua"
 
+    package.path  = package.path ..  ";.\\Scripts\\?.lua"
     local JSON = require("json")
     local pretty_json_text = JSON:encode_pretty(data)
     local write_file = io.open(file_path, "w")
@@ -3254,6 +3252,7 @@ function UTILS.WriteJSON(data, file_path)
 end
 
 function UTILS.ReadJSON(file_path)
+    package.path  = package.path ..  ";.\\Scripts\\?.lua"
     local JSON = require("json")
     local read_file = io.open(file_path, "r")
     local contents = read_file:read( "*a" )
