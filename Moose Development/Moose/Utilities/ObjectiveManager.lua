@@ -23,40 +23,60 @@ function OBJECTIVE_MANAGER:Get(force)
 end
 
 
-function OBJECTIVE_MANAGER:SpawnObjective(objective_id, vec2_pos, rotation, country)
-    objective_id = tostring(objective_id)
+function OBJECTIVE_MANAGER:SpawnObjective(objective_name, id, vec2_pos, rotation, country)
+    id = tostring(id)
     local json_data = UTILS.ReadJSON(self.json_file_path)
     local spawned_objects = {}
-    local objective_table = json_data[objective_id]
+    local objective_table = json_data[objective_name]
 
     -- Statics
-    for _, static_template in pairs(objective_table["statics"]) do
-        local rotated = UTILS.RotatePointAroundPivot({ x=static_template.x, y=static_template.y}, { x=0, y=0}, rotation)
-        static_template.x = rotated.x + vec2_pos.x
-        static_template.y = rotated.y + vec2_pos.y
-        static_template.name = UTILS.UniqueName(static_template.name)
-
-        local static = SPAWNSTATIC:NewFromType(static_template.type, static_template.category, country)
-                                  :InitNamePrefix(UTILS.UniqueName(objective_table.name))
-                                  :InitShape(static_template.shape_type or "")
-                                  :SpawnFromPointVec2(POINT_VEC2:NewFromVec2({x=static_template.x, y=static_template.y }), rotation + UTILS.ToDegree(static_template.heading))
+    for _, static_table in pairs(objective_table["statics"]) do
+        local static = self:__LoadStatic(static_table, vec2_pos, rotation, country)
         table.insert_unique(spawned_objects, static)
     end
 
     -- Groups
     for _, group_table in pairs(objective_table["groups"]) do
-        local spawned_group = self:__LOAD_GROUP(group_table, vec2_pos, rotation, country)
-
+        local spawned_group = self:__LoadGroup(group_table, vec2_pos, rotation, country)
         table.insert_unique(spawned_objects, spawned_group)
-
     end
 
-    self.objective_spawn_info[objective_table.name] = spawned_objects
+    -- Randoms
+    for _, random_zone_table in pairs(objective_table["random_zones"]) do
+        local chance = math.random(random_zone_table["min"] or 0, random_zone_table["max"] or 100)
+        for _ , random_group_table in pairs(random_zone_table["groups"] or {}) do
+            if UTILS.PercentageChance(chance) then
+                local random_spawned_group = self:__LoadGroup(random_group_table, vec2_pos, rotation, country)
+                table.insert_unique(spawned_objects, random_spawned_group)
+            end
+        end
+        for _, random_static_table in pairs(random_zone_table["statics"] or {}) do
+            if UTILS.PercentageChance(chance) then
+                local random_static = self:__LoadStatic(random_static_table, vec2_pos, rotation, country)
+                table.insert_unique(spawned_objects, random_static)
+            end
+        end
+    end
+
+    self.objective_spawn_info[id] = spawned_objects
 end
 
 
+function OBJECTIVE_MANAGER:__LoadStatic(static_table, vec2_pos, rotation, country)
+    local rotated = UTILS.RotatePointAroundPivot({ x= static_table.x, y= static_table.y}, { x=0, y=0}, rotation)
+    static_table.x = rotated.x + vec2_pos.x
+    static_table.y = rotated.y + vec2_pos.y
+    static_table.name = UTILS.UniqueName(static_table.name)
 
-function OBJECTIVE_MANAGER:__LOAD_GROUP(group_table, vec2_pos, rotation, country)
+    local static = SPAWNSTATIC:NewFromType(static_table.type, static_table.category, country)
+                              :InitNamePrefix(UTILS.UniqueName(static_table.name))
+                              :InitShape(static_table.shape_type or "")
+                              :SpawnFromPointVec2(POINT_VEC2:NewFromVec2({ x= static_table.x, y= static_table.y }), rotation + UTILS.ToDegree(static_table.heading))
+    return static
+end
+
+
+function OBJECTIVE_MANAGER:__LoadGroup(group_table, vec2_pos, rotation, country)
     local group_rotated = UTILS.RotatePointAroundPivot({ x=group_table.x, y=group_table.y}, {x=0, y=0}, rotation)
     group_rotated = UTILS.Vec2Add(group_rotated, vec2_pos)
     --group_table["visible"] = true
@@ -87,12 +107,12 @@ end
 
 
 
-function OBJECTIVE_MANAGER:DestroyObjective(objective_name)
-    for _, spawned_object in pairs(self.objective_spawn_info[objective_name] or {}) do
-        self:I(spawned_object:GetName())
+function OBJECTIVE_MANAGER:DestroyObjective(id)
+    id = tostring(id)
+    for _, spawned_object in pairs(self.objective_spawn_info[id] or {}) do
         spawned_object:Destroy()
     end
-    self.objective_spawn_info[objective_name] = nil
+    self.objective_spawn_info[id] = nil
 end
 
 
