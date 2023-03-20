@@ -1,25 +1,140 @@
 
 OBJECTIVE_MANAGER = {
     ClassName = "OBJECTIVE_MANAGER",
-    json_file_path = "C:/coconutcockpit/objectives.json",
     SpawnedObjects = {}
 }
 
-function OBJECTIVE_MANAGER:Get(force)
+function OBJECTIVE_MANAGER:Get(force, json_file_path)
     force = force or false
+
     if _G["objective_manager"] == nil or force then
         self = BASE:Inherit(self, BASE:New())
 
         self.weapon_parameter_update_rate = 30
         self.weapons = {}
 
-        self.json_file_path = "C:/coconutcockpit/objectives.json"
+        self.json_file_path = json_file_path or "C:/coconutcockpit/objectives.json"
         self.objective_spawn_info = {}
 
         _G["objective_manager"] = self
         self:I("Making new OBJECTIVE_MANAGER")
     end
     return _G["objective_manager"]
+end
+
+function OBJECTIVE_MANAGER:IndexObjectives()
+    local info_dict = UTILS.ReadJSON(self.json_file_path)
+    local objective_zones = SET_ZONE:New():FilterPrefixes("obj_"):FilterOnce():GetSetObjects()
+    local random_zones = SET_ZONE:New():FilterPrefixes("random"):FilterOnce():GetSetObjects()
+
+    for _, objective_zone in pairs(objective_zones) do
+        local objective_zone_name = objective_zone:GetName()
+        local properties = UTILS.GetZoneProperties(objective_zone_name)
+        if table.length(properties) > 0 then
+            -- get name, id and description from properties
+            local objective_table = properties
+            objective_table["global_x"] = objective_zone:GetVec2().x
+            objective_table["global_y"] = objective_zone:GetVec2().y
+            objective_table["statics"] = {}
+            objective_table["groups"] = {}
+            objective_table["random_zones"] = {}
+
+            local statics = SET_STATIC:New():FilterZones({ objective_zone }):FilterOnce():GetSetObjects()
+            local groups =  SET_GROUP:New():FilterZones({ objective_zone }):FilterOnce():GetSetObjects()
+
+            -- save statics
+            for _, static in pairs(statics) do
+                if static:GetID() ~= nil then
+                    BASE:I(static:GetDCSObject():getID())
+                    BASE:I(static:GetName())
+                    local has_been_added = false
+                    local static_unit_table = table.find_key_value_pair(env.mission.coalition, "unitId", tonumber(static:GetDCSObject():getID()))
+                    local new_x = static_unit_table["x"] - objective_table["global_x"]
+                    local new_y = static_unit_table["y"] - objective_table["global_y"]
+
+                    static_unit_table["x"] = new_x
+                    static_unit_table["y"] = new_y
+
+                    for _, random_zone in pairs(random_zones) do
+                        local zone_name = random_zone:GetName()
+                        if UTILS.IsInRadius(random_zone:GetVec2(), objective_zone:GetVec2(), objective_zone:GetRadius()) then
+
+                            local zone_poly = POLYGON:FromZone(zone_name)
+                            if  objective_table["random_zones"][zone_name] == nil then
+                                objective_table["random_zones"][zone_name] = UTILS.GetZoneProperties(zone_name)
+                                objective_table["random_zones"][zone_name][ "statics"] = {}
+                                objective_table["random_zones"][zone_name][ "groups"] = {}
+                            end
+
+                            if zone_poly:ContainsPoint(static:GetVec2()) then
+                                table.add(objective_table["random_zones"][zone_name]["statics"], static_unit_table)
+                                has_been_added = true
+                            end
+                        end
+                    end
+                    if not has_been_added then
+                        table.add(objective_table["statics"], static_unit_table)
+                    end
+                end
+            end
+
+            -- save groups
+            for _, group in pairs(groups) do
+                if group:GetID() ~= nil then
+                    local has_been_added = false
+                    local group_table = table.find_key_value_pair(env.mission.coalition, "groupId", tonumber(group:GetID()))
+                    local group_x = group_table["x"] - objective_table["global_x"]
+                    local group_y = group_table["y"] - objective_table["global_y"]
+
+                    group_table["x"] = group_x
+                    group_table["y"] = group_y
+
+                    for _, unit_table in pairs(group_table["units"]) do
+                        local unit_x = unit_table["x"] - objective_table["global_x"]
+                        local unit_y = unit_table["y"] - objective_table["global_y"]
+
+                        unit_table["x"] = unit_x
+                        unit_table["y"] = unit_y
+                    end
+
+                    for _, route_point in pairs(group_table["route"]["points"]) do
+                        local route_pt_x = route_point["x"] - objective_table["global_x"]
+                        local route_pt_y = route_point["y"] - objective_table["global_y"]
+
+                        route_point["x"] = route_pt_x
+                        route_point["y"] = route_pt_y
+                    end
+
+                    for _, random_zone in pairs(random_zones) do
+                        local zone_name = random_zone:GetName()
+                        if UTILS.IsInRadius(random_zone:GetVec2(), objective_zone:GetVec2(), objective_zone:GetRadius()) then
+
+                            local zone_poly = POLYGON:FromZone(zone_name)
+                            if objective_table["random_zones"][zone_name] == nil then
+                                objective_table["random_zones"][zone_name] = UTILS.GetZoneProperties(zone_name)
+                                objective_table["random_zones"][zone_name][ "statics"] = {}
+                                objective_table["random_zones"][zone_name][ "groups"] = {}
+                            end
+                            if zone_poly:ContainsPoint(group:GetVec2()) then
+                                table.add(objective_table["random_zones"][zone_name]["groups"], group_table)
+                                has_been_added = true
+                            end
+                        end
+                    end
+                    if not has_been_added then
+                        table.add(objective_table["groups"], group_table)
+                    end
+                end
+            end
+
+
+            -- assign to global table
+            info_dict[objective_table["name"]] = UTILS.DeepCopy(objective_table)
+        end
+    end
+
+    UTILS.WriteJSON(info_dict, self.json_file_path)
+    BASE:I("JSON written")
 end
 
 
@@ -120,7 +235,7 @@ function OBJECTIVE_MANAGER:EnsureJSON()
     OBJECTIVE_MANAGER.INFO_DICT = {}
     if UTILS.FileExists(OBJECTIVE_MANAGER.JSON_FILE_PATH) then
         BASE:I(".json exists, using data")
-        INFO_DICT = UTILS.ReadJSON(OBJECTIVE_MANAGER.JSON_FILE_PATH)
+        info_dict = UTILS.ReadJSON(OBJECTIVE_MANAGER.JSON_FILE_PATH)
     else
         lfs.mkdir("C:/coconutcockpit/")
     end
