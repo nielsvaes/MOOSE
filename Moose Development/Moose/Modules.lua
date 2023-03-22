@@ -150,7 +150,6 @@ __Moose.Include( 'Scripts/Moose/Tasking/Task_Capture_Zone.lua' )
 __Moose.Include( 'Scripts/Moose/Tasking/Task_Capture_Dispatcher.lua' )
 
 
-__Moose.Include( 'Scripts/Moose/Utilities/DebugDraw.lua' )
 __Moose.Include( 'Scripts/Moose/Utilities/ObjectiveManager.lua' )
 
 __Moose.Include( 'Scripts/Moose/Core/CCMissionDB.lua' )
