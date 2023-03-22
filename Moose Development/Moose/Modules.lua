@@ -163,6 +163,7 @@ __Moose.Include( 'Scripts/Moose/Core/Conversation.lua' )
 __Moose.Include( 'Scripts/Moose/Core/WeaponManager.lua' )
 
 __Moose.Include( 'Scripts/Moose/Functional/RangeCircle.lua' )
+__Moose.Include( 'Scripts/Moose/Functional/StrafeArea.lua' )
 
 __Moose.Include( 'Scripts/Moose/Shapes/ShapeBase.lua' )
 __Moose.Include( 'Scripts/Moose/Shapes/Circle.lua' )
