@@ -37,13 +37,6 @@ function STRAFE_AREA:PlayerInZone(player_unit)
     return false
 end
 
-
-function STRAFE_AREA:__EnsureUnitInfo(player_unit)
-    if not table.contains_key(self.player_data, player_unit) then
-        self.player_data[player_unit] = {}
-    end
-end
-
 function STRAFE_AREA:OnEventShootingStart(event_data)
     local player_unit = event_data.IniUnit
     
@@ -52,12 +45,12 @@ function STRAFE_AREA:OnEventShootingStart(event_data)
         return
     end
     
-    self:__EnsureUnitInfo(player_unit)
+    self:ResetPlayerData(player_unit)
 
-    self.player_data[player_unit]["count"] = self:GetGunAmmoCount(player_unit)
+    self.player_data[player_unit]["count"]    = self:GetGunAmmoCount(player_unit)
     self.player_data[player_unit]["expended"] = 0
-    self.player_data[player_unit]["heading"] = player_unit:GetHeading()
-    self.player_data[player_unit]["altitude"] = UTILS.MetersToFeet(player_unit:GetAltitude(true))
+    self.player_data[player_unit]["heading"]  = player_unit:GetHeading()
+    self.player_data[player_unit]["kias"]     = player_unit:GetAirspeedIndicated()
 end
 
 function STRAFE_AREA:OnEventShootingEnd(event_data)
@@ -70,8 +63,11 @@ function STRAFE_AREA:OnEventShootingEnd(event_data)
     local previous_ammo_count = self.player_data[player_unit]["count"]
     local expended_rounds = previous_ammo_count - self:GetGunAmmoCount(player_unit)
 
-    self.player_data[event_data.IniUnit]["count"]    = self:GetGunAmmoCount(player_unit)
-    self.player_data[event_data.IniUnit]["expended"] = expended_rounds
+    self.player_data[player_unit]["count"]    = self:GetGunAmmoCount(player_unit)
+    self.player_data[player_unit]["expended"] = expended_rounds
+    self.player_data[player_unit]["altitude"] = UTILS.MetersToFeet(player_unit:GetAltitude(true))
+    self.player_data[player_unit]["kias"]     = (player_unit:GetAirspeedIndicated() + self.player_data[player_unit]["kias"]) / 2
+    self.player_data[player_unit]["heading"]  = (player_unit:GetHeading() + self.player_data[player_unit]["heading"]) / 2
 
     BASE:ScheduleOnce(15, function()
         self:ShowHitData(player_unit)
@@ -96,13 +92,21 @@ function STRAFE_AREA:ShowHitData(player_unit)
     local expended = self.player_data[player_unit]["expended"]
     local hits     = self.player_data[player_unit]["hits"]
     local heading  = self.player_data[player_unit]["heading"]
+    local kias     = self.player_data[player_unit]["kias"]
     local altitude  = self.player_data[player_unit]["altitude"]
     local pct = (100 / expended) * hits
 
     local overall = "Pass"
+
     local heading_rating = "(Pass)"
     if not UTILS.AngleBetween(heading, self.heading - 15, self.heading + 15) then
         heading_rating = "(Fail)"
+        overall = "Fail"
+    end
+
+    local kias_rating = "(Pass)"
+    if kias < 400 then
+        kias_rating = "(Fail)"
         overall = "Fail"
     end
 
@@ -121,16 +125,27 @@ function STRAFE_AREA:ShowHitData(player_unit)
     local msg = string.format("%s\n", player_unit:GetPlayerName())
     msg = msg .. string.format("Heading: %d %s\n", heading, heading_rating)
     msg = msg .. string.format("Altitude: %d ft AGL %s\n", altitude, altitude_rating)
+    msg = msg .. string.format("KIAS: %d kts %s\n", kias, altitude_rating)
     msg = msg .. string.format("Shot: %d\n", expended)
     msg = msg .. string.format("Hits: %d\n", hits)
     msg = msg .. string.format("Percentage: %d %s\n", pct, pct_rating)
-    msg = msg .. "_______________\n"
+    msg = msg .. "================\n"
     msg = msg .. string.format("Overall: %s", overall)
     MessageToAll(msg, 20)
+
+    self:ResetPlayerData(player_unit)
+end
+
+function STRAFE_AREA:ResetPlayerData(player_unit)
+    if not table.contains_key(self.player_data, player_unit) then
+        self.player_data[player_unit] = {}
+    end
 
     self.player_data[player_unit]["count"] = self:GetGunAmmoCount(player_unit)
     self.player_data[player_unit]["expended"] = 0
     self.player_data[player_unit]["hits"] = 0
     self.player_data[player_unit]["heading"] = 0
+    self.player_data[player_unit]["kias"] = 0
     self.player_data[player_unit]["altitude"] = 0
 end
+
