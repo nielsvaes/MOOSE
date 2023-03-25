@@ -30,7 +30,8 @@ function OBJECTIVE_MANAGER:IndexObjectives()
     for _, objective_zone in pairs(objective_zones) do
         local objective_zone_name = objective_zone:GetName()
         local properties = UTILS.GetZoneProperties(objective_zone_name)
-        if table.length(properties) > 0 then
+        if table.length(properties) > 0 and properties["name"] ~= nil and tonumber(properties["include"]) == 1 then
+            BASE:I(properties["name"])
             -- get name, id and description from properties
             local objective_table = properties
             objective_table["global_x"] = objective_zone:GetVec2().x
@@ -45,8 +46,6 @@ function OBJECTIVE_MANAGER:IndexObjectives()
             -- save statics
             for _, static in pairs(statics) do
                 if static:GetID() ~= nil then
-                    BASE:I(static:GetDCSObject():getID())
-                    BASE:I(static:GetName())
                     local has_been_added = false
                     local static_unit_table = table.find_key_value_pair(env.mission.coalition, "unitId", tonumber(static:GetDCSObject():getID()))
                     local new_x = static_unit_table["x"] - objective_table["global_x"]
