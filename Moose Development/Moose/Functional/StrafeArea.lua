@@ -14,7 +14,7 @@ function STRAFE_AREA:New(area, targets, heading)
     self:HandleEvent(EVENTS.ShootingStart)
     self:HandleEvent(EVENTS.ShootingEnd)
 
-    self:I("Strafe area created")
+    self:I(string.format("Strafe area created: %s", self.area:GetName()))
     return self
 end 
 
@@ -85,7 +85,6 @@ function STRAFE_AREA:OnEventHit(event_data)
     end
 
     self.player_data[player_unit]["hits"] = self.player_data[player_unit]["hits"] + 1
-    MessageToAll(tostring(self.player_data[player_unit]["hits"]))
 end
 
 function STRAFE_AREA:ShowHitData(player_unit)
