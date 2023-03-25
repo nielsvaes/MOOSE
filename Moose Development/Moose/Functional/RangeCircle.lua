@@ -132,10 +132,11 @@ RANGE_CIRCLE = {
 
 }
 
-function RANGE_CIRCLE:New(zone_or_circle, object_table, gap_percentage, perfect)
+function RANGE_CIRCLE:New(zone_or_circle, object_table, gap_percentage, perfect, height_offset)
     self = BASE:Inherit(self, BASE:New())
 
     gap_percentage = gap_percentage or 0
+    height_offset = height_offset or 0
     if perfect == nil then
         perfect = true
     else
@@ -163,6 +164,7 @@ function RANGE_CIRCLE:New(zone_or_circle, object_table, gap_percentage, perfect)
                         pt = self.center:Translate(current_radius + math.random(-2, 2), rotation - 1)
                         heading = heading + math.random(-10, 10)
                     end
+                    pt.y = pt.y + height_offset
                     local static = SPAWNSTATIC:NewFromType(object_table[ring].type, object_table[ring].category, country.CJTF_BLUE)
                                               :InitNamePrefix(self.name .. tostring(math.random(0, 99999)))
                                               :InitShape(object_table[ring].shape)
