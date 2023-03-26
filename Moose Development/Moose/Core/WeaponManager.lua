@@ -96,6 +96,7 @@ do
         ccweapon.release_heading = heading
         ccweapon.release_altitude = unit:GetAltitude()
         ccweapon.release_coordinate =  ccweapon:GetCoordinate()
+        ccweapon.release_pitch = unit:GetPitch()
         ccweapon.impact_coordinate = nil
         ccweapon.impact_coordinate_terrain = nil
         self:I("Weapon type: " .. ccweapon:GetType())
