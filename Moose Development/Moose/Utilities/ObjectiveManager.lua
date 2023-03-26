@@ -143,6 +143,12 @@ function OBJECTIVE_MANAGER:SpawnObjective(objective_name, id, vec2_pos, rotation
     local spawned_objects = {}
     local objective_table = json_data[objective_name]
 
+    if objective_table["keep_position"] == "1" then
+        BASE:I(string.format("Spawning %s at the location it was saved", objective_table["name"]))
+        vec2_pos = {x=objective_table["global_x"], y=objective_table["global_y"]}
+        rotation = 0
+    end
+
     -- Statics
     for _, static_table in pairs(objective_table["statics"]) do
         local static = self:__LoadStatic(static_table, vec2_pos, rotation, country)
