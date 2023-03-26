@@ -161,7 +161,7 @@ function RANGE_CIRCLE:New(zone_or_circle, object_table, gap_percentage, perfect,
                     local pt = self.center:Translate(current_radius, rotation - 1)
                     local heading = rotation + object_table[ring].rotation_offset
                     if not perfect then
-                        pt = self.center:Translate(current_radius + math.random(-2, 2), rotation - 1)
+                        pt = self.center:Translate(current_radius + math.random(-1, 1), rotation - 1)
                         heading = heading + math.random(-10, 10)
                     end
                     pt.y = pt.y + height_offset
