@@ -12,6 +12,7 @@ do
         self.release_heading = nil
         self.release_altitude = nil
         self.release_coordinate = nil
+        self.release_pitch = nil
         self.last_heading = nil
         self.last_velocity = nil
         self.type = self.dcs_object:getTypeName()
@@ -114,6 +115,10 @@ do
 
     function CCWEAPON:GetReleaseCoordinate()
         return self.release_coordinate
+    end
+
+    function CCWEAPON:GetReleasePitch()
+        return self.release_pitch
     end
 
     function CCWEAPON:GetFiredBy()
