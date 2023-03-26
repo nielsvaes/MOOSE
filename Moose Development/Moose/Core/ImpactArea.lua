@@ -120,6 +120,10 @@ do
     function IMPACT_AREA:SetMaxHeight(value)
         self.max_height = value
     end
+
+    function IMPACT_AREA:Add()
+        IMPACT_AREA_MANAGER:Get():Add(self)
+    end
 end
 
 
