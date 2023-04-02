@@ -2151,11 +2151,16 @@ function MessageToUnit( UnitName, MsgText, MsgTime, MsgName )
   end
 end
 
-function MessageToAll( MsgText, MsgTime, MsgName )
-  -- trace.f()
 
-  MESSAGE:New( MsgText, MsgTime, "Message" ):ToCoalition( coalition.side.RED ):ToCoalition( coalition.side.BLUE )
+
+function MessageToAll( MsgText, MsgTime, Clear )
+  -- trace.f()
+  Clear = Clear or false
+  MsgTime = MsgTime or 20
+  MESSAGE:New( MsgText, MsgTime, "Message", Clear ):ToCoalition( coalition.side.RED ):ToCoalition( coalition.side.BLUE )
 end
+
+
 
 function MessageToRed( MsgText, MsgTime, MsgName )
   -- trace.f()
@@ -2354,5 +2359,21 @@ function MusicScheduler()
     end
   end
 end
+
+
+function DevMessageToAll(MsgText, MsgTime, Clear)
+    if type(MsgTime) == "bool" then
+        Clear = MsgTime
+        MsgTime = 10
+    end
+    MsgTime = MsgTime or 10
+    MessageToAll("DEBUG: " .. MsgText, MsgTime, Clear)
+    BASE:I("DEBUG: " .. MsgText)
+end
+
+function ClearMessages()
+    MessageToAll("", 1, true)
+end
+
 
 env.info( ('Init: Scripts Loaded v1.1') )
