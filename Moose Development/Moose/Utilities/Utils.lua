@@ -3203,6 +3203,14 @@ function UTILS.ExplodeAlongStraightLine(line, num_points, skip_point_chance, exp
     timer:Start(nil, interval)
 end
 
+function UTILS.GetFlagValue(FlagName)
+    return trigger.misc.getUserFlag(FlagName)
+end
+
+function UTILS.SetFlagValue(flag_name, value)
+    trigger.misc.setUserFlag(flag_name, value)
+end
+
 
 function UTILS.RandomPointInTriangle(pt1, pt2, pt3)
     local pt = {math.random(), math.random()}
