@@ -11,7 +11,7 @@ _DATABASE = DATABASE:New() -- Core.Database#DATABASE
 
 --- Settings
 _SETTINGS = SETTINGS:Set()
-_SETTINGS:SetPlayerMenuOn()
+--_SETTINGS:SetPlayerMenuOn()
 
 --- Register cargos.
 _DATABASE:_RegisterCargos()

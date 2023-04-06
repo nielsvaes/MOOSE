@@ -76,6 +76,7 @@ end
 
 function STRAFE_AREA:OnEventHit(event_data)
     local player_unit = event_data.IniUnit
+    local target = event_data.TgtUnitName
     
     if not self:PlayerInZone(player_unit) then
         return

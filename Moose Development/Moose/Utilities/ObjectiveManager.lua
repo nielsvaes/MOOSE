@@ -10,9 +10,6 @@ function OBJECTIVE_MANAGER:Get(force, json_file_path)
     if _G["objective_manager"] == nil or force then
         self = BASE:Inherit(self, BASE:New())
 
-        self.weapon_parameter_update_rate = 30
-        self.weapons = {}
-
         self.json_file_path = json_file_path or "C:/coconutcockpit/objectives.json"
         self.objective_spawn_info = {}
 
@@ -142,6 +139,11 @@ function OBJECTIVE_MANAGER:SpawnObjective(objective_name, id, vec2_pos, rotation
     local json_data = UTILS.ReadJSON(self.json_file_path)
     local spawned_objects = {}
     local objective_table = json_data[objective_name]
+
+    if objective_table == nil then
+        MessageToAll(string.format("ERROR: There is no objective with the name [%s]", objective_name))
+        return
+    end
 
     if objective_table["keep_position"] == "1" then
         BASE:I(string.format("Spawning %s at the location it was saved", objective_table["name"]))
