@@ -2,13 +2,14 @@ STRAFE_AREA = {
     ClassName = "STRAFE_AREA",
 }
 
-function STRAFE_AREA:New(area, targets, heading)
+function STRAFE_AREA:New(area, targets, heading, name)
     self = BASE:Inherit(self, EVENTHANDLER:New())
     
     self.area = area
     self.targets = targets
     self.player_data = {}
     self.heading = heading
+    self.name = name or "Strafe Area name not set"
 
     self:HandleEvent(EVENTS.Hit)
     self:HandleEvent(EVENTS.ShootingStart)
