@@ -22,6 +22,11 @@ function CIRCLE:Find(shape_name)
     return _DATABASE:FindShape(shape_name)
 end
 
+function CIRCLE:New(vec2, radius)
+    self.CenterVec2 = vec2
+    self.Radius = radius
+end
+
 function CIRCLE:GetRadius()
     return self.Radius
 end
