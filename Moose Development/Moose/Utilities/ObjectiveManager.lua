@@ -1,4 +1,3 @@
-
 OBJECTIVE_MANAGER = {
     ClassName = "OBJECTIVE_MANAGER",
     SpawnedObjects = {}
@@ -38,7 +37,7 @@ function OBJECTIVE_MANAGER:IndexObjectives()
             objective_table["random_zones"] = {}
 
             local statics = SET_STATIC:New():FilterZones({ objective_zone }):FilterOnce():GetSetObjects()
-            local groups =  SET_GROUP:New():FilterZones({ objective_zone }):FilterOnce():GetSetObjects()
+            local groups = SET_GROUP:New():FilterZones({ objective_zone }):FilterOnce():GetSetObjects()
 
             -- save statics
             for _, static in pairs(statics) do
@@ -56,10 +55,10 @@ function OBJECTIVE_MANAGER:IndexObjectives()
                         if UTILS.IsInRadius(random_zone:GetVec2(), objective_zone:GetVec2(), objective_zone:GetRadius()) then
 
                             local zone_poly = POLYGON:FromZone(zone_name)
-                            if  objective_table["random_zones"][zone_name] == nil then
+                            if objective_table["random_zones"][zone_name] == nil then
                                 objective_table["random_zones"][zone_name] = UTILS.GetZoneProperties(zone_name)
-                                objective_table["random_zones"][zone_name][ "statics"] = {}
-                                objective_table["random_zones"][zone_name][ "groups"] = {}
+                                objective_table["random_zones"][zone_name]["statics"] = {}
+                                objective_table["random_zones"][zone_name]["groups"] = {}
                             end
 
                             if zone_poly:ContainsPoint(static:GetVec2()) then
@@ -101,15 +100,23 @@ function OBJECTIVE_MANAGER:IndexObjectives()
                         route_point["y"] = route_pt_y
                     end
 
+                    for _, unit_table in pairs(group_table["units"]) do
+                        if unit_table["callsign"] ~= nil then
+                            unit_table["callsign"] = {
+                                ["name"] = "whatever"
+                            }
+                        end
+                        BASE:I(unit_table)
+                    end
+
                     for _, random_zone in pairs(random_zones) do
                         local zone_name = random_zone:GetName()
                         if UTILS.IsInRadius(random_zone:GetVec2(), objective_zone:GetVec2(), objective_zone:GetRadius()) then
-
                             local zone_poly = POLYGON:FromZone(zone_name)
                             if objective_table["random_zones"][zone_name] == nil then
                                 objective_table["random_zones"][zone_name] = UTILS.GetZoneProperties(zone_name)
-                                objective_table["random_zones"][zone_name][ "statics"] = {}
-                                objective_table["random_zones"][zone_name][ "groups"] = {}
+                                objective_table["random_zones"][zone_name]["statics"] = {}
+                                objective_table["random_zones"][zone_name]["groups"] = {}
                             end
                             if zone_poly:ContainsPoint(group:GetVec2()) then
                                 table.add(objective_table["random_zones"][zone_name]["groups"], group_table)
@@ -123,16 +130,15 @@ function OBJECTIVE_MANAGER:IndexObjectives()
                 end
             end
 
-
             -- assign to global table
             info_dict[objective_table["name"]] = UTILS.DeepCopy(objective_table)
         end
     end
 
+    BASE:I(info_dict)
     UTILS.WriteJSON(info_dict, self.json_file_path)
     BASE:I("JSON written")
 end
-
 
 function OBJECTIVE_MANAGER:SpawnObjective(objective_name, id, vec2_pos, rotation, country)
     id = tostring(id)
@@ -166,7 +172,7 @@ function OBJECTIVE_MANAGER:SpawnObjective(objective_name, id, vec2_pos, rotation
     -- Randoms
     for _, random_zone_table in pairs(objective_table["random_zones"]) do
         local chance = math.random(random_zone_table["min"] or 0, random_zone_table["max"] or 100)
-        for _ , random_group_table in pairs(random_zone_table["groups"] or {}) do
+        for _, random_group_table in pairs(random_zone_table["groups"] or {}) do
             if UTILS.PercentageChance(chance) then
                 local random_spawned_group = self:__LoadGroup(random_group_table, vec2_pos, rotation, country)
                 table.insert_unique(spawned_objects, random_spawned_group)
@@ -183,9 +189,8 @@ function OBJECTIVE_MANAGER:SpawnObjective(objective_name, id, vec2_pos, rotation
     self.objective_spawn_info[id] = spawned_objects
 end
 
-
 function OBJECTIVE_MANAGER:__LoadStatic(static_table, vec2_pos, rotation, country)
-    local rotated = UTILS.RotatePointAroundPivot({ x= static_table.x, y= static_table.y}, { x=0, y=0}, rotation)
+    local rotated = UTILS.RotatePointAroundPivot({ x = static_table.x, y = static_table.y }, { x = 0, y = 0 }, rotation)
     static_table.x = rotated.x + vec2_pos.x
     static_table.y = rotated.y + vec2_pos.y
     static_table.name = UTILS.UniqueName(static_table.name)
@@ -193,10 +198,9 @@ function OBJECTIVE_MANAGER:__LoadStatic(static_table, vec2_pos, rotation, countr
     local static = SPAWNSTATIC:NewFromType(static_table.type, static_table.category, country)
                               :InitNamePrefix(UTILS.UniqueName(static_table.name))
                               :InitShape(static_table.shape_type or "")
-                              :SpawnFromPointVec2(POINT_VEC2:NewFromVec2({ x= static_table.x, y= static_table.y }), rotation + UTILS.ToDegree(static_table.heading))
+                              :SpawnFromPointVec2(POINT_VEC2:NewFromVec2({ x = static_table.x, y = static_table.y }), rotation + UTILS.ToDegree(static_table.heading))
     return static
 end
-
 
 function OBJECTIVE_MANAGER:__LoadGroup(group_table, vec2_pos, rotation, country)
     local group_rotated = UTILS.RotatePointAroundPivot({ x=group_table.x, y=group_table.y}, {x=0, y=0}, rotation)
@@ -207,14 +211,20 @@ function OBJECTIVE_MANAGER:__LoadGroup(group_table, vec2_pos, rotation, country)
     group_table["lateActivation"] = true
 
     for _, unit_table in pairs(group_table["units"]) do
-        local unit_rotated = UTILS.RotatePointAroundPivot({ x=unit_table.x, y= unit_table.y}, { x=0, y=0}, rotation)
+        local unit_rotated = UTILS.RotatePointAroundPivot({x=unit_table.x, y= unit_table.y}, { x=0, y=0}, rotation)
         unit_table.x = unit_rotated.x + vec2_pos.x
         unit_table.y = unit_rotated.y + vec2_pos.y
         unit_table.heading = UTILS.ToRadian(rotation) + unit_table.heading
+        unit_table["callsign"] = {
+            [1] = 3,
+            [2] = 1,
+            [3] = 1,
+            ["name"] = "Uzi11",
+        }
     end
 
     for _, route_point in pairs(group_table["route"]["points"]) do
-        local route_point_rotated = UTILS.RotatePointAroundPivot({ x= route_point.x, y= route_point.y}, { x=0, y=0}, rotation)
+        local route_point_rotated = UTILS.RotatePointAroundPivot({ x = route_point.x, y = route_point.y }, { x = 0, y = 0 }, rotation)
         route_point.x = route_point_rotated.x + vec2_pos.x
         route_point.y = route_point_rotated.y + vec2_pos.y
     end
@@ -227,8 +237,6 @@ function OBJECTIVE_MANAGER:__LoadGroup(group_table, vec2_pos, rotation, country)
     return spawned_group
 end
 
-
-
 function OBJECTIVE_MANAGER:DestroyObjective(id)
     id = tostring(id)
     for _, spawned_object in pairs(self.objective_spawn_info[id] or {}) do
@@ -237,6 +245,11 @@ function OBJECTIVE_MANAGER:DestroyObjective(id)
     self.objective_spawn_info[id] = nil
 end
 
+function OBJECTIVE_MANAGER:GetIDs()
+    for id, each in pairs(self.objective_spawn_info) do
+        BASE:I(id)
+    end
+end
 
 function OBJECTIVE_MANAGER:EnsureJSON()
     OBJECTIVE_MANAGER.INFO_DICT = {}
