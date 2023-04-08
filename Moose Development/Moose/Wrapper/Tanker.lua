@@ -1,16 +1,19 @@
 
 TANKER = {
     ClassName = "TANKER",
-    Infinite = 999999
+    Infinite = 9999999
 }
 
 function TANKER:FindByName(unit_name)
+    -- inheriting from UNIT:FindByName() just hard crashes DCS...?
     self = BASE:Inherit(self, BASE:New())
     self.unit = UNIT:FindByName(unit_name)
     self.group = self.unit:GetGroup()
     if self.unit == nil then
         self:E("Couldn't find a unit with the name " .. unit_name)
     end
+
+    self:I({self.group:GetTaskRoute()[1], self.group:GetTaskRoute()[2]})
 
     self.remaining_fuel = 202800
     self.transfer_rate = 50
@@ -20,6 +23,11 @@ function TANKER:FindByName(unit_name)
     self.unit_fuel_given_info_dict = {}
     self.seconds_between_refuels = 30 * 60
     self.timer = nil
+    self.next_waypoint = self:GetWaypointInSight()
+    self.previous_waypoint = nil
+    self.turn_announced = true
+
+    GAMELOOPFUNCTION:New(self.UpdateNextWaypoint, {self}, -1, nil, 1, true):Add()
 
     self.root_menu = nil
     self.fuel_amount_menu = nil
@@ -47,6 +55,62 @@ function TANKER:MoveTo(coord)
     --local task = self:RouteToVec2(coord:GetVec2(), self:GetVelocityMPS())
     self.unit:SetTask(task)
     BASE:I(task)
+end
+
+-- TODO: Needs some work
+function TANKER:GetWaypointInSight()
+    -- We're assuming a racetrack orbit for a tanker
+    local route = {self.group:GetTaskRoute()[1], self.group:GetTaskRoute()[2]}
+    local heading = self.unit:GetHeading()
+    BASE:I(heading)
+    local vec2 = self.unit:GetVec2()
+
+    local alpha_start = math.rad(heading - 45)
+    local start_x = self.Infinite * math.cos(UTILS.ClampAngle(alpha_start)) + vec2.x
+    local start_y = self.Infinite * math.sin(UTILS.ClampAngle(alpha_start)) + vec2.y
+
+
+    local alpha_end = math.rad(heading + 45)
+    local end_x = self.Infinite * math.cos(UTILS.ClampAngle(alpha_end)) + vec2.x
+    local end_y = self.Infinite * math.sin(UTILS.ClampAngle(alpha_end)) + vec2.y
+
+
+
+    --local end_x   = math.cos(math.rad(UTILS.ClampAngle(heading + 20))) * self.Infinite
+    --local end_y   = math.sin(math.rad(UTILS.ClampAngle(heading + 20))) * self.Infinite
+
+    self:I("vec 2")
+    self:I(vec2)
+    self:I("start")
+    self:I({x=start_x, y=start_y})
+    self:I("end")
+    self:I({x=end_x, y=end_y})
+
+
+    for index, pt in pairs(route) do
+        if CIRCLE:PointInSector(pt, {x=start_x, y=start_y}, {x=end_x, y=end_y}, vec2, self.Infinite) then
+            self:I({x=route[index].x, y=route[index].y})
+            return route[index]
+        end
+    end
+end
+
+function TANKER:UpdateNextWaypoint()
+    self.next_waypoint = self:GetWaypointInSight()
+    local distance
+    if self.next_waypoint ~= nil then
+        local unit_vec2 = self.unit:GetVec2()
+        distance = ((unit_vec2.x - self.next_waypoint.x) ^ 2 + (unit_vec2.y - self.next_waypoint.y) ^ 2) ^ 0.5
+    else
+        distance = self.Infinite
+    end
+
+    if distance < UTILS.NMToMeters(0.5) and self.next_waypoint ~= self.previous_waypoint and self.next_waypoint ~= nil then
+        BASE:I("Turn coming up in half a mile!")
+        self.previous_waypoint = self.next_waypoint
+    else
+        self:I(UTILS.MetersToNM(distance))
+    end
 end
 
 function TANKER:GetName()
