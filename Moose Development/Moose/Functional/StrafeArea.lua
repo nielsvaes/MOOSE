@@ -39,6 +39,7 @@ function STRAFE_AREA:PlayerInZone(player_unit)
 end
 
 function STRAFE_AREA:OnEventShootingStart(event_data)
+    DevMessageToAll("Shooting started")
     local player_unit = event_data.IniUnit
     
     if not self:PlayerInZone(player_unit) then
@@ -52,9 +53,11 @@ function STRAFE_AREA:OnEventShootingStart(event_data)
     self.player_data[player_unit]["expended"] = 0
     self.player_data[player_unit]["heading"]  = player_unit:GetHeading()
     self.player_data[player_unit]["kias"]     = player_unit:GetAirspeedIndicated()
+
 end
 
 function STRAFE_AREA:OnEventShootingEnd(event_data)
+    DevMessageToAll("Shooting stopped")
     local player_unit = event_data.IniUnit
     
     if not self:PlayerInZone(player_unit) then
@@ -69,6 +72,7 @@ function STRAFE_AREA:OnEventShootingEnd(event_data)
     self.player_data[player_unit]["altitude"] = UTILS.MetersToFeet(player_unit:GetAltitude(true))
     self.player_data[player_unit]["kias"]     = (player_unit:GetAirspeedIndicated() + self.player_data[player_unit]["kias"]) / 2
     self.player_data[player_unit]["heading"]  = (player_unit:GetHeading() + self.player_data[player_unit]["heading"]) / 2
+
 
     BASE:ScheduleOnce(15, function()
         self:ShowHitData(player_unit)
@@ -87,6 +91,7 @@ function STRAFE_AREA:OnEventHit(event_data)
     end
 
     self.player_data[player_unit]["hits"] = self.player_data[player_unit]["hits"] + 1
+    --DevMessageToAll(tostring(self.player_data[player_unit]["hits"]))
 end
 
 function STRAFE_AREA:ShowHitData(player_unit)
