@@ -80,6 +80,7 @@ end
 
 function GAMELOOPFUNCTION:Add()
     GAMELOOP:Get():Add(self)
+    return self
 end
 
 GAMELOOP = {
