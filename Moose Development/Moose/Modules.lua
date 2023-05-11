@@ -177,6 +177,7 @@ __Moose.Include( 'Scripts/Moose/Wrapper/GroundTransport.lua' )
 __Moose.Include( 'Scripts/Moose/Wrapper/StrobeUnit.lua' )
 __Moose.Include( 'Scripts/Moose/Wrapper/UAV.lua' )
 __Moose.Include( 'Scripts/Moose/Wrapper/Tanker.lua' )
+__Moose.Include( 'Scripts/Moose/Wrapper/Jammer.lua' )
 
 
 

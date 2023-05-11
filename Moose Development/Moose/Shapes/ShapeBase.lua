@@ -2,6 +2,7 @@ SHAPE_BASE = {
     ClassName = "SHAPE_BASE",
     Name = "",
     CenterVec2 = nil,
+    MarkIDs = {}
 }
 
 function SHAPE_BASE:New()

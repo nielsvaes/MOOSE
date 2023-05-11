@@ -3303,6 +3303,10 @@ function UTILS.RotatePointAroundPivot(point, pivot, angle)
     return { x = original_x, y = original_y }
 end
 
+function UTILS.ReSeedMarkIDs()
+    UTILS._MarkID = math.random(10000, 11000)
+end
+
 function UTILS.UniqueName(base)
     return base .. "_" .. tostring(math.random(0, 100000))
 end
@@ -3374,7 +3378,7 @@ function table.length(T)
   return count
 end
 
-function table.slice(tbl, first, last, step)
+function table.slice(tbl, first, last)
   local sliced = {}
   local start = first or 1
   local stop = last or table.length(tbl)

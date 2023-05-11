@@ -115,7 +115,11 @@ function GAMELOOP:Execute()
         else
             if math.fmod(self.total_tick_count, self.times_per_second / gameloopfunction:GetTimesPerSecond()) == 0 then
                 if gameloopfunction:CanExec() then
-                    gameloopfunction:Exec()
+                    local errored, glf_return_value = pcall(gameloopfunction:Exec())
+                    if errored then
+                        self:I(string.format("%s has encountered an error", gameloopfunction:GetID()))
+                        self:I(glf_return_value)
+                    end
                 end
             end
         end

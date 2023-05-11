@@ -23,8 +23,10 @@ function CIRCLE:Find(shape_name)
 end
 
 function CIRCLE:New(vec2, radius)
+    self = BASE:Inherit(self, SHAPE_BASE:New())
     self.CenterVec2 = vec2
     self.Radius = radius
+    return self
 end
 
 function CIRCLE:GetRadius()
@@ -107,10 +109,10 @@ end
 function CIRCLE:GetRandomVec2()
     local angle = math.random() * 2 * math.pi
 
-    local x = self.Radius * math.cos(angle)
-    local y = self.Radius * math.sin(angle)
+    local rx = self.Radius * math.cos(angle) + self.CenterVec2.x
+    local ry = self.Radius * math.sin(angle) + self.CenterVec2.y
 
-    return {x=x, y=y}
+    return {x=rx, y=ry}
 end
 
 function CIRCLE:GetBoundingBox()
