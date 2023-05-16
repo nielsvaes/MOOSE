@@ -3,9 +3,8 @@ JAMMER_MANAGER = {
     ClassName = "JAMMER_MANAGER"
 }
 
-function JAMMER_MANAGER:Get(force)
-    force = force or false
-    if _G["jammer_manager"] == nil or force then
+function JAMMER_MANAGER:Get()
+    if _G["jammer_manager"] == nil then
         self = BASE:Inherit(self, BASE:New())
 
         self.unit_info = {}
@@ -13,7 +12,7 @@ function JAMMER_MANAGER:Get(force)
 
         _G["jammer_manager"] = self
         self:I("Making new JAMMER_MANAGER")
-        self.check_glf = GAMELOOPFUNCTION:New(self.CheckJammedJTU, {self}, -1, "jammer_manager_check_glf", JAMMER.JamRate):Add()
+        self.check_glf = GAMELOOPFUNCTION:New(self.CheckJammedJTU, {self}, -1, "jammer_manager_check_glf", 5):Add()
     end
     return _G["jammer_manager"]
 end
@@ -24,27 +23,25 @@ function JAMMER_MANAGER:UpdateJammedJTU(jtu, jammer)
     -- storing the JTU with its name, because multiple jammers might targeting the same DCS unit
     if not table.contains(self.jtu_info, name) then
         self.jtu_info[name] = {
-            active_at = timer.getTime() + jtu.recovery_time,
+            active_at = timer.getTime(),
             jammers = {jammer}
         }
     end
 
     table.insert_unique(self.jtu_info[name].jammers, jammer)
     self.jtu_info[name].active_at = self.jtu_info[name].active_at + jtu.recovery_time
-
-    self:I(name .. " is now jammed")
 end
 
 function JAMMER_MANAGER:CheckJammedJTU()
     local time = timer.getTime()
     local tmp_table = {}
     for jtu_name, jtu_info in pairs(self.jtu_info) do
-        print(jtu_name .. " will be active in " .. tostring(jtu_info.active_at - time))
+        --print(jtu_name .. " recover in: " .. tostring(jtu_info.active_at - time))
         if time > jtu_info.active_at then
             local unit = UNIT:FindByName(jtu_name)
             unit:EnableEmission(true)
             unit:OptionROEWeaponFree()
-            self:I(jtu_name .. " is no longer jammed")
+            self:I(jtu_name .. " RECOVERED")
         else
             tmp_table[jtu_name] = jtu_info
         end

@@ -363,31 +363,34 @@ JAMMER_TARGET_UNIT.RADAR_INFO = {
     },
 }
 
-JAMMER_TARGET_UNIT.SKILL_INFO = {
-    ["Average"] = {
-        penalty = 2,
-        recovery_time = 4,
-        lucky_chance = 2,
-        needed_hits = 1,
-    },
-    ["Good"] = {
-        penalty = 8,
-        recovery_time = 3.1,
-        lucky_chance = 3,
-        needed_hits = 1,
-    },
-    ["High"] = {
-        penalty = 10,
-        recovery_time = 2.7,
-        lucky_chance = 4,
-        needed_hits = 2,
-    },
-    ["Excellent"] = {
-        penalty = 12,
-        recovery_time = 1.7,
-        lucky_chance = 5,
-        needed_hits = 3,
-    },
+JAMMER_TARGET_UNIT.SKILL_INFO = {}
+JAMMER_TARGET_UNIT.SKILL_INFO["Average"] = {
+    penalty = 5,
+    recovery_time = 4,
+    lucky_chance = 2,
+    needed_hits = 1,
+}
+JAMMER_TARGET_UNIT.SKILL_INFO["Good"] = {
+    penalty = 10,
+    recovery_time = 3.1,
+    lucky_chance = 3,
+    needed_hits = 1,
+}
+JAMMER_TARGET_UNIT.SKILL_INFO["High"] = {
+    penalty = 15,
+    recovery_time = 2.7,
+    lucky_chance = 4,
+    needed_hits = 2,
+}
+JAMMER_TARGET_UNIT.SKILL_INFO["Excellent"] = {
+    penalty = 25,
+    recovery_time = 0.9,
+    lucky_chance = 5,
+    needed_hits = 3,
+}
+JAMMER_TARGET_UNIT.SKILL_INFO["Random"] = {
+    penalty = math.random(JAMMER_TARGET_UNIT.SKILL_INFO["Average"].penalty, JAMMER_TARGET_UNIT.SKILL_INFO["Excellent"].penalty),
+    recovery_time = math.random(JAMMER_TARGET_UNIT.SKILL_INFO["Average"].recovery_time, JAMMER_TARGET_UNIT.SKILL_INFO["Excellent"].recovery_time)
 }
 
 function JAMMER_TARGET_UNIT:New(unit_name, jammer_plane)
@@ -416,7 +419,6 @@ function JAMMER_TARGET_UNIT:New(unit_name, jammer_plane)
 
     self.active_at               = 0
     self.times_hit               = 1
-    self.shutdown_on_jam         = UTILS.PercentageChance(self.penalty + 50)
     self.burn_through_range      = JAMMER_TARGET_UNIT.RADAR_INFO[type].burn_through_range
 
     self.circle                  = CIRCLE:New(self:GetVec2(), self.__min_minor_axis)

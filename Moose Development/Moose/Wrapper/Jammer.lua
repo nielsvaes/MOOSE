@@ -47,9 +47,6 @@ function JAMMER:FindByName(unit_name, target_coalition_name, own_coalition_name)
     self.own_coalition       = UTILS.GetCoalitionEnumValue(own_coalition_name)
 
     self.tmp_pd_mark_ids     = {}
-
-
-
     return self
 end
 
@@ -141,8 +138,8 @@ function JAMMER:PossibleToJam(jtu, jamming_location, jamming_types, radius)
 end
 
 function JAMMER:AttemptJam(jtu, jam_effectiveness)
-    print(string.format("Attempting to jam %s: %d", jtu:GetName(), jam_effectiveness))
     if UTILS.PercentageChance(jam_effectiveness) then
+        print(string.format("%s: Jam SUCCESSFUL - %d", jtu:GetName(), jam_effectiveness))
         if jtu.shutdown_on_jam then
             jtu:EnableEmission(false)
             jtu:OptionROEWeaponFree()
@@ -152,6 +149,8 @@ function JAMMER:AttemptJam(jtu, jam_effectiveness)
         end
 
         JAMMER_MANAGER:Get():UpdateJammedJTU(jtu, self)
+    else
+        print(string.format("%s: Jam FAILED", jtu:GetName()))
     end
 end
 
@@ -168,16 +167,16 @@ function JAMMER:SetInitialMinorAxis(value)
 end
 
 function JAMMER:__SpotJam()
-    local radius_penalty = UTILS.RemapValue(self.spot_jam_radius, 0, self.max_spot_jam_radius, 0, 120)
+    local radius_penalty = UTILS.RemapValue(self.spot_jam_radius, 0, self.max_spot_jam_radius, 0, 100)
 
     for _, jtu in pairs(self.targets) do
-        local effectiveness = self.power - (5 * #self.types_to_jam) - radius_penalty
+        local effectiveness = self.power - (6 * #self.types_to_jam) - radius_penalty
 
         if self:PossibleToJam(jtu, self.spot_jam_pos, self.types_to_jam, self.spot_jam_radius) then
             if not UTILS.IsInRadius(self.spot_jam_pos, jtu:GetVec2(), self.spot_jam_radius / 3) then
                 effectiveness = effectiveness - 20
             end
-            effectiveness = UTILS.Clamp(effectiveness - jtu.penalty, 0, 100)
+            effectiveness = UTILS.Clamp(effectiveness - jtu.penalty, 2, 100)
             self:AttemptJam(jtu, effectiveness)
         end
     end
