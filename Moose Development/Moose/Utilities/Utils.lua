@@ -3165,6 +3165,12 @@ function UTILS.ClampAngle(value)
     return value
 end
 
+function UTILS.GetCoalitionEnumValue(coalition_string)
+    coalition_string = string.lower(coalition_string)
+    if string.lower(coalition_string) == "blue" then return coalition.side.BLUE end
+    if string.lower(coalition_string) == "red" then return coalition.side.RED end
+end
+
 function UTILS.ExplodeAlongFreeHandLine(line, explosion_min, explosion_max, interval)
     explosion_min = explosion_min or 1
     explosion_max = explosion_max or 10
@@ -3211,6 +3217,15 @@ function UTILS.SetFlagValue(flag_name, value)
     trigger.misc.setUserFlag(flag_name, value)
 end
 
+function UTILS.RemapValue(value, old_min, old_max, new_min, new_max)
+    new_min = new_min or 0
+    new_max = new_max or 100
+
+    local old_range = old_max - old_min
+    local new_range = new_max - new_min
+    local percentage = (value - old_min) / old_range
+    return (new_range * percentage) + new_min
+end
 
 function UTILS.RandomPointInTriangle(pt1, pt2, pt3)
     local pt = {math.random(), math.random()}
