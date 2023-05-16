@@ -108,6 +108,8 @@ function GAMELOOP:Execute()
     local i=1
     while i <= #self.gameloopfunctions do                                       -- more performant than a pair loop
         local gameloopfunction = self.gameloopfunctions[i]
+        local glf_return_value
+        local errored
 
         if gameloopfunction:HasCompleted() then
             gameloopfunction:I("I have been completed, GAMELOOP is removing me from the list")
@@ -115,7 +117,7 @@ function GAMELOOP:Execute()
         else
             if math.fmod(self.total_tick_count, self.times_per_second / gameloopfunction:GetTimesPerSecond()) == 0 then
                 if gameloopfunction:CanExec() then
-                    local errored, glf_return_value = pcall(gameloopfunction:Exec())
+                    errored, glf_return_value = pcall(gameloopfunction:Exec())
                     if errored then
                         self:I(string.format("%s has encountered an error", gameloopfunction:GetID()))
                         self:I(glf_return_value)
@@ -199,11 +201,15 @@ function GAMELOOP:GetTotalTickCount()
     return self.total_tick_count
 end
 
-function GAMELOOP:Reset()
+function GAMELOOP:Reset(restart)
+    restart = restart or false
     self:Stop()
     self:ClearAll()
     self.timer = TIMER:New(self.Execute, self)
     self.total_tick_count = 0
+    if restart then
+        self:Start()
+    end
 end
 
 function GAMELOOP:Restart()
