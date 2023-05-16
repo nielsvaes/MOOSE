@@ -2375,5 +2375,7 @@ function ClearMessages()
     MessageToAll("", 1, true)
 end
 
-
+function print(value)
+    BASE:I(value)
+end
 env.info( ('Init: Scripts Loaded v1.1') )
