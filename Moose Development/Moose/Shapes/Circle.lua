@@ -109,6 +109,15 @@ end
 function CIRCLE:GetRandomVec2()
     local angle = math.random() * 2 * math.pi
 
+    local rx = math.random(0, self.Radius) * math.cos(angle) + self.CenterVec2.x
+    local ry = math.random(0, self.Radius) * math.sin(angle) + self.CenterVec2.y
+
+    return {x=rx, y=ry}
+end
+
+function CIRCLE:GetRandomVec2OnBorder()
+    local angle = math.random() * 2 * math.pi
+
     local rx = self.Radius * math.cos(angle) + self.CenterVec2.x
     local ry = self.Radius * math.sin(angle) + self.CenterVec2.y
 
