@@ -166,14 +166,13 @@ function GAMELOOP:RemoveByID(id)
 end
 
 function GAMELOOP:Start()
-    --self.timer = self.timer or TIMER:New(self.Execute, self)
-    self:I("Starting loop, " .. tostring(#self.gameloopfunctions) .. " functions loaded")
+    self:I(tostring(#self.gameloopfunctions) .. " functions loaded")
     self.timer:Start(nil, self.time_per_tick)
     return self
 end
 
 function GAMELOOP:Stop()
-    self:I("Stopping!")
+    --self:I("Stopping!")
     self.timer:Stop()
 end
 
