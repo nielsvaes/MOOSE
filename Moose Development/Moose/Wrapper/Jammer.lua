@@ -8,6 +8,14 @@ JAMMER = {
     RootMenuRed = nil,
 }
 
+-- bitmask
+JAMMER.DEBUGDRAW = {
+    PassiveDetectedTargets = 1,
+    PassiveDetectedGuessPos = 2,
+    SpotJamRegion = 4,
+    OwnJamRegion = 8,
+}
+
 function JAMMER:FindByName(unit_name, target_coalition_name, own_coalition_name)
     self = BASE:Inherit(self, UNIT:FindByName(unit_name))
     if self == nil then
@@ -21,7 +29,7 @@ function JAMMER:FindByName(unit_name, target_coalition_name, own_coalition_name)
                                         :FilterCategories({"ground", "plane", "ship"})
                                         :FilterActive()
 
-    self.detect_range        = UTILS.NMToMeters(50)
+    self.detect_range        = UTILS.NMToMeters(60)
     self.initial_major_axis  = UTILS.NMToMeters(10)
     self.initial_minor_axis  = UTILS.NMToMeters(4)
     self.min_major_axis      = UTILS.NMToMeters(2)
@@ -40,7 +48,7 @@ function JAMMER:FindByName(unit_name, target_coalition_name, own_coalition_name)
     self.own_pos_radius      = UTILS.NMToMeters(30)
     self.max_own_pos_radius  = UTILS.NMToMeters(30)
 
-    self.find_targets_glf    = GAMELOOPFUNCTION:New(self.FindTargets, {self}, -1, UTILS.UniqueName(self:GetName() .. "_ find"), 1/5, true):Add()
+    self.find_targets_glf    = GAMELOOPFUNCTION:New(self.FindJammerTargetUnits, {self}, -1, UTILS.UniqueName(self:GetName() .. "_ find"), 1/5, true):Add()
     self.passive_detect_glf  = GAMELOOPFUNCTION:New(self.PassiveDetect, {self}, -1, UTILS.UniqueName(self:GetName() .. "_detect"), 1/3):Add()
     self.spot_jam_glf        = nil
 
@@ -56,13 +64,15 @@ end
 ---@return nil
 -- Test: check if this still works with dynamically added groups
 -- Test: no idea what getAttribute does, maybe it already loops over every unit and maybe it's more performant to check every unit anyway?
-function JAMMER:FindTargets()
+function JAMMER:FindJammerTargetUnits()
     for _, group in pairs(self.group_filter_obj:FilterOnce():GetSetObjects()) do
         if group:HasAttribute("SAM TR") or group:HasAttribute("SAM SR") or group:HasAttribute("EWR") then
             for _, unit in pairs(group:GetUnits()) do
                 if unit:HasAttribute("SAM TR") or unit:HasAttribute("SAM SR") or unit:HasAttribute("EWR") then
-                    local jtu = JAMMER_TARGET_UNIT:New(unit:GetName(), self)
-                    table.insert_unique(self.targets, jtu)
+                    if not table.contains_key(self.targets, unit:GetName()) then
+                        local jtu = JAMMER_TARGET_UNIT:New(unit:GetName(), self)
+                        self.targets[unit:GetName()] = jtu
+                    end
                 end
             end
         end
@@ -70,8 +80,10 @@ function JAMMER:FindTargets()
 end
 
 function JAMMER:PassiveDetect()
+    self.passive_detected_targets = {}
     for _, jtu in pairs(self.targets) do
         if UTILS.IsInRadius(jtu:GetVec2(), self:GetVec2(), self.detect_range) and jtu:GetRadar() and self:HasLineOfSight(jtu:GetVec3()) then
+            print("detected: " .. jtu:GetName())
             table.insert_unique(self.passive_detected_targets, jtu)
         end
     end
@@ -217,6 +229,14 @@ function JAMMER:AddTypeToJam(radar_type_name)
     table.insert_unique(self.types_to_jam, radar_type_name)
 end
 
+function JAMMER:IsRadarTargeting(jtu)
+    local on, tracked = jtu:GetRadar()
+    if tracked ~= nil then
+        return true
+    end
+    return false
+end
+
 function JAMMER:HasLineOfSight(tgt_vec3)
     tgt_vec3.y = tgt_vec3.y + 5
     if land.isVisible(self:GetVec3(), tgt_vec3) then
@@ -225,30 +245,45 @@ function JAMMER:HasLineOfSight(tgt_vec3)
     return false
 end
 
-function JAMMER:DebugDrawPassiveDetectedTargets(show_ellipse, show_guessed_pos)
-    self:RemoveDebugDrawPassiveDetectedTargets()
+function JAMMER:DebugDraw(debug_options)
+    if not type(debug_options) == "table" then
+        debug_options = debug_options
+    end
 
-    for _, jtu in pairs(self.passive_detected_targets) do
-        if show_ellipse then
-            jtu.oval:Draw()
+    local flags = 0
+    for _, option in pairs(debug_options) do
+        flags = flags + option
+    end
+
+    if UTILS.BitwiseFlagSet(flags, JAMMER.DEBUGDRAW.PassiveDetectedTargets) or UTILS.BitwiseFlagSet(flags, JAMMER.DEBUGDRAW.PassiveDetectedGuessPos) then
+        for _, mark_id in pairs(self.tmp_pd_mark_ids) do
+            UTILS.RemoveMark(mark_id)
         end
+    end
 
-        if show_guessed_pos then
-            table.add(self.tmp_pd_mark_ids, COORDINATE:NewFromVec2(jtu.guessed_pos):CircleToAll(300, -1, {0, 0, 1}, 1, {0, 0, 1}))
+    for _, jtu in pairs(self.targets) do
+        if UTILS.BitwiseFlagSet(flags, JAMMER.DEBUGDRAW.PassiveDetectedTargets) then
+            if table.contains(self.passive_detected_targets, jtu) then
+                jtu.oval:Draw()
+            end
+        end
+        if UTILS.BitwiseFlagSet(flags, JAMMER.DEBUGDRAW.PassiveDetectedGuessPos) then
+            if table.contains(self.passive_detected_targets, jtu) then
+                table.add(self.tmp_pd_mark_ids, COORDINATE:NewFromVec2(jtu.guessed_pos):CircleToAll(300, -1, {0, 0, 1}, 1, {0, 0, 1}))
+            end
         end
     end
 end
 
-function JAMMER:RemoveDebugDrawPassiveDetectedTargets()
-    print("Removing drawings!")
-    for _, jtu in pairs(self.passive_detected_targets) do
-        jtu.oval:RemoveDraw()
+function JAMMER:GetJTUByName(unit_name)
+    for _, jtu in ipairs(self.targets) do
+        if jtu:GetName() == unit_name then
+            return jtu
+        end
     end
-
-    for _, mark_id in pairs(self.tmp_pd_mark_ids) do
-        UTILS.RemoveMark(mark_id)
-    end
+    return nil
 end
+
 
 
 
