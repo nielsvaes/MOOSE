@@ -3337,10 +3337,12 @@ end
 function table.contains(tbl, element)
     if element == nil or tbl == nil then return false end
 
-    for _, value in pairs(tbl) do
-        if value == element then
+    local index = 1
+    while tbl[index] do
+        if tbl[index] == element then
             return true
         end
+        index = index + 1
     end
     return false
 end
