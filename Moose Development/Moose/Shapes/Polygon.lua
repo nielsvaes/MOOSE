@@ -2,6 +2,7 @@ POLYGON = {
     ClassName = "POLYGON",
     Points = {},
     Coords = {},
+    Triangles = {}
 }
 
 function POLYGON:FindOnMap(line_name)
@@ -30,7 +31,7 @@ function POLYGON:FindOnMap(line_name)
     end
 
     self.CenterVec2 = self:GetCentroid()
-
+    self.Triangles = self:Triangulate()
     return self
 end
 
@@ -51,6 +52,7 @@ function POLYGON:New(...)
     for _, point in spairs(self.Points) do
         table.insert(self.Coords, COORDINATE:NewFromVec2(point))
     end
+    self.Triangles = self:Triangulate()
     return self
 end
 
@@ -127,6 +129,62 @@ function POLYGON:GetBoundingBox()
     return {
         {x=min_x, y=min_x}, {x=max_x, y=min_y}, {x=max_x, y=max_y}, {x=min_x, y=max_y}
     }
+end
+
+function POLYGON:Triangulate(points)
+    local triangles = {}
+
+    local function point_in_triangle(p, t)
+        local function sign(p1, p2, p3)
+            return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y)
+        end
+
+        local d1 = sign(p, t[1], t[2])
+        local d2 = sign(p, t[2], t[3])
+        local d3 = sign(p, t[3], t[1])
+
+        local has_neg = (d1 < 0) or (d2 < 0) or (d3 < 0)
+        local has_pos = (d1 > 0) or (d2 > 0) or (d3 > 0)
+
+        return not (has_neg and has_pos)
+    end
+
+    local function divide_recursively(shape_points)
+        if #shape_points == 3 then
+            table.insert(triangles, shape_points) -- if there are only 3 points left, it forms a triangle
+        elseif #shape_points > 3 then             -- find an ear -> a triangle with no other points inside it
+            for i, p1 in ipairs(shape_points) do
+                local p2 = shape_points[(i % #shape_points) + 1]
+                local p3 = shape_points[(i + 1) % #shape_points + 1]
+                local triangle = { p1, p2, p3 }
+                local is_ear = true
+                for _, point in ipairs(shape_points) do
+                    if point ~= p1 and point ~= p2 and point ~= p3 and point_in_triangle(point, triangle) then
+                        is_ear = false
+                        break
+                    end
+                end
+                if is_ear then
+                    table.insert(triangles, triangle)
+                    local remaining_points = {}
+                    for j, point in ipairs(shape_points) do
+                        if point ~= p2 then
+                            table.insert(remaining_points, point)
+                        end
+                    end
+                    divide_recursively(remaining_points)
+                    break
+                end
+            end
+        end
+    end
+
+    divide_recursively(points)
+    return triangles
+end
+
+function POLYGON:GetRandomVec2()
+    return UTILS.RandomPointInTriangle(self.Triangles[math.random(0, #self.Triangles)])
 end
 
 function POLYGON:ContainsPoint(point, polygon_points)
