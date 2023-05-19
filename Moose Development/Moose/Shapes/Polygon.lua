@@ -5,12 +5,12 @@ POLYGON = {
     Triangles = {}
 }
 
-function POLYGON:FindOnMap(line_name)
-    local self = BASE:Inherit(self, SHAPE_BASE:FindOnMap(line_name))
+function POLYGON:FindOnMap(shape_name)
+    local self = BASE:Inherit(self, SHAPE_BASE:FindOnMap(shape_name))
 
     for _, layer in pairs(env.mission.drawings.layers) do
         for _, object in pairs(layer["objects"]) do
-            if object["name"] == line_name then
+            if object["name"] == shape_name then
                 if (object["primitiveType"] == "Line" and object["closed"] == true) or (object["polygonMode"] == "free") then
                     self.Name = object["name"]
                     for _, point in UTILS.spairs(object["points"]) do
