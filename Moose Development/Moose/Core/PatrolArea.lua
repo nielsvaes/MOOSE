@@ -2,9 +2,13 @@ PATROL_AREA = {
     ClassName = "PATROL_AREA",
 }
 
-function PATROL_AREA:New(points, groups, update_time)
-    self = BASE:Inherit(self, BASE:New())
-    self.points = points
+function PATROL_AREA:New(name, points, groups, update_time)
+    if name ~= nil then
+        self = BASE:Inherit(self, POLYGON:FindOnMap(name))
+    else
+        self = BASE:Inherit(self, POLYGON:New(points))
+    end
+
     self.groups = groups or {}
     self.update_time = update_time or 60
     self.schedule_id = nil
@@ -24,11 +28,6 @@ function PATROL_AREA:DestroyAllGroups()
     for _, group in pairs(self.groups) do
         group:Destroy()
     end
-end
-
-function PATROL_AREA:UpdateArea(points)
-    self.points = points
-    self:Start()
 end
 
 function PATROL_AREA:Start()
@@ -63,12 +62,3 @@ function PATROL_AREA:SetUpdateTime(update_time)
     self.update_time = update_time
     self:Start()
 end
-
-function PATROL_AREA:GetRandomVec2()
-    local triangles = {
-      {self.points[1], self.points[2], self.points[3]},
-      {self.points[3], self.points[4], self.points[1]},
-    }
-    local triangle = triangles[math.random(1, 2)]
-    return UTILS.RandomPointInTriangle(triangle[1], triangle[2], triangle[3])
-end 
