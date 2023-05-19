@@ -132,6 +132,7 @@ function POLYGON:GetBoundingBox()
 end
 
 function POLYGON:Triangulate(points)
+    points = points or self.Points
     local triangles = {}
 
     local function point_in_triangle(p, t)
@@ -184,7 +185,9 @@ function POLYGON:Triangulate(points)
 end
 
 function POLYGON:GetRandomVec2()
-    return UTILS.RandomPointInTriangle(self.Triangles[math.random(0, #self.Triangles)])
+    local tri = self.Triangles[math.random(0, #self.Triangles)]
+    local vec2 = UTILS.RandomPointInTriangle(tri[1], tri[2], tri[3])
+    return vec2
 end
 
 function POLYGON:ContainsPoint(point, polygon_points)
