@@ -1729,6 +1729,23 @@ function DATABASE:ForEachCargo( IteratorFunction, FinalizeFunction, ... )
 end
 
 
+
+function DATABASE:OnEventNewJTU( EventData )
+    self:I("firing OnEventNewJTU!")
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
 --- Handles the OnEventNewCargo event.
 -- @param #DATABASE self
 -- @param Core.Event#EVENTDATA EventData

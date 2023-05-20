@@ -195,6 +195,17 @@ world.event.S_EVENT_REMOVE_UNIT = world.event.S_EVENT_MAX + 1006
 world.event.S_EVENT_PLAYER_ENTER_AIRCRAFT = world.event.S_EVENT_MAX + 1007
 
 
+
+
+
+world.event.S_EVENT_NEW_JTU = world.event.S_EVENT_MAX + 1007
+
+
+
+
+
+
+
 --- The different types of events supported by MOOSE.
 -- Use this structure to subscribe to events using the @{Core.Base#BASE.HandleEvent}() method.
 -- @type EVENTS
@@ -260,6 +271,9 @@ EVENTS = {
   SimulationStart           = world.event.S_EVENT_SIMULATION_START or -1,
   WeaponRearm               = world.event.S_EVENT_WEAPON_REARM or -1,
   WeaponDrop                = world.event.S_EVENT_WEAPON_DROP or -1,
+
+
+  NewJTU                    = world.event.S_EVENT_NEW_JTU or -1
 }
 
 --- The Event structure
@@ -633,6 +647,12 @@ local _EVENTMETA = {
      Event = "OnEventWeaponDrop",
      Text = "S_EVENT_WEAPON_DROP"
    },
+   [EVENTS.NewJTU] = {
+       Order = 1,
+       Side = "I",
+       Event = "OnEventNewJTU",
+       Text = "S_EVENT_NEW_JTU"
+   }
 }
 
 --- The Events structure
@@ -925,6 +945,20 @@ do -- OnEngineShutDown
 end
 
 do -- Event Creation
+
+    function EVENT:CreateEventNewJTU(jtu)
+        self:F({ Cargo })
+
+        local Event = {
+            id = EVENTS.NewJTU,
+            time = timer.getTime(),
+            jtu = jtu,
+        }
+
+        world.onEvent(Event)
+    end
+
+
 
   --- Creation of a New Cargo Event.
   -- @param #EVENT self

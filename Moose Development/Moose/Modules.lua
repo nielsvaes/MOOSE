@@ -171,6 +171,7 @@ __Moose.Include( 'Scripts/Moose/Shapes/Cube.lua' )
 __Moose.Include( 'Scripts/Moose/Shapes/Line.lua' )
 __Moose.Include( 'Scripts/Moose/Shapes/Oval.lua' )
 __Moose.Include( 'Scripts/Moose/Shapes/Polygon.lua' )
+__Moose.Include( 'Scripts/Moose/Shapes/Triangle.lua' )
 
 __Moose.Include( 'Scripts/Moose/Wrapper/AC130.lua' )
 __Moose.Include( 'Scripts/Moose/Wrapper/CCWeapon.lua' )
