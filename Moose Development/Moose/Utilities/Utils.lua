@@ -3441,6 +3441,15 @@ function table.add(tbl, item)
     tbl[#tbl + 1] = item
 end
 
+function table.shuffle(tbl)
+    local new_table = {}
+    for _, value in ipairs(tbl) do
+        local pos = math.random(1, #new_table +1)
+        table.insert(new_table, pos, value)
+    end
+    return new_table
+end
+
 function table.find_key_value_pair(tbl, key, value)
     for k, v in pairs(tbl) do
         if type(v) == "table" then
