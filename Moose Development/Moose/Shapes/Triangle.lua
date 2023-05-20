@@ -53,14 +53,12 @@ function TRIANGLE:GetRandomVec2(points)
 end
 
 function TRIANGLE:Draw()
-        print("drawing triangle")
     table.add(self.MarkIDs, self.Coords[1]:LineToAll(self.Coords[2]))
     table.add(self.MarkIDs, self.Coords[2]:LineToAll(self.Coords[3]))
     table.add(self.MarkIDs, self.Coords[3]:LineToAll(self.Coords[1]))
 end
 
 function TRIANGLE:RemoveDraw()
-
     for _, mark_id in pairs(self.MarkIDs) do
         UTILS.RemoveMark(mark_id)
     end

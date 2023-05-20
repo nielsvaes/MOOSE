@@ -233,14 +233,6 @@ function POLYGON:GetRandomNonWeightedVec2()
     return self.Triangles[math.random(1, #self.Triangles)]:GetRandomVec2()
 end
 
-function POLYGON:__CalculateSurfaceArea()
-    local area = 0
-    for _, triangle in pairs(self.Triangles) do
-        area = area + triangle.SurfaceArea
-    end
-    return area
-end
-
 function POLYGON:ContainsPoint(point, polygon_points)
     local x = point.x
     local y = point.y
@@ -282,6 +274,13 @@ function POLYGON:RemoveDraw(triangles)
     end
 end
 
+function POLYGON:__CalculateSurfaceArea()
+    local area = 0
+    for _, triangle in pairs(self.Triangles) do
+        area = area + triangle.SurfaceArea
+    end
+    return area
+end
 
 
 
