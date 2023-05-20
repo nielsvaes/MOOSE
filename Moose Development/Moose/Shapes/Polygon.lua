@@ -32,7 +32,7 @@ function POLYGON:FindOnMap(shape_name)
 
     self.CenterVec2 = self:GetCentroid()
     self.Triangles = self:Triangulate()
-    self.SurfaceArea = self:GetSurfaceArea()
+    self.SurfaceArea = self:__CalculateSurfaceArea()
 
     self.TriangleMarkIDs = {}
     self.OutlineMarkIDs = {}
