@@ -25,13 +25,15 @@ function POLYGON:FindOnMap(shape_name)
         end
     end
 
-    self:I(self.Points)
     if #self.Points == 0 then
         return nil
     end
 
     self.CenterVec2 = self:GetCentroid()
     self.Triangles = self:Triangulate()
+
+    self.TriangleMarkIDs = {}
+    self.OutlineMarkIDs = {}
     return self
 end
 
@@ -150,6 +152,11 @@ function POLYGON:Triangulate(points)
         return not (has_neg and has_pos)
     end
 
+    local function is_clockwise(p1, p2, p3)
+        local cross_product = (p2.x - p1.x) * (p3.y - p1.y) - (p2.y - p1.y) * (p3.x - p1.x)
+        return cross_product < 0
+    end
+
     local function divide_recursively(shape_points)
         if #shape_points == 3 then
             table.insert(triangles, shape_points) -- if there are only 3 points left, it forms a triangle
@@ -159,22 +166,38 @@ function POLYGON:Triangulate(points)
                 local p3 = shape_points[(i + 1) % #shape_points + 1]
                 local triangle = { p1, p2, p3 }
                 local is_ear = true
-                for _, point in ipairs(shape_points) do
-                    if point ~= p1 and point ~= p2 and point ~= p3 and point_in_triangle(point, triangle) then
-                        is_ear = false
-                        break
-                    end
-                end
-                if is_ear then
-                    table.insert(triangles, triangle)
-                    local remaining_points = {}
-                    for j, point in ipairs(shape_points) do
-                        if point ~= p2 then
-                            table.insert(remaining_points, point)
+
+                if not is_clockwise(p1, p2, p3) then
+                    is_ear = false
+                else
+                    for _, point in ipairs(shape_points) do
+                        if point ~= p1 and point ~= p2 and point ~= p3 and point_in_triangle(point, triangle) then
+                            is_ear = false
+                            break
                         end
                     end
-                    divide_recursively(remaining_points)
-                    break
+                end
+
+                if is_ear then
+                    -- Check if any point in the original polygon is inside the ear triangle
+                    local is_valid_triangle = true
+                    for _, point in ipairs(points) do
+                        if point ~= p1 and point ~= p2 and point ~= p3 and point_in_triangle(point, triangle) then
+                            is_valid_triangle = false
+                            break
+                        end
+                    end
+                    if is_valid_triangle then
+                        table.insert(triangles, triangle)
+                        local remaining_points = {}
+                        for j, point in ipairs(shape_points) do
+                            if point ~= p2 then
+                                table.insert(remaining_points, point)
+                            end
+                        end
+                        divide_recursively(remaining_points)
+                        break
+                    end
                 end
             end
         end
@@ -208,3 +231,60 @@ function POLYGON:ContainsPoint(point, polygon_points)
     end
     return counter % 2 == 1
 end
+
+function POLYGON:Draw(triangles)
+    triangles = triangles or false
+
+    if triangles then
+        for _, triangle in ipairs(self.Triangles) do
+            local coords = {}
+            print(triangle)
+            for i, vec2 in ipairs(triangle) do
+                coords[i] = COORDINATE:NewFromVec2(vec2)
+            end
+            print(coords)
+            for _, line_coords in pairs({{coords[1], coords[2]}, {coords[2], coords[3]}, {coords[3], coords[1]}}) do
+                print(line_coords)
+                print(line_coords[1])
+                print(line_coords[2])
+                table.add(self.TriangleMarkIDs, line_coords[1]:LineToAll(line_coords[2]))
+            end
+        end
+    end
+end
+
+function POLYGON:RemoveDraw(triangles)
+    triangles = triangles or false
+    if triangles then
+        for _, mark_id in pairs(self.TriangleMarkIDs) do
+            UTILS.RemoveMark(mark_id)
+        end
+    end
+    for _, mark_id in pairs(self.OutlineMarkIDs) do
+        UTILS.RemoveMark(mark_id)
+    end
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
