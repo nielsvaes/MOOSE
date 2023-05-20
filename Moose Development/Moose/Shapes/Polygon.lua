@@ -2,7 +2,8 @@ POLYGON = {
     ClassName = "POLYGON",
     Points = {},
     Coords = {},
-    Triangles = {}
+    Triangles = {},
+    SurfaceArea = 0
 }
 
 function POLYGON:FindOnMap(shape_name)
@@ -31,6 +32,7 @@ function POLYGON:FindOnMap(shape_name)
 
     self.CenterVec2 = self:GetCentroid()
     self.Triangles = self:Triangulate()
+    self.SurfaceArea = self:GetSurfaceArea()
 
     self.TriangleMarkIDs = {}
     self.OutlineMarkIDs = {}
@@ -109,6 +111,10 @@ function POLYGON:GetPoints()
     return self.Points
 end
 
+function POLYGON:GetSurfaceArea()
+    return self.SurfaceArea
+end
+
 function POLYGON:GetBoundingBox()
     local min_x, min_y, max_x, max_y = self.Points[1].x, self.Points[1].y, self.Points[1].x, self.Points[1].y
 
@@ -159,19 +165,19 @@ function POLYGON:Triangulate(points)
 
     local function divide_recursively(shape_points)
         if #shape_points == 3 then
-            table.insert(triangles, shape_points) -- if there are only 3 points left, it forms a triangle
-        elseif #shape_points > 3 then             -- find an ear -> a triangle with no other points inside it
+            table.insert(triangles, TRIANGLE:New(shape_points[1], shape_points[2], shape_points[3])) -- if there are only 3 points left, it forms a triangle
+        elseif #shape_points > 3 then                                                                -- find an ear -> a triangle with no other points inside it
             for i, p1 in ipairs(shape_points) do
                 local p2 = shape_points[(i % #shape_points) + 1]
                 local p3 = shape_points[(i + 1) % #shape_points + 1]
-                local triangle = { p1, p2, p3 }
+                local triangle = TRIANGLE:New(p1, p2, p3)
                 local is_ear = true
 
                 if not is_clockwise(p1, p2, p3) then
                     is_ear = false
                 else
                     for _, point in ipairs(shape_points) do
-                        if point ~= p1 and point ~= p2 and point ~= p3 and point_in_triangle(point, triangle) then
+                        if point ~= p1 and point ~= p2 and point ~= p3 and triangle:ContainsPoint(point) then
                             is_ear = false
                             break
                         end
@@ -182,7 +188,7 @@ function POLYGON:Triangulate(points)
                     -- Check if any point in the original polygon is inside the ear triangle
                     local is_valid_triangle = true
                     for _, point in ipairs(points) do
-                        if point ~= p1 and point ~= p2 and point ~= p3 and point_in_triangle(point, triangle) then
+                        if point ~= p1 and point ~= p2 and point ~= p3 and triangle:ContainsPoint(point) then
                             is_valid_triangle = false
                             break
                         end
@@ -208,9 +214,31 @@ function POLYGON:Triangulate(points)
 end
 
 function POLYGON:GetRandomVec2()
-    local tri = self.Triangles[math.random(0, #self.Triangles)]
-    local vec2 = UTILS.RandomPointInTriangle(tri[1], tri[2], tri[3])
-    return vec2
+    local weights = {}
+    for _, triangle in pairs(self.Triangles) do
+        weights[triangle] = triangle.SurfaceArea / self.SurfaceArea
+    end
+
+    local random_weight = math.random()
+    local accumulated_weight = 0
+    for triangle, weight in pairs(weights) do
+        accumulated_weight = accumulated_weight + weight
+        if accumulated_weight >= random_weight then
+            return triangle:GetRandomVec2()
+        end
+    end
+end
+
+function POLYGON:GetRandomNonWeightedVec2()
+    return self.Triangles[math.random(1, #self.Triangles)]:GetRandomVec2()
+end
+
+function POLYGON:__CalculateSurfaceArea()
+    local area = 0
+    for _, triangle in pairs(self.Triangles) do
+        area = area + triangle.SurfaceArea
+    end
+    return area
 end
 
 function POLYGON:ContainsPoint(point, polygon_points)
@@ -237,18 +265,7 @@ function POLYGON:Draw(triangles)
 
     if triangles then
         for _, triangle in ipairs(self.Triangles) do
-            local coords = {}
-            print(triangle)
-            for i, vec2 in ipairs(triangle) do
-                coords[i] = COORDINATE:NewFromVec2(vec2)
-            end
-            print(coords)
-            for _, line_coords in pairs({{coords[1], coords[2]}, {coords[2], coords[3]}, {coords[3], coords[1]}}) do
-                print(line_coords)
-                print(line_coords[1])
-                print(line_coords[2])
-                table.add(self.TriangleMarkIDs, line_coords[1]:LineToAll(line_coords[2]))
-            end
+            triangle:Draw()
         end
     end
 end
@@ -256,8 +273,8 @@ end
 function POLYGON:RemoveDraw(triangles)
     triangles = triangles or false
     if triangles then
-        for _, mark_id in pairs(self.TriangleMarkIDs) do
-            UTILS.RemoveMark(mark_id)
+        for _, triangle in pairs(self.Triangles) do
+            triangle:RemoveDraw()
         end
     end
     for _, mark_id in pairs(self.OutlineMarkIDs) do
