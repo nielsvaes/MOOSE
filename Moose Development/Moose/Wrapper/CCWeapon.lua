@@ -39,7 +39,7 @@ do
             return
         end
         self.__previous_coordinate = self.last_coordinate
-        self.last_coordinate = COORDINATE:NewFromVec3(self.dcs_object:getPoint())
+        self.last_coordinate = self.__previous_coordinate:NewFromVec3(self.dcs_object:getPoint())
         return self.last_coordinate
     end
 
