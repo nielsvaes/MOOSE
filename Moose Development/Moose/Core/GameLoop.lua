@@ -12,8 +12,8 @@ function GAMELOOPFUNCTION:New(func, args, times_to_call, id, times_per_second, e
     self.times_per_second = times_per_second or 30
     self.return_value = nil
     self.has_completed = false
-    self.exit_condition = function() return false  end
-    self.exit_function = function() return false  end
+    self.exit_condition_function = function() return false  end
+    self.exit_condition_function_args = {}
 
     execute_on_creation = execute_on_creation or false
     if execute_on_creation then
@@ -23,8 +23,8 @@ function GAMELOOPFUNCTION:New(func, args, times_to_call, id, times_per_second, e
     return self
 end
 
-function GAMELOOPFUNCTION:SetExitFunction(exit_function)
-    self.exit_function = exit_function
+function GAMELOOPFUNCTION:SetExitFunction(exit_condition_function)
+    self.exit_condition_function = exit_condition_function
 end
 
 function GAMELOOPFUNCTION:CanExec()
@@ -48,7 +48,7 @@ function GAMELOOPFUNCTION:Exec(force)
     if force or self:CanExec() then
         self.return_value = self.f(unpack(self.args))
         self.times_called = self.times_called + 1
-        self.has_completed = self.exit_function()
+        self.has_completed = self.exit_condition_function(unpack(self.exit_condition_function_args))
         return self.return_value
     end
 end
