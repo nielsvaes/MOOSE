@@ -57,6 +57,7 @@ function POLYGON:New(...)
         table.insert(self.Coords, COORDINATE:NewFromVec2(point))
     end
     self.Triangles = self:Triangulate()
+    self.SurfaceArea = self:__CalculateSurfaceArea()
     return self
 end
 
@@ -165,7 +166,7 @@ function POLYGON:Triangulate(points)
 
     local function divide_recursively(shape_points)
         if #shape_points == 3 then
-            table.insert(triangles, TRIANGLE:New(shape_points[1], shape_points[2], shape_points[3])) -- if there are only 3 points left, it forms a triangle
+            table.insert(triangles, TRIANGLE:New(shape_points[1], shape_points[2], shape_points[3]))
         elseif #shape_points > 3 then                                                                -- find an ear -> a triangle with no other points inside it
             for i, p1 in ipairs(shape_points) do
                 local p2 = shape_points[(i % #shape_points) + 1]
