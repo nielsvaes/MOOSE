@@ -3318,6 +3318,40 @@ function UTILS.RotatePointAroundPivot(point, pivot, angle)
     return { x = original_x, y = original_y }
 end
 
+function UTILS.Vec2Normalize(vector, magnitude)
+    local normalized = {
+        x = vector.x / magnitude,
+        y = vector.y / magnitude
+    }
+    return normalized
+end
+
+function UTILS.Vec3Normalize(vector, magnitude)
+    local normalized = {
+        x = vector.x / magnitude,
+        y = vector.y / magnitude,
+        z = vector.z / magnitude,
+    }
+    return normalized
+end
+
+function UTILS.Vec2VectorByScalar(vector, scalar)
+    local scaled =  {
+        x = vector.x * scalar,
+        y = vector.y * scalar
+    }
+    return scaled
+end
+
+function UTILS.Vec3VectorByScalar(vector, scalar)
+    local scaled =  {
+        x = vector.x * scalar,
+        y = vector.y * scalar,
+        z = vector.z * scalar,
+    }
+    return scaled
+end
+
 function UTILS.ReSeedMarkIDs()
     UTILS._MarkID = math.random(10000, 11000)
 end
