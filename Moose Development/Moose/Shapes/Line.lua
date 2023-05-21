@@ -29,6 +29,8 @@ function LINE:FindOnMap(line_name)
         return nil
     end
 
+    self.MarkIDs = {}
+
     return self
 end
 
@@ -145,3 +147,13 @@ function LINE:GetBoundingBox()
     }
 end
 
+function LINE:Draw(points)
+    points = points or self.Points
+    table.add(self.MarkIDs, self.Coords[1]:LineToAll(self.Coords[2], -1, {0, 1, 0}))
+end
+
+function LINE:RemoveDraw()
+    for _, mark_id in pairs(self.MarkIDs) do
+        UTILS.RemoveMark(mark_id)
+    end
+end
