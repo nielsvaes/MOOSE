@@ -15,13 +15,14 @@ do
             self:HandleEvent(EVENTS.ShootingStart)
             self:HandleEvent(EVENTS.ShootingEnd)
 
+            self.update_weapons_glf = GAMELOOPFUNCTION:New(self.UpdateWeapons, self, -1, "weapons_manager_glf"):Add()
             _G["weapon_manager"] = self
             self:I("Making new WEAPON_MANAGER")
         end
         return _G["weapon_manager"]
     end
 
-    function WEAPON_MANAGER:UpdateWeapons(_)
+    function WEAPON_MANAGER:UpdateWeapons()
         local to_remove = {}
         for _, ccweapon in pairs(self.weapons) do
             if not ccweapon:IsAlive() then -- get data from last instance before it exploded
@@ -33,18 +34,14 @@ do
 
                 table.add(to_remove, ccweapon)
 
-                self:I("This is where the weapon impacted ")
                 self:I(ccweapon.impact_coordinate_terrain:GetVec2())
-                self:I("this is where the weapon was launched")
                 self:I(ccweapon.release_coordinate:GetVec2())
 
-                self:I("Informing ImpactAreaManager of weapon["  .. ccweapon.id .. "] impact")
                 IMPACT_AREA_MANAGER:Get():WeaponImpact(ccweapon)
             end
         end
 
         for _, ccweapon in pairs(to_remove) do
-            self:I("Removing weapon[" .. ccweapon.id .. "]")
             self:RemoveWeapon(ccweapon)
             GAMELOOP:Get():RemoveByID(ccweapon:GetID())
         end
@@ -104,6 +101,7 @@ do
         self:I("Making GLF for weapon")
         GAMELOOPFUNCTION:New( function() ccweapon:UpdateAll() end, {}, -1, ccweapon:GetID())
                         :SetTimesPerSecond(tickrate)
+                        :SetExitFunction(function() return not ccweapon:IsAlive()  end)
                         :Add()
 
         table.insert(self.weapons, ccweapon)
