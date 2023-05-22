@@ -106,6 +106,40 @@ function CIRCLE:AllOfGroupInSector(group_name, sector_start, sector_end, center,
     return true
 end
 
+function CIRCLE:UnitInRadius(unit_name, center, radius)
+    center = center or self.CenterVec2
+    radius = radius or self.Radius
+
+    if UTILS.IsInRadius(center, UNIT:FindByName(unit_name):GetVec2(), radius) then
+        return true
+    end
+    return false
+end
+
+function CIRCLE:AnyOfGroupInRadius(group_name, center, radius)
+    center = center or self.CenterVec2
+    radius = radius or self.Radius
+
+    for _, unit in pairs(GROUP:FindByName(group_name):GetUnits()) do
+        if UTILS.IsInRadius(center, unit:GetVec2(), radius) then
+            return true
+        end
+    end
+    return false
+end
+
+function CIRCLE:AllOfGroupInRadius(group_name, center, radius)
+    center = center or self.CenterVec2
+    radius = radius or self.Radius
+
+    for _, unit in pairs(GROUP:FindByName(group_name):GetUnits()) do
+        if not UTILS.IsInRadius(center, unit:GetVec2(), radius) then
+            return false
+        end
+    end
+    return true
+end
+
 function CIRCLE:GetRandomVec2()
     local angle = math.random() * 2 * math.pi
 
