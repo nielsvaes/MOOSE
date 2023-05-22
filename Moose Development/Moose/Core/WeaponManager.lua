@@ -15,7 +15,7 @@ do
             self:HandleEvent(EVENTS.ShootingStart)
             self:HandleEvent(EVENTS.ShootingEnd)
 
-            self.update_weapons_glf = GAMELOOPFUNCTION:New(self.UpdateWeapons, self, -1, "weapons_manager_glf"):Add()
+            self.update_weapons_glf = GAMELOOPFUNCTION:New(self.UpdateWeapons, {self}, -1, "weapons_manager_glf", 60):Add()
             _G["weapon_manager"] = self
             self:I("Making new WEAPON_MANAGER")
         end
