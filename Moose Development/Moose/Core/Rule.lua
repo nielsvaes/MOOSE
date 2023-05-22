@@ -90,7 +90,7 @@ function RULE_MANAGER:Get()
         _G["rule_manager"] = self
         self:I("Making RULE_MANAGER")
 
-        GAMELOOPFUNCTION:New(self.CheckRules, {self}):Add()
+        GAMELOOPFUNCTION:New(self.CheckRules, {self}, -1, "rule_manager"):Add()
     end
     return _G["rule_manager"]
 end
