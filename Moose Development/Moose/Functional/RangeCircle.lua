@@ -127,9 +127,21 @@ RANGE_CIRCLE = {
             size = 20,
             rotation_offset = 0
         },
+        TANK_CAR_A = {
+            type = "Coach a tank yellow",
+            category = "",
+            shape = "",
+            size = 39,
+            rotation_offset = 0
+        },
+        TANK_CAR_TRINITY = {
+            type = "Tankcartrinity",
+            category = "",
+            shape = "",
+            size = 58,
+            rotation_offset = 0
+        },
     }
-
-
 }
 
 function RANGE_CIRCLE:New(zone_or_circle, object_table, gap_percentage, perfect, height_offset)
