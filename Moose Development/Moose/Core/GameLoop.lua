@@ -91,7 +91,7 @@ GAMELOOP = {
 function GAMELOOP:Get()
     if _G["game_loop"] == nil then
         self = BASE:Inherit(self, BASE:New())
-        self.times_per_second = 60
+        self.times_per_second = 1
         self.time_per_tick = 1 / self.times_per_second
         self.total_tick_count = 0
         self.gameloopfunctions = {}
@@ -104,9 +104,24 @@ function GAMELOOP:Get()
     return _G["game_loop"]
 end
 
+function GAMELOOP:ForceGet()
+    local ok, err = pcall(_G["game_loop"]:Stop())
+
+    self = BASE:Inherit(self, BASE:New())
+    self.times_per_second = 60
+    self.time_per_tick = 1 / self.times_per_second
+    self.total_tick_count = 0
+    self.gameloopfunctions = {}
+    self.timer = TIMER:New(self.Execute, self):Start()
+    self.name = "FORCED"
+
+    _G["game_loop"] = self
+    return self
+end
+
 function GAMELOOP:Execute()
     local i=1
-    while i <= #self.gameloopfunctions do                                       -- more performant than a pair loop
+    while i <= #self.gameloopfunctions do
         local gameloopfunction = self.gameloopfunctions[i]
         local glf_return_value
         local errored
@@ -131,17 +146,18 @@ function GAMELOOP:Execute()
 end
 
 function GAMELOOP:Add(gameloopfunction, position)
-    if gameloopfunction:GetTimesPerSecond() > self.times_per_second then
-        self:I(string.format("%s tick per seconds was set to %d, max allowed by GAMELOOP is %d", gameloopfunction:GetID(), gameloopfunction:GetTimesPerSecond(), self.times_per_second))
-        gameloopfunction:SetTimesPersecond(self.times_per_second)
-    end
     local was_running = self.timer.isrunning
     self:Stop()
+
     position = position or #self.gameloopfunctions + 1
     table.insert(self.gameloopfunctions, position, gameloopfunction)
+
+    self:UpdateToHighestTickRate()
+
     if was_running then
         self:Start()
     end
+
     self:I("Added " .. gameloopfunction:GetID() .. ", tickrate: " .. tostring(gameloopfunction:GetTimesPerSecond()))
 end
 
@@ -149,8 +165,37 @@ function GAMELOOP:Remove(func)
     local was_running = self.timer.isrunning
     self:Stop()
     table.remove_by_value(self.gameloopfunctions, func)
-
     self:I(tostring(#self.gameloopfunctions) .. " loaded")
+
+    self:UpdateToHighestTickRate()
+
+    if was_running then
+        self:Start()
+    end
+end
+
+function GAMELOOP:UpdateToHighestTickRate()
+    local highest_tick_rate = 0
+    local i = 1
+    while i <= #self.gameloopfunctions do
+        print(self.gameloopfunctions[i]:GetID())
+        print(self.gameloopfunctions[i]:GetTimesPerSecond())
+
+        if self.gameloopfunctions[i]:GetTimesPerSecond() > highest_tick_rate then
+            highest_tick_rate = self.gameloopfunctions[i]:GetTimesPerSecond()
+        end
+        i = i + 1
+    end
+    print("done updating, setting tps")
+    self:SetTimesPerSecond(highest_tick_rate)
+end
+
+function GAMELOOP:SetTimesPerSecond(value)
+    local was_running = self.timer.isrunning
+    self:Stop()
+    self:I("****** UPDATING TICK RATE to " .. tostring(value))
+    self.times_per_second = value
+    self.time_per_tick = 1 / value
     if was_running then
         self:Start()
     end
@@ -172,17 +217,9 @@ function GAMELOOP:Start()
 end
 
 function GAMELOOP:Stop()
-    --self:I("Stopping!")
     self.timer:Stop()
 end
 
-function GAMELOOP:UpdateTickRate(value)
-    self:Stop()
-    self:I("****** UPDATING TICK RATE!")
-    self.times_per_second = value
-    self.time_per_tick = 1 / value
-    self:Start()
-end
 
 function GAMELOOP:GetTimesPerSecond()
     return self.times_per_second
