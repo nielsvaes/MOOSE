@@ -95,8 +95,8 @@ function GAMELOOP:Get()
         self.time_per_tick = 1 / self.times_per_second
         self.total_tick_count = 0
         self.gameloopfunctions = {}
-        self.timer = TIMER:New(self.Execute, self)
-        self.name = "Nissagirl!"
+        self.timer = TIMER:New(self.Execute, self):Start()
+        self.name = "GAMELOOP!"
 
         _G["game_loop"] = self
     end
@@ -192,6 +192,8 @@ end
 
 function GAMELOOP:SetTimesPerSecond(value)
     local was_running = self.timer.isrunning
+    self:I(was_running)
+
     self:Stop()
     self:I("****** UPDATING TICK RATE to " .. tostring(value))
     self.times_per_second = value
@@ -211,13 +213,22 @@ function GAMELOOP:RemoveByID(id)
 end
 
 function GAMELOOP:Start()
+    if not self.timer.isrunning then
+        self.timer:Start(nil, self.time_per_tick)
+    else
+        self:I("I was already running, no need to start")
+    end
     self:I(tostring(#self.gameloopfunctions) .. " functions loaded")
-    self.timer:Start(nil, self.time_per_tick)
+
     return self
 end
 
 function GAMELOOP:Stop()
-    self.timer:Stop()
+    if self.timer.isrunning then
+        self.timer:Stop()
+    else
+        self:I("I wasn't running no need to stop")
+    end
 end
 
 
