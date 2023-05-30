@@ -1,3 +1,24 @@
+--- Usage:
+--- patrol_area = PATROL_AREA:New("mock_village_01")
+--- for u=1, math.random(80, 120) do
+---     local temp_tbl = {}
+---     for _=1, math.random(1, 2) do
+---         table.add(temp_tbl, CCGROUND_UNITS.INFANTRY.InfantryAKIns)
+---     end
+---
+---     local grp
+---     local unit_tbl = CCMISSIONDB:Get():CreateUnitsTable("compound_unit", temp_tbl)
+---     local grp_tbl = CCMISSIONDB:Get():CreateGroupTable("compund_group", unit_tbl)
+---     grp_tbl["hiddenOnMFD"] = true
+---     grp = CCMISSIONDB:Get():Add(grp_tbl, Group.Category.GROUND, country.id.CJTF_RED, coalition.side.RED)
+---     local spawned_group = SPAWN:NewWithAlias(grp:GetName(), UTILS.UniqueName(grp:GetName()))
+---                                :InitRandomizeUnits(true, 1, 0.5)
+---                                :SpawnFromVec2(patrol_area:GetRandomVec2())
+---
+---     patrol_area:AddGroup(spawned_group)
+---     table.add(patrols, spawned_group)
+--- end
+
 PATROL_AREA = {
     ClassName = "PATROL_AREA",
 }
@@ -12,12 +33,20 @@ function PATROL_AREA:New(name, points, groups, update_time)
     self.groups = groups or {}
     self.update_time = update_time or 60
     self.schedule_id = nil
+    self.walk_speed = 1.2
+    self.debug_draw_on = false
+    self.debug_mark_ids = {}
 
+    self.glf = GAMELOOPFUNCTION:New(self.PickNewLocation, {self}, -1, UTILS.UniqueName(), 1/self.update_time, true)
     return self
 end
 
 function PATROL_AREA:AddGroup(group)
-    table.insert(self.groups, group)
+    self.groups[group] = {
+        vec2 = {},
+        speed = self.walk_speed
+    }
+    --table.insert(self.groups, group)
 end
 
 function PATROL_AREA:RemoveGroup(group)
@@ -30,30 +59,36 @@ function PATROL_AREA:DestroyAllGroups()
     end
 end
 
-function PATROL_AREA:Start()
-    self:Stop()
-    self.schedule_id = BASE:ScheduleRepeat(
-        0.1,
-        self.update_time,
-        math.random(0, 1),
-        999999,
-        function()
-            for _, group in pairs(self.groups) do
-                if group ~= nil and group:IsAlive() then
-                    if UTILS.PercentageChance(20) then
-                        BASE:ScheduleOnce(math.random(5, 10), function() group:RouteStop() end)
-                    end
-                    group:RouteToVec2(self:GetRandomVec2(), 1.2)
-                end
+function PATROL_AREA:PickNewLocation()
+    for group, group_data in pairs(self.groups) do
+        if group ~= nil and group:IsAlive() then
+            if UTILS.PercentageChance(20) then
+                BASE:ScheduleOnce(math.random(5, 10), function() group:RouteStop() end)
             end
+            local new_pos = self:GetRandomVec2()
+            group:RouteToVec2(new_pos, self.walk_speed)
+            self.groups[group].vec2 = {new_pos}
+            self:__Draw()
         end
-    )
+    end
+end
+
+function PATROL_AREA:Start()
+    self.glf:Add()
+    self.glf:Exec()
 end
 
 function PATROL_AREA:Stop()
-    if self.schedule_id ~= nil then
-        SCHEDULER:Stop(self.schedule_id)
-        SCHEDULER:Remove(self.schedule_id)
+    GAMELOOP:Get():Remove(self.glf)
+end
+
+function PATROL_AREA:UpdateSpeed(value, force)
+    force = force or false
+    self.walk_speed = value
+
+    if force then
+        self:Stop()
+        self:Start()
     end
 end
 
