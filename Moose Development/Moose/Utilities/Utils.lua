@@ -3357,7 +3357,13 @@ function UTILS.ReSeedMarkIDs()
 end
 
 function UTILS.UniqueName(base)
-    return base .. "_" .. tostring(math.random(0, 100000))
+    base = base or ""
+    local ran = tostring(math.random(0, 100000))
+
+    if base == "" then
+        return ran
+    end
+    return base .. "_" .. ran
 end
 
 function string.startswith(str, value)
