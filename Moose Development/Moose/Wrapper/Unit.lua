@@ -320,19 +320,36 @@ function UNIT:IsActive()
   return nil
 end
 
---- Returns if the Unit is alive.  
--- If the Unit is not alive, nil is returned.  
--- If the Unit is alive and active, true is returned.    
--- If the Unit is alive but not active, false is returned.  
+--- Returns if the unit is exists in the mission.
+-- If not even the DCS unit object does exist, `nil` is returned.  
+-- If the unit object exists, the value of the DCS API function [isExist](https://wiki.hoggitworld.com/view/DCS_func_isExist) is returned.  
 -- @param #UNIT self
--- @return #boolean `true` if Unit is alive and active. `false` if Unit is alive but not active. `nil` if the Unit is not existing or is not alive.
+-- @return #boolean Returns `true` if unit exists in the mission.
+function UNIT:IsExist()
+
+  local DCSUnit = self:GetDCSObject() -- DCS#Unit
+  
+  if DCSUnit then
+    local exists = DCSUnit:isExist()
+    return exists
+  end 
+  
+  return nil
+end
+
+--- Returns if the Unit is alive.  
+-- If the Unit is not alive/existent, `nil` is returned.  
+-- If the Unit is alive and active, `true` is returned.    
+-- If the Unit is alive but not active, `false`` is returned.  
+-- @param #UNIT self
+-- @return #boolean Returns `true` if Unit is alive and active, `false` if it exists but is not active and `nil` if the object does not exist or DCS `isExist` function returns false.
 function UNIT:IsAlive()
   self:F3( self.UnitName )
 
   local DCSUnit = self:GetDCSObject() -- DCS#Unit
   
-  if DCSUnit then
-    local UnitIsAlive  = DCSUnit:isExist() and DCSUnit:isActive() -- and DCSUnit:getLife() > 1
+  if DCSUnit and DCSUnit:isExist() then
+    local UnitIsAlive = DCSUnit:isActive()
     return UnitIsAlive
   end 
   
@@ -681,19 +698,26 @@ end
 
 --- Returns the Unit's ammunition.
 -- @param #UNIT self
--- @return DCS#Unit.Ammo Table with ammuntion of the unit (or nil). This can be a complex table!  
+-- @return DCS#Unit.Ammo Table with ammuntion of the unit (or nil). This can be a complex table! 
 function UNIT:GetAmmo()
   self:F2( self.UnitName )
-
   local DCSUnit = self:GetDCSObject()
-  
   if DCSUnit then
+    --local status, unitammo = pcall(
+      -- function()
+        -- local UnitAmmo = DCSUnit:getAmmo()
+        -- return UnitAmmo
+       --end
+    --)
+    --if status then
+      --return unitammo
+    --end
     local UnitAmmo = DCSUnit:getAmmo()
     return UnitAmmo
   end
-  
   return nil
 end
+
 
 --- Sets the Unit's Internal Cargo Mass, in kg
 -- @param #UNIT self

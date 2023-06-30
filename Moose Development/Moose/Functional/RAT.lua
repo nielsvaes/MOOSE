@@ -5490,7 +5490,7 @@ function RAT:_ATCInit(airports_map)
   if not RAT.ATC.init then
     local text
     text="Starting RAT ATC.\nSimultanious = "..RAT.ATC.Nclearance.."\n".."Delay        = "..RAT.ATC.delay
-	  BASE:T(RAT.id..text)
+    BASE:T(RAT.id..text)
     RAT.ATC.init=true
     for _,ap in pairs(airports_map) do
       local name=ap:GetName()
@@ -5671,9 +5671,9 @@ function RAT:_ATCClearForLanding(airport, flight)
 
   -- Debug message.
   local text1=string.format("ATC %s: Flight %s cleared for landing (flag=%d).", airport, flight, flagvalue)
-	if string.find(flight,"#") then
-		flight =  string.match(flight,"^(.+)#")
-	end
+  if string.find(flight,"#") then
+    flight =  string.match(flight,"^(.+)#")
+  end
   local text2=string.format("ATC %s: Flight %s you are cleared for landing.", airport, flight)
   BASE:T( RAT.id..text1)
   MESSAGE:New(text2, 10):ToAllIf(RAT.ATC.messages)
@@ -5716,9 +5716,9 @@ function RAT:_ATCFlightLanded(name)
     local text1=string.format("ATC %s: Flight %s landed. Tholding = %i:%02d, Tfinal = %i:%02d.", dest, name, Thold/60, Thold%60, Tfinal/60, Tfinal%60)
     local text2=string.format("ATC %s: Number of flights still on final %d.", dest, RAT.ATC.airport[dest].Nonfinal)
     local text3=string.format("ATC %s: Traffic report: Number of planes landed in total %d. Flights/hour = %3.2f.", dest, RAT.ATC.airport[dest].traffic, TrafficPerHour)
-	if string.find(name,"#") then
-		name =  string.match(name,"^(.+)#")
-	end
+  if string.find(name,"#") then
+    name =  string.match(name,"^(.+)#")
+  end
     local text4=string.format("ATC %s: Flight %s landed. Welcome to %s.", dest, name, dest)
     BASE:T(RAT.id..text1)
     BASE:T(RAT.id..text2)
@@ -5832,6 +5832,7 @@ RATMANAGER={
   rat={},
   name={},
   alive={},
+  planned={},
   min={},
   nrat=0,
   ntot=nil,
@@ -5880,6 +5881,7 @@ function RATMANAGER:Add(ratobject,min)
 
   self.rat[self.nrat]=ratobject
   self.alive[self.nrat]=0
+  self.planned[self.nrat]=0
   self.name[self.nrat]=ratobject.alias
   self.min[self.nrat]=min or 1
 
@@ -6020,9 +6022,23 @@ function RATMANAGER:_Manage()
   for i=1,self.nrat do
     for j=1,N[i] do
       time=time+self.dTspawn
-      SCHEDULER:New(nil, RAT._SpawnWithRoute, {self.rat[i]}, time)
+      self.planned[i]=self.planned[i]+1
+      SCHEDULER:New(nil, RATMANAGER._Spawn, {self, i}, time)
     end
   end
+end
+
+--- Instantly starts the RAT manager and spawns the initial random number RAT groups for each RAT object.
+-- @param #RATMANAGER self
+-- @param #RATMANAGER RATMANAGER self object.
+-- @param #number i Index.
+function RATMANAGER:_Spawn(i)
+
+  local rat=self.rat[i] --#RAT
+  
+  rat:_SpawnWithRoute()
+  self.planned[i]=self.planned[i]-1
+
 end
 
 --- Counts the number of alive RAT objects.
@@ -6053,7 +6069,7 @@ function RATMANAGER:_Count()
     ntotal=ntotal+n
 
     -- Debug output.
-    local text=string.format("Number of alive groups of %s = %d", self.name[i], n)
+    local text=string.format("Number of alive groups of %s = %d, planned=%d", self.name[i], n, self.planned[i])
     self:T(RATMANAGER.id..text)
   end
 
@@ -6083,9 +6099,10 @@ function RATMANAGER:_RollDice(nrat,ntot,min,alive)
   local M={}
   local P={}
   for i=1,nrat do
+    local a=alive[i]+self.planned[i]
     N[#N+1]=0
-    M[#M+1]=math.max(alive[i], min[i])
-    P[#P+1]=math.max(min[i]-alive[i],0)
+    M[#M+1]=math.max(a, min[i])
+    P[#P+1]=math.max(min[i]-a,0)
   end
 
   -- Min/max group arrays.
@@ -6102,7 +6119,7 @@ function RATMANAGER:_RollDice(nrat,ntot,min,alive)
   -- Number of new groups to be added.
   local nnew=ntot
   for i=1,nrat do
-    nnew=nnew-alive[i]
+    nnew=nnew-alive[i]-self.planned[i]
   end
 
   for i=1,nrat-1 do
@@ -6134,7 +6151,7 @@ function RATMANAGER:_RollDice(nrat,ntot,min,alive)
     end
 
     -- Debug info
-    self:T3(string.format("RATMANAGER: i=%d, alive=%d, min=%d, mini=%d, maxi=%d, add=%d, sumN=%d, sumP=%d", j, alive[j], min[j], mini[j], maxi[j], N[j],sN, sP))
+    self:T3(string.format("RATMANAGER: i=%d, alive=%d, planned=%d, min=%d, mini=%d, maxi=%d, add=%d, sumN=%d, sumP=%d", j, alive[j], self.planned[i], min[j], mini[j], maxi[j], N[j],sN, sP))
 
   end
 
@@ -6149,7 +6166,7 @@ function RATMANAGER:_RollDice(nrat,ntot,min,alive)
   -- Debug info
   local text=RATMANAGER.id.."\n"
   for i=1,nrat do
-    text=text..string.format("%s: i=%d, alive=%d, min=%d, mini=%d, maxi=%d, add=%d\n", self.name[i], i, alive[i], min[i], mini[i], maxi[i], N[i])
+    text=text..string.format("%s: i=%d, alive=%d, planned=%d, min=%d, mini=%d, maxi=%d, add=%d\n", self.name[i], i, alive[i], self.planned[i], min[i], mini[i], maxi[i], N[i])
   end
   text=text..string.format("Total # of groups to add = %d", sum(N, done))
   self:T(text)
