@@ -31,7 +31,7 @@ function STROBE_UNIT:__Strobe(bursts)
         self:LaseOff()
         for index = 1, bursts do
             if UTILS.PercentageChance(self.visible_chance) then
-                BASE:ScheduleOnce((self.on_time + self.burst_interval) * index, self.LaseUnit, self, self, 1688, self.on_time)
+                BASE:ScheduleOnce((self.on_time + self.burst_interval) * index, function() self:LaseUnit(self, 1688, self.on_time) end )
             end
         end
 
