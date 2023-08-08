@@ -3273,8 +3273,10 @@ end
 
 function UTILS.GetSimpleAmmo(unit)
     local ammo_dict = {}
-    for _, info_dict in pairs(unit:GetAmmo()) do
-        ammo_dict[info_dict["desc"]["displayName"]] = info_dict["count"]
+    for _, info_dict in pairs(unit:GetAmmo() or {}) do
+        local clean_name_parts = string.split(info_dict["desc"]["typeName"], ".")
+        local clean_name = clean_name_parts[#clean_name_parts]
+        ammo_dict[clean_name] = info_dict["count"]
     end
     return ammo_dict
 end
@@ -3396,6 +3398,14 @@ end
 
 function string.endswith(str, value)
     return value == "" or str:sub(-#value) == value
+end
+
+function string.split(input, separator)
+    local parts = {}
+    for part in input:gmatch("[^" .. separator .. "]+") do
+        table.insert(parts, part)
+    end
+    return parts
 end
 
 function table.contains(tbl, element)

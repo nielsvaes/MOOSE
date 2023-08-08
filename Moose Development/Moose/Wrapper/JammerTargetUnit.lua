@@ -426,6 +426,8 @@ function JAMMER_TARGET_UNIT:New(unit_name, jammer_plane)
                 JAMMER_TARGET_UNIT.Inf,
                 JAMMER_TARGET_UNIT.Inf,
                 360)
+
+    --_EVENTDISPATCHER:CreateEventNewJTU(self)
     return self
 end
 

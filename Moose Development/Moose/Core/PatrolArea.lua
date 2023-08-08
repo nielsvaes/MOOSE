@@ -97,3 +97,25 @@ function PATROL_AREA:SetUpdateTime(update_time)
     self.update_time = update_time
     self:Start()
 end
+
+function PATROL_AREA:DebugDraw()
+    self.debug_draw_on = true
+    self:__Draw()
+end
+
+function PATROL_AREA:RemoveDebugDraw()
+    self:RemoveDraw()
+    self.debug_draw_on = false
+end
+
+function PATROL_AREA:__Draw()
+    self:RemoveDebugDraw()
+    if self.debug_draw_on then
+        self:Draw()
+        for group, group_data in pairs(self.groups) do
+            table.add(self.debug_mark_ids, COORDINATE:NewFromVec2(group_data.vec2):CircleToAll(50, -1, {0, 0, 1}, 1, {0, 0, 1}))
+            table.add(self.debug_mark_ids, LINE:Draw(group:GetVec2(), group_data.vec2))
+        end
+    end
+end
+

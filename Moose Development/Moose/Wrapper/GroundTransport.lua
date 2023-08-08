@@ -309,7 +309,7 @@ end
 function GROUND_TRANSPORT:__EnsureMetaData(meta_data)
     local meta_data_template = UTILS.DeepCopy(GROUND_TRANSPORT.METADATA[self:GetTypeName()] or UTILS.DeepCopy(GROUND_TRANSPORT.METADATA.UNDEFINED))
     meta_data_template.fill = -1
-    meta_data_template.max = GROUND_TRANSPORT.METADATA[self:GetTypeName()]["pass"]
+    meta_data_template.max = GROUND_TRANSPORT.METADATA[self:GetTypeName()]["pass"] or GROUND_TRANSPORT.METADATA.UNDEFINED["pass"]
     meta_data_template.type = "ins"
     meta_data_template.grp_size = 7
     meta_data_template.run_pct = 50

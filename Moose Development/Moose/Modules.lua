@@ -80,6 +80,8 @@ __Moose.Include( 'Scripts/Moose/Functional/Warehouse.lua' )
 __Moose.Include( 'Scripts/Moose/Functional/Fox.lua' )
 __Moose.Include( 'Scripts/Moose/Functional/Mantis.lua' )
 __Moose.Include( 'Scripts/Moose/Functional/Shorad.lua' )
+__Moose.Include( 'Scripts/Moose/Functional/RedFlagPlayer.lua' )
+__Moose.Include( 'Scripts/Moose/Functional/RedFlagManager.lua' )
 
 __Moose.Include( 'Scripts/Moose/Ops/Airboss.lua' )
 __Moose.Include( 'Scripts/Moose/Ops/RecoveryTanker.lua' )

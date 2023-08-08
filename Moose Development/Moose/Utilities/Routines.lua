@@ -2157,7 +2157,7 @@ function MessageToAll( MsgText, MsgTime, Clear )
   -- trace.f()
   Clear = Clear or false
   MsgTime = MsgTime or 20
-  MESSAGE:New( MsgText, MsgTime, "Message", Clear ):ToCoalition( coalition.side.RED ):ToCoalition( coalition.side.BLUE )
+  MESSAGE:New( MsgText, MsgTime, "Message", Clear ):ToCoalition( coalition.side.RED ):ToCoalition( coalition.side.BLUE ):ToCoalition(coalition.side.NEUTRAL)
 end
 
 

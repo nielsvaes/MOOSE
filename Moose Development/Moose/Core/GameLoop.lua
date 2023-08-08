@@ -25,6 +25,7 @@ end
 
 function GAMELOOPFUNCTION:SetExitFunction(exit_condition_function)
     self.exit_condition_function = exit_condition_function
+    return self
 end
 
 function GAMELOOPFUNCTION:CanExec()
@@ -162,6 +163,9 @@ function GAMELOOP:Add(gameloopfunction, position)
 end
 
 function GAMELOOP:Remove(func)
+    if not self:HasFunction(func) then
+        self:I("Can't find " .. tostring(id) .. " to remove")
+    end
     local was_running = self.timer.isrunning
     self:Stop()
     table.remove_by_value(self.gameloopfunctions, func)
@@ -203,13 +207,19 @@ function GAMELOOP:SetTimesPerSecond(value)
     end
 end
 
-function GAMELOOP:RemoveByID(id)
-    for _, func in pairs(self.gameloopfunctions) do
-        if func.id == id then
-            self:I("Found the function to remove: " .. id)
-            return self:Remove(func)
+function GAMELOOP:GetByID(id)
+    local i = 1
+    while i < #self.gameloopfunctions do
+        if self.gameloopfunctions[i].id == id then
+            return self.gameloopfunctions[i].id
         end
+
+        i = i + 1
     end
+end
+
+function GAMELOOP:RemoveByID(id)
+    self:Remove(self:GetByID(id))
 end
 
 function GAMELOOP:Start()
@@ -246,6 +256,20 @@ end
 
 function GAMELOOP:GetTotalTickCount()
     return self.total_tick_count
+end
+
+function GAMELOOP:HasFunction(gameloopfunction)
+    if self.gameloopfunctions[gameloopfunction] then
+        return true
+    end
+    return false
+end
+
+function GAMELOOP:HasFunctionID(id)
+    if self.gameloopfunctions[self:GetByID(id)] then
+        return true
+    end
+    return false
 end
 
 function GAMELOOP:Reset(restart)

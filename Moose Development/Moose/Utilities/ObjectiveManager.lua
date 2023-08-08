@@ -187,6 +187,7 @@ function OBJECTIVE_MANAGER:SpawnObjective(objective_name, id, vec2_pos, rotation
     end
 
     self.objective_spawn_info[id] = spawned_objects
+    return spawned_objects
 end
 
 function OBJECTIVE_MANAGER:__LoadStatic(static_table, vec2_pos, rotation, country)

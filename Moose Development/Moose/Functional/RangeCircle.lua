@@ -141,6 +141,20 @@ RANGE_CIRCLE = {
             size = 58,
             rotation_offset = 0
         },
+        BARBED_WIRE_FENCE = {
+            type = "ERO_Barbed_Wire_Fence",
+            category = "Fortifications",
+            shape = "",
+            size = 42,
+            rotation_offset = 0
+        },
+        ROLLED_BARBED_WIRE_FENCE = {
+            type = "M92_Fences_2",
+            category = "Fortifications",
+            shape = "",
+            size = 17,
+            rotation_offset = 90
+        },
     }
 }
 
