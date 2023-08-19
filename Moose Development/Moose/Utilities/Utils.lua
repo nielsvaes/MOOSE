@@ -3494,6 +3494,12 @@ function table.count_value(tbl, value)
 end
 
 function table.combine(t1, t2)
+    if t1 == nil and t2 == nil then
+        BASE:E("Both tables were empty!")
+    end
+
+    if t1 == nil then return t2 end
+    if t2 == nil then return t1 end
     for i=1,#t2 do
         t1[#t1+1] = t2[i]
     end
