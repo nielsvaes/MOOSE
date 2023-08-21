@@ -11,6 +11,7 @@ function OBJECTIVE_MANAGER:Get(force, json_file_path)
 
         self.json_file_path = json_file_path or "C:/coconutcockpit/objectives.json"
         self.objective_spawn_info = {}
+        self.ID = 1
 
         _G["objective_manager"] = self
         self:I("Making new OBJECTIVE_MANAGER")
@@ -260,6 +261,11 @@ function OBJECTIVE_MANAGER:EnsureJSON()
     else
         lfs.mkdir("C:/coconutcockpit/")
     end
+end
+
+function OBJECTIVE_MANAGER:GetNewID()
+    self.ID = self.ID + 1
+    return self.ID
 end
 
 
