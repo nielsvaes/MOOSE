@@ -1,6 +1,4 @@
 
-
-
 RED_FLAG_AIR_MANAGER = {
     ClassName = "RED_FLAG_AIR_MANAGER"
 }
@@ -11,6 +9,8 @@ function RED_FLAG_AIR_MANAGER:Get()
 
         self.blue_players = {}
         self.red_players = {}
+        self:HandleEvent(EVENTS.PlayerEnterAircraft)
+        self:HandleEvent(EVENTS.Birth)
 
         _G["red_flag_air_manager"] = self
         self:I("Making new RED_FLAG_AIR_MANAGER")
@@ -45,4 +45,23 @@ end
 
 function RED_FLAG_AIR_MANAGER:GetAllPlayers()
     return table.combine(self.red_players, self.blue_players)
+end
+
+--function RED_FLAG_AIR_MANAGER:OnEventPlayerEnterAircraft(event_data)
+--    local player_name = event_data.IniPlayerName
+--    local unit = event_data.IniUnit
+--    local client = unit:GetClient()
+--    DevMessageToAll( player_name .. " joined the server")
+--    self:RegisterPlayer(unit:GetName())
+--end
+
+function RED_FLAG_AIR_MANAGER:OnEventBirth(event_data)
+    local player_name = event_data.IniPlayerName
+    local unit = event_data.IniUnit
+    local client = unit:GetClient()
+    --if not client then
+    --    return
+    --end
+    DevMessageToAll( player_name .. " registered as Red Flag player")
+    self:RegisterPlayer(unit:GetName())
 end

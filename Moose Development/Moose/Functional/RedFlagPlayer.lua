@@ -15,18 +15,22 @@ function RED_FLAG_PLAYER:FindByName(unit_name)
     self.base_ammo = UTILS.DeepCopy(UTILS.GetSimpleAmmo(self))
     self.current_ammo = UTILS.DeepCopy(self.base_ammo)
 
-
     return self
 end
 
 function RED_FLAG_PLAYER:Kill()
     self.is_alive = false
-    MESSAGE:New("You have been killed! Return to a respawn zone to respawn", 20):ToClient(self:GetClient())
+
+    self:GetGroup():SetCommandInvisible(true)
+    self:SetCommand({ id = 'SetInvisible', params = { value = true }} )
+    MESSAGE:New("\n\nYou have been killed! Return to a respawn zone to respawn\n\n", 20):ToClient(self:GetClient())
 end
 
 function RED_FLAG_PLAYER:Respawn()
     self.is_alive = true
     self:ResetAmmo()
+    self:GetGroup():SetCommandInvisible(false)
+
     local ammo_msg = ""
     for ammo_type, amount in pairs(self.current_ammo) do
         ammo_msg = ammo_msg .. string.format("%s: %s\n", ammo_type, amount)
@@ -41,13 +45,28 @@ function RED_FLAG_PLAYER:ResetAmmo()
     self.current_ammo = UTILS.DeepCopy(self.base_ammo)
 end
 
+function RED_FLAG_PLAYER:Reset()
+    self:Respawn()
+    self:ResetAmmo()
+end
+
+function RED_FLAG_PLAYER:UpdateInitialAmmo()
+    self.base_ammo = UTILS.DeepCopy(UTILS.GetSimpleAmmo(self))
+
+    local ammo_msg = ""
+    for ammo_type, amount in pairs(self.base_ammo) do
+        ammo_msg = ammo_msg .. string.format("%s: %s\n", ammo_type, amount)
+    end
+    MESSAGE:New("Your initial ammo has been reset to:\n" .. ammo_msg, 20):ToClient(self:GetClient())
+end
+
 function RED_FLAG_PLAYER:OnEventShot(event_data)
-    DevMessageToAll("player fire!")
     local weapon_dcs_object = event_data.weapon
     local ccweapon = CCWEAPON:New(weapon_dcs_object)
 
     if not self.is_alive then
         DevMessageToAll(string.format("%s: Can't fire weapon, you're dead", self:GetName()))
+        weapon_dcs_object:destroy()
         return
     end
 
