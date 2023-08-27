@@ -141,9 +141,9 @@ function OBJECTIVE_MANAGER:IndexObjectives()
     BASE:I("JSON written")
 end
 
-function OBJECTIVE_MANAGER:SpawnObjective(objective_name, id, vec2_pos, rotation, country)
+function OBJECTIVE_MANAGER:SpawnObjective(objective_name, id, vec2_pos, rotation, country, data)
     id = tostring(id)
-    local json_data = UTILS.ReadJSON(self.json_file_path)
+    local json_data = data or UTILS.ReadJSON(self.json_file_path)
     local spawned_objects = {}
     local objective_table = json_data[objective_name]
 
