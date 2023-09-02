@@ -3563,6 +3563,13 @@ function string.split(input, separator)
     return parts
 end
 
+function string.contains(str, value)
+    if string.match(str, value) then
+        return true
+    end
+    return false
+end
+
 function table.contains(tbl, element)
     if element == nil or tbl == nil then return false end
 
