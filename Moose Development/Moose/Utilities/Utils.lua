@@ -3447,7 +3447,6 @@ function UTILS.GetHashFromString(str)
 end
 
 function UTILS.WriteJSON(data, file_path)
-
     package.path  = package.path ..  ";.\\Scripts\\?.lua"
     local JSON = require("json")
     local pretty_json_text = JSON:encode_pretty(data)
