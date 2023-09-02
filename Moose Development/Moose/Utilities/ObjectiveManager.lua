@@ -12,6 +12,8 @@ function OBJECTIVE_MANAGER:Get(force, json_file_path)
         self.json_file_path = json_file_path or "C:/coconutcockpit/objectives.json"
         self.objective_spawn_info = {}
         self.ID = 1
+        self.mark_offset_min = 2000
+        self.mark_offset_max = 8000
 
         _G["objective_manager"] = self
         self:I("Making new OBJECTIVE_MANAGER")
@@ -141,8 +143,13 @@ function OBJECTIVE_MANAGER:IndexObjectives()
     BASE:I("JSON written")
 end
 
-function OBJECTIVE_MANAGER:SpawnObjective(objective_name, id, vec2_pos, rotation, country, data)
-    id = tostring(id)
+function OBJECTIVE_MANAGER:SpawnObjective(objective_name, id, vec2_pos, rotation, country, data, f10_circle_size, color, alpha)
+    color = color or {1, 0, 0}
+    color[4] = alpha or 0.8
+    f10_circle_size = f10_circle_size or self.mark_offset_max
+    id = tostring(id) or tostring(OBJECTIVE_MANAGER:GetNewID())
+
+    local f10_circle_mark_id = -9999999
     local json_data = data or UTILS.ReadJSON(self.json_file_path)
     local spawned_objects = {}
     local objective_table = json_data[objective_name]
@@ -187,7 +194,20 @@ function OBJECTIVE_MANAGER:SpawnObjective(objective_name, id, vec2_pos, rotation
         end
     end
 
-    self.objective_spawn_info[id] = spawned_objects
+
+    --F10 circle
+    if f10_circle_size > 0 then
+        f10_circle_mark_id = COORDINATE:NewFromVec2(vec2_pos)
+                                       :Translate(math.random(self.mark_offset_min, self.mark_offset_max), math.random(0, 360))
+                                       :CircleToAll(f10_circle_size, -1, color, alpha, color, alpha)
+        print(f10_circle_mark_id)
+    end
+
+    self.objective_spawn_info[id] = {
+        objects = spawned_objects,
+        f10_circle_mark_id = f10_circle_mark_id
+    }
+
     return spawned_objects
 end
 
@@ -241,8 +261,13 @@ end
 
 function OBJECTIVE_MANAGER:DestroyObjective(id)
     id = tostring(id)
-    for _, spawned_object in pairs(self.objective_spawn_info[id] or {}) do
-        spawned_object:Destroy()
+    if table.contains_key(self.objective_spawn_info, id) then
+        for _, object in pairs(self.objective_spawn_info[id].objects) do
+            object:Destroy()
+        end
+
+        print(self.objective_spawn_info[id].f10_circle_mark_id)
+        UTILS.RemoveMark(self.objective_spawn_info[id].f10_circle_mark_id)
     end
     self.objective_spawn_info[id] = nil
 end
