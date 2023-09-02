@@ -79,6 +79,16 @@ function LINE:GetLength()
     return total_length
 end
 
+function LINE:GetRandomPoint(points)
+    points = points or self.Points
+    local rand = math.random() -- 0->1
+
+    local random_x = points[1].x + rand * (points[2].x - points[1].x)
+    local random_y = points[1].y + rand * (points[2].y - points[1].y)
+
+    return { x= random_x, y= random_y }
+end
+
 function LINE:GetPointsInbetween(amount, start_point, end_point)
     start_point = start_point or self:GetStartPoint()
     end_point = end_point or self:GetEndPoint()
