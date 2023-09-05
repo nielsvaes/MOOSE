@@ -89,6 +89,19 @@ function LINE:GetRandomPoint(points)
     return { x= random_x, y= random_y }
 end
 
+function LINE:GetHeading(points)
+    points = points or self.Points
+
+    local angle = math.atan2(points[2].y - points[1].y, points[2].x - points[1].x)
+
+    angle = math.deg(angle)
+    if angle < 0 then
+        angle = angle + 360
+    end
+
+    return angle
+end
+
 function LINE:GetPointsInbetween(amount, start_point, end_point)
     start_point = start_point or self:GetStartPoint()
     end_point = end_point or self:GetEndPoint()

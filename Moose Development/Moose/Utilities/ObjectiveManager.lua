@@ -266,7 +266,6 @@ function OBJECTIVE_MANAGER:DestroyObjective(id)
             object:Destroy()
         end
 
-        print(self.objective_spawn_info[id].f10_circle_mark_id)
         UTILS.RemoveMark(self.objective_spawn_info[id].f10_circle_mark_id)
     end
     self.objective_spawn_info[id] = nil
