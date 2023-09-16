@@ -286,6 +286,7 @@ SPAWN.Takeoff = {
   Cold = 4,
 }
 
+---
 -- @type SPAWN.SpawnZoneTable
 -- @list <Core.Zone#ZONE_BASE> SpawnZone
 
@@ -1202,7 +1203,6 @@ function SPAWN:InitCleanUp( SpawnCleanUpInterval )
   local SpawnGroup, SpawnCursor = self:GetFirstAliveGroup()
   self:T( { "CleanUp Scheduler:", SpawnGroup } )
 
-  -- self.CleanUpFunction = routines.scheduleFunction( self._SpawnCleanUpScheduler, { self }, timer.getTime() + 1, SpawnCleanUpInterval )
   self.CleanUpScheduler = SCHEDULER:New( self, self._SpawnCleanUpScheduler, {}, 1, SpawnCleanUpInterval, 0.2 )
   return self
 end
