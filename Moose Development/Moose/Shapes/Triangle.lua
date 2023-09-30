@@ -53,9 +53,11 @@ function TRIANGLE:GetRandomVec2(points)
 end
 
 function TRIANGLE:Draw()
-    table.add(self.MarkIDs, self.Coords[1]:LineToAll(self.Coords[2]))
-    table.add(self.MarkIDs, self.Coords[2]:LineToAll(self.Coords[3]))
-    table.add(self.MarkIDs, self.Coords[3]:LineToAll(self.Coords[1]))
+    for i=1, #self.Coords do
+        local c1 = self.Coords[i]
+        local c2 = self.Coords[i % #self.Coords + 1]
+        table.add(self.MarkIDs, c1:LineToAll(c2))
+    end
 end
 
 function TRIANGLE:RemoveDraw()

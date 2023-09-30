@@ -270,12 +270,11 @@ end
 function POLYGON:Draw(include_inner_triangles)
     include_inner_triangles = include_inner_triangles or false
     for i=1, #self.Coords do
-        if i + 1 <= #self.Coords then
-            table.add(self.OutlineMarkIDs, self.Coords[i]:LineToAll(self.Coords[i+1]))
-        else
-            table.add(self.OutlineMarkIDs, self.Coords[i]:LineToAll(self.Coords[1]))
-        end
+        local c1 = self.Coords[i]
+        local c2 = self.Coords[i % #self.Coords + 1]
+        table.add(self.OutlineMarkIDs, c1:LineToAll(c2))
     end
+
 
     if include_inner_triangles then
         for _, triangle in ipairs(self.Triangles) do
