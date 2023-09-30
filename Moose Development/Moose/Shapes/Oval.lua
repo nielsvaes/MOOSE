@@ -9,7 +9,7 @@ function OVAL:FindOnMap(shape_name)
     self = BASE:Inherit(self, SHAPE_BASE:FindOnMap(shape_name))
     for _, layer in pairs(env.mission.drawings.layers) do
         for _, object in pairs(layer["objects"]) do
-            if string.find(object["name"], shape_name) then
+            if string.find(object["name"], shape_name, 1, true) then
                 if object["polygonMode"] == "oval" then
                     self.MajorAxis = object["r1"]
                     self.MinorAxis = object["r2"]

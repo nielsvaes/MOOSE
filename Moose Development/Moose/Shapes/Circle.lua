@@ -7,7 +7,7 @@ function CIRCLE:FindOnMap(shape_name)
     self = BASE:Inherit(self, SHAPE_BASE:FindOnMap(shape_name))
     for _, layer in pairs(env.mission.drawings.layers) do
         for _, object in pairs(layer["objects"]) do
-            if string.find(object["name"], shape_name) then
+            if string.find(object["name"], shape_name, 1, true) then
                 if object["polygonMode"] == "circle" then
                     self.Radius = object["radius"]
                 end
