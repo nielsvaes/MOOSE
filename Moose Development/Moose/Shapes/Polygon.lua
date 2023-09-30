@@ -13,13 +13,26 @@ function POLYGON:FindOnMap(shape_name)
         for _, object in pairs(layer["objects"]) do
             if object["name"] == shape_name then
                 if (object["primitiveType"] == "Line" and object["closed"] == true) or (object["polygonMode"] == "free") then
-                    self.Name = object["name"]
                     for _, point in UTILS.spairs(object["points"]) do
                         local p = {x = object["mapX"] + point["x"],
                                    y = object["mapY"] + point["y"] }
                         local coord = COORDINATE:NewFromVec2(p)
                         self.Points[#self.Points + 1] = p
                         self.Coords[#self.Coords + 1] = coord
+                    end
+                elseif object["polygonMode"] == "rect" then
+                    local angle = object["angle"]
+                    local half_width  = object["width"] / 2
+                    local half_height = object["height"] / 2
+
+                    local p1 = UTILS.RotatePointAroundPivot({ x = self.CenterVec2.x - half_height, y = self.CenterVec2.y + half_width }, self.CenterVec2, angle)
+                    local p2 = UTILS.RotatePointAroundPivot({ x = self.CenterVec2.x + half_height, y = self.CenterVec2.y + half_width }, self.CenterVec2, angle)
+                    local p3 = UTILS.RotatePointAroundPivot({ x = self.CenterVec2.x + half_height, y = self.CenterVec2.y - half_width }, self.CenterVec2, angle)
+                    local p4 = UTILS.RotatePointAroundPivot({ x = self.CenterVec2.x - half_height, y = self.CenterVec2.y - half_width }, self.CenterVec2, angle)
+
+                    self.Points = {p1, p2, p3, p4}
+                    for _, point in pairs(self.Points) do
+                        self.Coords[#self.Coords + 1] = COORDINATE:NewFromVec2(point)
                     end
                 end
             end
@@ -53,7 +66,8 @@ end
 
 function POLYGON:New(...)
     self.Points = {...}
-    for _, point in spairs(self.Points) do
+    self.Coords = {}
+    for _, point in UTILS.spairs(self.Points) do
         table.insert(self.Coords, COORDINATE:NewFromVec2(point))
     end
     self.Triangles = self:Triangulate()
@@ -253,19 +267,26 @@ function POLYGON:ContainsPoint(point, polygon_points)
     return counter % 2 == 1
 end
 
-function POLYGON:Draw(triangles)
-    triangles = triangles or false
+function POLYGON:Draw(include_inner_triangles)
+    include_inner_triangles = include_inner_triangles or false
+    for i=1, #self.Coords do
+        if i + 1 <= #self.Coords then
+            table.add(self.OutlineMarkIDs, self.Coords[i]:LineToAll(self.Coords[i+1]))
+        else
+            table.add(self.OutlineMarkIDs, self.Coords[i]:LineToAll(self.Coords[1]))
+        end
+    end
 
-    if triangles then
+    if include_inner_triangles then
         for _, triangle in ipairs(self.Triangles) do
             triangle:Draw()
         end
     end
 end
 
-function POLYGON:RemoveDraw(triangles)
-    triangles = triangles or false
-    if triangles then
+function POLYGON:RemoveDraw(include_inner_triangles)
+    include_inner_triangles = include_inner_triangles or false
+    if include_inner_triangles then
         for _, triangle in pairs(self.Triangles) do
             triangle:RemoveDraw()
         end

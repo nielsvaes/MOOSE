@@ -2,6 +2,8 @@ SHAPE_BASE = {
     ClassName = "SHAPE_BASE",
     Name = "",
     CenterVec2 = nil,
+    Points = {},
+    Coords = {},
     MarkIDs = {}
 }
 
