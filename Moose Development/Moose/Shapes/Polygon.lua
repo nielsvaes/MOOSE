@@ -284,12 +284,9 @@ function POLYGON:Draw(include_inner_triangles)
     end
 end
 
-function POLYGON:RemoveDraw(include_inner_triangles)
-    include_inner_triangles = include_inner_triangles or false
-    if include_inner_triangles then
-        for _, triangle in pairs(self.Triangles) do
-            triangle:RemoveDraw()
-        end
+function POLYGON:RemoveDraw()
+    for _, triangle in pairs(self.Triangles) do
+        triangle:RemoveDraw()
     end
     for _, mark_id in pairs(self.OutlineMarkIDs) do
         UTILS.RemoveMark(mark_id)
