@@ -1,24 +1,19 @@
 OBJECTIVE_MANAGER = {
     ClassName = "OBJECTIVE_MANAGER",
-    SpawnedObjects = {}
+    SpawnedObjects = {},
 }
 
-function OBJECTIVE_MANAGER:Get(force, json_file_path)
-    force = force or false
+function OBJECTIVE_MANAGER:New(json_file_path)
+    self = BASE:Inherit(self, BASE:New())
 
-    if _G["objective_manager"] == nil or force then
-        self = BASE:Inherit(self, BASE:New())
+    self.json_file_path = json_file_path or "C:/coconutcockpit/objectives.json"
+    BASE:I(self.json_file_path)
+    self.objective_spawn_info = {}
+    self.ID = 1
+    self.mark_offset_min = 2000
+    self.mark_offset_max = 8000
 
-        self.json_file_path = json_file_path or "C:/coconutcockpit/objectives.json"
-        self.objective_spawn_info = {}
-        self.ID = 1
-        self.mark_offset_min = 2000
-        self.mark_offset_max = 8000
-
-        _G["objective_manager"] = self
-        self:I("Making new OBJECTIVE_MANAGER")
-    end
-    return _G["objective_manager"]
+    return self
 end
 
 function OBJECTIVE_MANAGER:IndexObjectives()
@@ -155,7 +150,7 @@ function OBJECTIVE_MANAGER:SpawnObjective(objective_name, id, vec2_pos, rotation
     local objective_table = json_data[objective_name]
 
     if objective_table == nil then
-        MessageToAll(string.format("ERROR: There is no objective with the name [%s]", objective_name))
+        MESSAGE:New(string.format("ERROR: There is no objective with the name [%s]", objective_name))
         return
     end
 
