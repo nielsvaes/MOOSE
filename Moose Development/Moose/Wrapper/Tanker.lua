@@ -168,7 +168,7 @@ function TANKER:SetSpeed(ias_speed)
     self.group:PushTask(orbit_task)
     local tanker_task = self.group:EnRouteTaskTanker()
     self.group:PushTask(tanker_task)
-    MessageToAll("Tanker (" .. self.group:GetName() .. ") IAS speed at " .. math.ceil(tostring(UTILS.MetersToFeet(altitude_in_meters))) .. " feet set to " .. tostring(ias_speed), 20)
+    UTILS.MessageToAll("Tanker (" .. self.group:GetName() .. ") IAS speed at " .. math.ceil(tostring(UTILS.MetersToFeet(altitude_in_meters))) .. " feet set to " .. tostring(ias_speed), 20)
     self.group:I("Tanker speed set to " .. tostring(ias_speed))
 end
 
@@ -188,7 +188,7 @@ function TANKER:SetAltitude(altitude_in_feet)
     self.group:PushTask(orbit_task)
     local tanker_task = self.group:EnRouteTaskTanker()
     self.group:PushTask(tanker_task)
-    MessageToAll("Tanker (" .. self.group:GetName() .. ") altitude set to " .. math.ceil(tostring(UTILS.MetersToFeet(altitude_in_meters))) .. " feet at " .. tostring(UTILS.MpsToKnots(speed_mps)))
+    UTILS.MessageToAll("Tanker (" .. self.group:GetName() .. ") altitude set to " .. math.ceil(tostring(UTILS.MetersToFeet(altitude_in_meters))) .. " feet at " .. tostring(UTILS.MpsToKnots(speed_mps)))
     self.group:I("Tanker altitude set to " .. math.ceil(tostring(UTILS.MetersToFeet(altitude_in_meters))))
 end
 

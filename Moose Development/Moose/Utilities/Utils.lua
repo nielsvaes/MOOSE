@@ -3256,7 +3256,7 @@ function UTILS.ChimeMessage(message, time, delay)
     delay = delay or 0.01
     BASE:ScheduleOnce(delay, function()
         CCMISSION.CHIME:ToAll()
-        MessageToAll(message, time)
+        UTILS.MessageToAll(message, time)
     end)
 end
 
@@ -3548,6 +3548,13 @@ function UTILS.UniqueName(base)
         return ran
     end
     return base .. "_" .. ran
+end
+
+function UTILS.MessageToAll(message, duration)
+    message = message or ""
+
+    MESSAGE:New(message, duration):ToAll()
+    BASE:I(message)
 end
 
 function string.startswith(str, value)

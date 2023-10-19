@@ -150,7 +150,7 @@ function OBJECTIVE_MANAGER:SpawnObjective(objective_name, id, vec2_pos, rotation
     local objective_table = json_data[objective_name]
 
     if objective_table == nil then
-        MESSAGE:New(string.format("ERROR: There is no objective with the name [%s]", objective_name))
+        MESSAGE:New(string.format("ERROR: There is no objective with the name [%s]", objective_name)):ToAll()
         return
     end
 

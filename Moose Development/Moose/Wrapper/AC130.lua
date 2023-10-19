@@ -139,7 +139,7 @@ end
 
 function AC130:LookAt(coor)
     self.view_coordinate = coor
-    MessageToAll("x: " .. tostring(coor:GetVec2().x) .. ", y: " .. tostring(coor:GetVec2().x), 1, true)
+    UTILS.MessageToAll("x: " .. tostring(coor:GetVec2().x) .. ", y: " .. tostring(coor:GetVec2().x), 1, true)
 end
 
 function AC130:TranslateViewCoordinate(distance, bearing)

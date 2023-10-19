@@ -158,7 +158,7 @@ RANGE_CIRCLE = {
     }
 }
 
-function RANGE_CIRCLE:New(zone_or_circle, object_table, gap_percentage, perfect, height_offset)
+function RANGE_CIRCLE:New(zone_or_circle, object_table, gap_percentage, perfect, height_offset, center_static)
     self = BASE:Inherit(self, BASE:New())
 
     gap_percentage = gap_percentage or 0
@@ -168,6 +168,8 @@ function RANGE_CIRCLE:New(zone_or_circle, object_table, gap_percentage, perfect,
     else
         perfect = perfect
     end
+
+    center_static = center_static or RANGE_CIRCLE.OBJECTS.CONTAINER_20ft
 
     self.statics = {}
     self.name = zone_or_circle:GetName()
@@ -197,12 +199,16 @@ function RANGE_CIRCLE:New(zone_or_circle, object_table, gap_percentage, perfect,
                                               :InitHeading(heading)
                                               :SpawnFromCoordinate(pt)
                     table.insert(self.statics, static)
-
                 end
                 rotation = rotation + (360 / amount)
             end
             current_radius = current_radius - radius_decr
         end
+        SPAWNSTATIC:NewFromType(center_static.type, center_static.category, country.CJTF_BLUE)
+                      :InitNamePrefix(self.name .. tostring(math.random(0, 99999)))
+                      :InitShape(center_static.shape)
+                      :InitHeading(math.random(0, 360))
+                      :SpawnFromCoordinate(self.center)
     end
 
     return self

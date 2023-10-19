@@ -137,7 +137,7 @@ function STRAFE_AREA:ShowHitData(player_unit)
     msg = msg .. string.format("Percentage: %d %s\n", pct, pct_rating)
     msg = msg .. "================\n"
     msg = msg .. string.format("Overall: %s", overall)
-    MessageToAll(msg, 20)
+    UTILS.MessageToAll(msg, 20)
 
     self:ResetPlayerData(player_unit)
 end
