@@ -3876,3 +3876,7 @@ function UTILS.ClockHeadingString(refHdg,tgtHdg)
     local clockPos = math.ceil((relativeAngle % 360) / 30)
     return clockPos.." o'clock"
 end
+
+function DevMessage(message)
+    trigger.action.outText("[DEV: " .. message .. "]", 10)
+end
