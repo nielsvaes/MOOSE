@@ -3,11 +3,16 @@ CONVERSATION = {
 }
 
 
-function CONVERSATION:PlayNumber(number, radio_unit, initial_delay)
+function CONVERSATION:PlayNumber(number, radio_unit, initial_delay, before_play_function, after_play_function, voice_line_table)
     number = tostring(number)
     local pause = initial_delay or 0
+    voice_line_table = voice_line_table or MIZ.VOICELINES
 
-    for _, voice_line in pairs(PHOENIXMISSION.VOICELINES[number]) do
+    if before_play_function then
+        BASE:ScheduleOnce(initial_delay, before_play_function())
+    end
+
+    for _, voice_line in pairs(voice_line_table) do
         BASE:ScheduleOnce(pause,
             function()
                 local radio
@@ -25,6 +30,10 @@ function CONVERSATION:PlayNumber(number, radio_unit, initial_delay)
             end
         )
         pause = pause + voice_line.duration + 0.5
+    end
+
+    if after_play_function then
+        BASE:ScheduleOnce(pause, after_play_function())
     end
 end
 
