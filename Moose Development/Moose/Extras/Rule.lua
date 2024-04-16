@@ -20,6 +20,7 @@ function RULE:New(name, type, f_condition, f_action, ...)
     self.f_action_args = {...}
     self.is_active = false
     self.delay = 0
+    self.times_per_second = 1
     self.__previous_active = self.is_active
     return self
 end
@@ -39,6 +40,10 @@ end
 
 function RULE:SetDelay(value)
     self.delay = value
+end
+
+function RULE:SetTimesPerSecond(value)
+    self.times_per_second = value
 end
 
 function RULE:Add()
@@ -69,6 +74,14 @@ function RULE:GetType()
     return self.type
 end
 
+function RULE:GetDelay()
+    return self.delay
+end
+
+function RULE:GetTimesPerSecond()
+    return self.times_per_second
+end
+
 function RULE:SetActive(value)
     self.is_active = value
     if self.is_active ~= self.__previous_active then
@@ -91,7 +104,7 @@ function RULE_MANAGER:Get()
         _G["rule_manager"] = self
         self:I("Making RULE_MANAGER")
 
-        GAMELOOPFUNCTION:New(self.CheckRules, {self}, -1, "rule_manager"):Add()
+        self.glf = GAMELOOPFUNCTION:New(self.CheckRules, {self}, -1, "rule_manager"):Add()
     end
     return _G["rule_manager"]
 end
@@ -100,6 +113,15 @@ function RULE_MANAGER:Add(rule)
     self:I("Adding: " .. rule:GetName())
     local pos = #self.rules + 1
     table.insert(self.rules, pos, rule)
+
+    local times_per_second = 99999
+    for _, r in pairs(self.rules) do
+        if r.times_per_second < times_per_second then
+            times_per_second = r.times_per_second
+        end
+    end
+
+    self.glf:SetTimesPerSecond(times_per_second)
     self:I(#self.rules)
 end
 
