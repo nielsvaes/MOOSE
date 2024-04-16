@@ -3513,6 +3513,20 @@ function string.contains(str, value)
     return string.match(str, value)
 end
 
+function table.move_object(obj, from_table, to_table)
+    local index
+    for i, v in pairs(from_table) do
+        if v == obj then
+            index = i
+        end
+    end
+
+    if index then
+        local moved = table.remove(from_table, index)
+        table.insert_unique(to_table, moved)
+    end
+end
+
 --- Given tbl is a indexed table ({"hello", "dcs", "world"}), checks if element exists in the table.
 --- The table can be made up out of complex tables or values as well
 -- @param #table tbl
@@ -3730,6 +3744,25 @@ end
 function UTILS.OctalToDecimal(Number)
   return tonumber(Number,8)
 end
+
+
+--- HexToRGBA
+-- @param hex_string table
+-- @return #table R, G, B, A
+function UTILS.HexToRGBA(hex_string)
+    local hexNumber = tonumber(string.sub(hex_string, 3), 16) -- convert the string to a number
+    -- extract RGBA components
+    local alpha = hexNumber % 256
+    hexNumber = (hexNumber - alpha) / 256
+    local blue = hexNumber % 256
+    hexNumber = (hexNumber - blue) / 256
+    local green = hexNumber % 256
+    hexNumber = (hexNumber - green) / 256
+    local red = hexNumber % 256
+
+    return {R = red, G = green, B = blue, A = alpha}
+end
+
 
 --- Function to save the position of a set of #OPSGROUP (ARMYGROUP) objects.
 -- @param Core.Set#SET_OPSGROUP Set of ops objects to save
