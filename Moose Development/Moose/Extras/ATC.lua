@@ -127,7 +127,7 @@ end
 
 function ATC:SpawnGroup(group)
     local spawned_group = SPAWN:New("ai_dutch_viper_single")
-                               :SpawnAtParkingSpot(self.airbase, {PHOENIXMISSION.GetParkingID("07")}, SPAWN.Takeoff.Cold)
+                               :SpawnAtParkingSpot(self.airbase, {MIZ.GetParkingID("07")}, SPAWN.Takeoff.Cold)
 
     local blocker
     BASE:ScheduleOnce(1, function()
