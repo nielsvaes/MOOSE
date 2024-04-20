@@ -258,6 +258,10 @@ function GAMELOOP:GetTotalTickCount()
     return self.total_tick_count
 end
 
+function GAMELOOP:GetFunctions()
+    return self.gameloopfunctions
+end
+
 function GAMELOOP:HasFunction(gameloopfunction)
     if self.gameloopfunctions[gameloopfunction] then
         return true
