@@ -23,6 +23,13 @@ PATROL_AREA = {
     ClassName = "PATROL_AREA",
 }
 
+PATROL_AREA.DENSITY = {
+    LOW = 0.001,
+    NORMAL = 0.001,
+    HIGH = 0.005,
+    EXTREME = 0.009
+}
+
 function PATROL_AREA:New(name, points, groups, update_time)
     local self = BASE:Inherit(self, POLYGON:FindOnMap(name))
 
@@ -59,13 +66,24 @@ end
 function PATROL_AREA:PickNewLocation()
     for group, group_data in pairs(self.groups) do
         if group ~= nil and group:IsAlive() then
+            local is_waiting = false
             if UTILS.PercentageChance(20) then
-                BASE:ScheduleOnce(math.random(5, 10), function() group:RouteStop() end)
+                delay(math.random(5, 10), function()
+                    group:RouteStop()
+                end)
+                is_waiting = true
             end
-            local new_pos = self:GetRandomVec2()
-            group:RouteToVec2(new_pos, self.walk_speed)
-            self.groups[group].vec2 = {new_pos}
-            self:__Draw()
+            if not is_waiting then
+                local new_pos = self:GetRandomVec2()
+                BASE:I(group:GetName())
+                BASE:I(new_pos)
+                delay(math.random(1, 10), function()
+                    group:ClearTasks()
+                    group:RouteToVec2(new_pos, self.walk_speed)
+                    self.groups[group].vec2 = { new_pos }
+                end)
+
+            end
         end
     end
 end
@@ -103,6 +121,10 @@ end
 function PATROL_AREA:RemoveDebugDraw()
     self:RemoveDraw()
     self.debug_draw_on = false
+end
+
+function PATROL_AREA:GetIdealNumberOfGroups(density)
+    return math.floor(UTILS.Clamp(self:GetSurfaceArea() * density, 2, BIG_NUMBER))
 end
 
 function PATROL_AREA:__Draw()
