@@ -122,6 +122,22 @@ function SHAPE_BASE:GetColorRGBA()
     return self.ColorRGBA
 end
 
+function SHAPE_BASE:GetColorRed()
+    return self.ColorRGBA.R
+end
+
+function SHAPE_BASE:GetColorGreen()
+    return self.ColorRGBA.G
+end
+
+function SHAPE_BASE:GetColorBlue()
+    return self.ColorRGBA.B
+end
+
+function SHAPE_BASE:GetColorAlpha()
+    return self.ColorRGBA.A
+end
+
 --- Gets the center position of the shape.
 -- @return #table The center position
 function SHAPE_BASE:GetCenterVec2()
