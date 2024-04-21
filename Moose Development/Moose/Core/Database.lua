@@ -278,7 +278,7 @@ function DATABASE:_RegisterShapes()
             elseif object["polygonMode"] == "oval" then
                 self:AddOval(object["name"])
                 self:I(string.format("Register OVAL: %s ", object["name"]))
-            elseif (object["primitiveType"] == "Line" and object["closed"] == true) or (object["polygonMode"] == "free") or (object["polygonMode"] == "rect") then
+            elseif (object["primitiveType"] == "Line" and object["closed"] == true) or (object["polygonMode"] == "free") or (object["polygonMode"] == "rect") or object["polygonMode"] == "arrow" then
                 self:AddPolygon(object["name"])
                 self:I(string.format("Register POLYGON: %s ", object["name"]))
             elseif object["primitiveType"] == "Line" and object["lineMode"] == "segment" then
