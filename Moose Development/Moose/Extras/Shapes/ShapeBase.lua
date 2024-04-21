@@ -66,7 +66,7 @@ function SHAPE_BASE:FindOnMap(shape_name)
 
     for _, layer in pairs(env.mission.drawings.layers) do
         for _, object in pairs(layer["objects"]) do
-            if string.find(object["name"], shape_name, 1, true) then
+            if object["name"] == shape_name then
                 self.Name = object["name"]
                 self.CenterVec2 = { x = object["mapX"], y = object["mapY"] }
                 self.ColorString = object["colorString"]
