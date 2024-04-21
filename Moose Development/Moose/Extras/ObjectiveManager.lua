@@ -6,7 +6,8 @@ OBJECTIVE_MANAGER = {
 function OBJECTIVE_MANAGER:New(json_file_path, indexing_zone_search_prefix, indexing_zone_random_refix)
     local self = BASE:Inherit(self, BASE:New())
 
-    self.json_file_path = json_file_path or "C:/coconutcockpit/objectives.json"
+    self.json_file_path = json_file_path
+    self.objectives_info_table = UTILS.ReadJSON(json_file_path)
     BASE:I(self.json_file_path)
     self.objective_spawn_info = {}
     self.ID = 1
@@ -155,12 +156,11 @@ function OBJECTIVE_MANAGER:SpawnObjective(objective_name, id, vec2_pos, rotation
     color = color or { 1, 0, 0 }
     color[4] = alpha or 0.8
     f10_circle_size = f10_circle_size or self.mark_offset_max
-    id = tostring(id) or tostring(OBJECTIVE_MANAGER:GetNewID())
+    if id == nil then id = tostring(self:GetNewID()) end
+    rotation = rotation or math.random(0, 360)
 
-    local f10_circle_mark_id = -9999999
-    local json_data = data or UTILS.ReadJSON(self.json_file_path)
     local spawned_objects = {}
-    local objective_table = json_data[objective_name]
+    local objective_table = UTILS.DeepCopy(self.objectives_info_table[objective_name])
 
     if objective_table == nil then
         MESSAGE:New(string.format("ERROR: There is no objective with the name [%s]", objective_name)):ToAll()
@@ -204,16 +204,16 @@ function OBJECTIVE_MANAGER:SpawnObjective(objective_name, id, vec2_pos, rotation
 
 
     --F10 circle
-    if f10_circle_size > 0 then
-        f10_circle_mark_id = COORDINATE:NewFromVec2(vec2_pos)
-                                       :Translate(math.random(self.mark_offset_min, self.mark_offset_max), math.random(0, 360))
-                                       :CircleToAll(f10_circle_size, -1, color, alpha, color, alpha)
-        print(f10_circle_mark_id)
-    end
+    --if f10_circle_size > 0 then
+    --    f10_circle_mark_id = COORDINATE:NewFromVec2(vec2_pos)
+    --                                   :Translate(math.random(self.mark_offset_min, self.mark_offset_max), math.random(0, 360))
+    --                                   :CircleToAll(f10_circle_size, -1, color, alpha, color, alpha)
+    --    print(f10_circle_mark_id)
+    --end
 
     self.objective_spawn_info[id] = {
         objects = spawned_objects,
-        f10_circle_mark_id = f10_circle_mark_id
+        --f10_circle_mark_id = f10_circle_mark_id
     }
 
     return spawned_objects
@@ -282,6 +282,12 @@ end
 function OBJECTIVE_MANAGER:GetIDs()
     for id, each in pairs(self.objective_spawn_info) do
         BASE:I(id)
+    end
+end
+
+function OBJECTIVE_MANAGER:DestroyAllObjectives()
+    for id, each in pairs(self.objective_spawn_info) do
+        self:DestroyObjective(id)
     end
 end
 
