@@ -75,8 +75,6 @@ function PATROL_AREA:PickNewLocation()
             end
             if not is_waiting then
                 local new_pos = self:GetRandomVec2()
-                BASE:I(group:GetName())
-                BASE:I(new_pos)
                 delay(math.random(1, 10), function()
                     group:ClearTasks()
                     group:RouteToVec2(new_pos, self.walk_speed)
