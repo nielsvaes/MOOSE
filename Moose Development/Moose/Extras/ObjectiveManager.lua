@@ -227,7 +227,7 @@ function OBJECTIVE_MANAGER:__LoadStatic(static_table, vec2_pos, rotation, countr
 
     local static = SPAWNSTATIC:NewFromType(static_table.type, static_table.category, country)
                               :InitNamePrefix(UTILS.UniqueName(static_table.name))
-                              :InitShape(static_table.shape_type or "")
+                              :InitShape(static_table.shape_name or "")
                               :SpawnFromPointVec2(POINT_VEC2:NewFromVec2({ x = static_table.x, y = static_table.y }), rotation + UTILS.ToDegree(static_table.heading))
     return static
 end
