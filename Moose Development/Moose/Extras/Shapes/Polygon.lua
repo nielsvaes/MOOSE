@@ -146,18 +146,6 @@ function POLYGON:New(...)
     return self
 end
 
---function POLYGON:NewFromPoints(points)
---    self.Points = points
---    self.Coords = {}
---    for _, point in UTILS.spairs(self.Points) do
---        table.insert(self.Coords, COORDINATE:NewFromVec2(point))
---    end
---    self.Triangles = self:Triangulate()
---    self.SurfaceArea = self:__CalculateSurfaceArea()
---    return self
---end
-
-
 --- Calculates the centroid of the polygon. The centroid is the average of the 'x' and 'y' coordinates of the points.
 -- @return #table The centroid of the polygon
 function POLYGON:GetCentroid()
