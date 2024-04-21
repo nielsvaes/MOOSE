@@ -83,7 +83,9 @@ function OBJECTIVE_MANAGER:IndexObjectives()
                     BASE:I(tostring(group:GetID()))
                     local has_been_added = false
                     local group_tables = table.find_key_value_pair(env.mission.coalition, "groupId", tonumber(group:GetID()), true, true)
-                    for _, group_table in pairs(group_tables) do
+                    for _, group_table in pairs({group_tables}) do
+                        self:I("group table")
+                        self:I(group_table)
                         local continue = true
                         if group_table["x"] ~= nil and continue then
                             local group_x = group_table["x"] - objective_table["global_x"]
