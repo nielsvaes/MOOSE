@@ -154,15 +154,6 @@ __Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Tasking/Task_Cargo_Dispatcher
 __Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Tasking/Task_Capture_Zone.lua' )
 __Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Tasking/Task_Capture_Dispatcher.lua' )
 
-__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/Shapes/ShapeBase.lua' )
-__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/Shapes/Circle.lua' )
-__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/Shapes/Cube.lua' )
-__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/Shapes/Line.lua' )
-__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/Shapes/Oval.lua' )
-__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/Shapes/Polygon.lua' )
-__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/Shapes/Triangle.lua' )
-__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/Shapes/Arrow.lua' )
-
 __Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/GameLoop.lua' )
 __Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/RangeCircle.lua' )
 __Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/RedFlagManager.lua' )
