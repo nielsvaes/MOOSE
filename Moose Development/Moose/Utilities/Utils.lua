@@ -2649,6 +2649,9 @@ function UTILS.SaveSetOfGroups(Set,Path,Filename,Structured)
     if group and group:IsAlive() then
       local name = group:GetName()
       local template = string.gsub(name,"-(.+)$","")
+      if string.find(name,"AID") then
+        template = string.gsub(name,"(.AID.%d+$","")
+      end
       if string.find(template,"#") then
        template = string.gsub(name,"#(%d+)$","")
       end 
@@ -3513,6 +3516,11 @@ function string.contains(str, value)
     return string.match(str, value)
 end
 
+
+--- Moves an object from one table to another
+-- @param #obj object to move
+-- @param #from_table table to move from
+-- @param #to_table table to move to
 function table.move_object(obj, from_table, to_table)
     local index
     for i, v in pairs(from_table) do
@@ -3801,7 +3809,7 @@ function UTILS.SaveSetOfOpsGroups(Set,Path,Filename,Structured)
         data = string.format("%s%s,%s,%s,%s,%d,%d,%d,%d,%s\n",data,name,legion,template,alttemplate,units,position.x,position.y,position.z,strucdata)
       else
         data = string.format("%s%s,%s,%s,%s,%d,%d,%d,%d\n",data,name,legion,template,alttemplate,units,position.x,position.y,position.z)
-      end     
+      end
     end
   end
   -- save the data
@@ -3813,12 +3821,12 @@ end
 -- @param #string Path The path to use. Use double backslashes \\\\ on Windows filesystems.
 -- @param #string Filename The name of the file.
 -- @return #table Returns a table of data entries: `{ groupname=groupname, size=size, coordinate=coordinate, template=template, structure=structure, legion=legion, alttemplate=alttemplate }`
--- Returns nil when the file cannot be read. 
+-- Returns nil when the file cannot be read.
 function UTILS.LoadSetOfOpsGroups(Path,Filename)
 
   local filename = Filename or "SetOfGroups"
   local datatable = {}
-  
+
   if UTILS.CheckFileExists(Path,filename) then
     local outcome,loadeddata = UTILS.LoadFromFile(Path,Filename)
     -- remove header
@@ -3853,20 +3861,20 @@ end
 -- @param #number tgtHdg The absolute heading from the reference object to the target object/point in 0-360
 -- @return #string text Text in clock heading such as "4 O'CLOCK"
 -- @usage Display the range and clock distance of a BTR in relation to REAPER 1-1's heading:
--- 
+--
 --          myUnit = UNIT:FindByName( "REAPER 1-1" )
 --          myTarget = GROUP:FindByName( "BTR-1" )
---          
+--
 --          coordUnit = myUnit:GetCoordinate()
 --          coordTarget = myTarget:GetCoordinate()
---          
+--
 --          hdgUnit = myUnit:GetHeading()
 --          hdgTarget = coordUnit:HeadingTo( coordTarget )
 --          distTarget = coordUnit:Get3DDistance( coordTarget )
---          
+--
 --          clockString = UTILS.ClockHeadingString( hdgUnit, hdgTarget )
---          
---          -- Will show this message to REAPER 1-1 in-game: Contact BTR at 3 o'clock for 1134m! 
+--
+--          -- Will show this message to REAPER 1-1 in-game: Contact BTR at 3 o'clock for 1134m!
 --          MESSAGE:New("Contact BTR at " .. clockString .. " for " .. distTarget  .. "m!):ToUnit( myUnit )
 function UTILS.ClockHeadingString(refHdg,tgtHdg)
     local relativeAngle = tgtHdg - refHdg
@@ -3877,3 +3885,45 @@ function UTILS.ClockHeadingString(refHdg,tgtHdg)
     return clockPos.." o'clock"
 end
 
+--- Get a NATO abbreviated MGRS text for SRS use, optionally with prosody slow tag
+-- @param #string Text The input string, e.g. "MGRS 4Q FJ 12345 67890"
+-- @param #boolean Slow Optional - add slow tags
+-- @return #string Output for (Slow) spelling in SRS TTS e.g. "MGRS;<prosody rate="slow">4;Quebec;Foxtrot;Juliett;1;2;3;4;5;6;7;8;niner;zero;</prosody>"
+function UTILS.MGRSStringToSRSFriendly(Text,Slow)
+    local Text = string.gsub(Text,"MGRS ","")
+    Text = string.gsub(Text,"%s+","")
+    Text = string.gsub(Text,"([%a%d])","%1;") -- "0;5;1;"
+    Text = string.gsub(Text,"A","Alpha")
+    Text = string.gsub(Text,"B","Bravo")
+    Text = string.gsub(Text,"C","Charlie")
+    Text = string.gsub(Text,"D","Delta")
+    Text = string.gsub(Text,"E","Echo")
+    Text = string.gsub(Text,"F","Foxtrot")
+    Text = string.gsub(Text,"G","Golf")
+    Text = string.gsub(Text,"H","Hotel")
+    Text = string.gsub(Text,"I","India")
+    Text = string.gsub(Text,"J","Juliett")
+    Text = string.gsub(Text,"K","Kilo")
+    Text = string.gsub(Text,"L","Lima")
+    Text = string.gsub(Text,"M","Mike")
+    Text = string.gsub(Text,"N","November")
+    Text = string.gsub(Text,"O","Oscar")
+    Text = string.gsub(Text,"P","Papa")
+    Text = string.gsub(Text,"Q","Quebec")
+    Text = string.gsub(Text,"R","Romeo")
+    Text = string.gsub(Text,"S","Sierra")
+    Text = string.gsub(Text,"T","Tango")
+    Text = string.gsub(Text,"U","Uniform")
+    Text = string.gsub(Text,"V","Victor")
+    Text = string.gsub(Text,"W","Whiskey")
+    Text = string.gsub(Text,"X","Xray")
+    Text = string.gsub(Text,"Y","Yankee")
+    Text = string.gsub(Text,"Z","Zulu")
+    Text = string.gsub(Text,"0","zero")
+    Text = string.gsub(Text,"9","niner")
+    if Slow then
+      Text = '<prosody rate="slow">'..Text..'</prosody>'
+    end
+    Text = "MGRS;"..Text
+    return Text
+end
