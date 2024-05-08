@@ -155,9 +155,9 @@ function OBJECTIVE_MANAGER:IndexObjectives()
 end
 
 function OBJECTIVE_MANAGER:SpawnObjective(objective_name, id, vec2_pos, rotation, country, data, f10_circle_size, color, alpha)
-    color = color or { 1, 0, 0 }
-    color[4] = alpha or 0.8
-    f10_circle_size = f10_circle_size or self.mark_offset_max
+    --color = color or { 1, 0, 0 }
+    --color[4] = alpha or 0.8
+    --f10_circle_size = f10_circle_size or self.mark_offset_max
     if id == nil then id = tostring(self:GetNewID()) end
     rotation = rotation or math.random(0, 360)
 
