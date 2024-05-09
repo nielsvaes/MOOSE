@@ -8,8 +8,10 @@ end
 function dev_message(message, time_delay)
     if time_delay then
         delay(time_delay, function() trigger.action.outText("[DEV: " .. message .. "]", 10)  end)
+        BASE:I("[DEV: " .. message .. "]")
     else
         trigger.action.outText("[DEV: " .. message .. "]", 10)
+        BASE:I("[DEV: " .. message .. "]")
     end
 end
 
