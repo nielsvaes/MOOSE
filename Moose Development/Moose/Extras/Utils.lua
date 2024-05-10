@@ -20,6 +20,16 @@ function delay(t, f)
 end
 
 
+function ask_user(text, flagname_true, flagname_false, usersound)
+    if usersound then
+        usersound:ToAll()
+    end
+
+    MESSAGE:New(text, BIG_NUMBER):ToAll()
+    local question = [[c_start_wait_for_user("]] .. flagname_true .. [[", "]] .. flagname_false .. [[")]]
+    net.dostring_in('mission', question)
+end
+
 --- Extra USERFLAG
 
 function USERFLAG:Get(flag_name)
@@ -42,5 +52,3 @@ function USERFLAG:Equals(flag_name, value)
 
     return trigger.misc.getUserFlag(flag_name) == value
 end
-
-
