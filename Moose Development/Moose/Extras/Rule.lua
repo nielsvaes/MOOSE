@@ -109,6 +109,24 @@ function RULE_MANAGER:Get()
     return _G["rule_manager"]
 end
 
+function RULE_MANAGER:TestAllRules()
+    for _, rule in pairs(self.rules) do
+        local test_table = {
+            ["dev_condition"] = rule.dev_condition,
+            ["f_condition  "] = rule.f_condition,
+            ["f_action     "] = rule.f_action
+        }
+
+        for name, func in pairs(test_table) do
+            local succeeded, return_value = pcall(func)
+            if not succeeded then
+                return_value = "ERROR: " .. tostring(return_value)
+            end
+            self:I(string.format("%s: %s [%s] - [%s]", rule:GetName(), name, tostring(succeeded), tostring(return_value)))
+        end
+    end
+end
+
 function RULE_MANAGER:Add(rule)
     self:I("Adding: " .. rule:GetName())
     local pos = #self.rules + 1
