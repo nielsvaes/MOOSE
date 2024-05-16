@@ -154,12 +154,10 @@ function OBJECTIVE_MANAGER:IndexObjectives()
     BASE:I("JSON written")
 end
 
-function OBJECTIVE_MANAGER:SpawnObjective(objective_name, id, vec2_pos, rotation, country, data, f10_circle_size, color, alpha)
-    --color = color or { 1, 0, 0 }
-    --color[4] = alpha or 0.8
-    --f10_circle_size = f10_circle_size or self.mark_offset_max
+function OBJECTIVE_MANAGER:SpawnObjective(objective_name, id, vec2_pos, rotation, country, extra_data)
     if id == nil then id = tostring(self:GetNewID()) end
     rotation = rotation or math.random(0, 360)
+    extra_data = extra_data or {}
 
     local spawned_objects = {}
     local objective_table = UTILS.DeepCopy(self.objectives_info_table[objective_name])
@@ -183,7 +181,7 @@ function OBJECTIVE_MANAGER:SpawnObjective(objective_name, id, vec2_pos, rotation
 
     -- Groups
     for _, group_table in pairs(objective_table["groups"]) do
-        local spawned_group = self:__LoadGroup(group_table, vec2_pos, rotation, country)
+        local spawned_group = self:__LoadGroup(group_table, vec2_pos, rotation, country, extra_data)
         table.insert_unique(spawned_objects, spawned_group)
     end
 
@@ -192,7 +190,7 @@ function OBJECTIVE_MANAGER:SpawnObjective(objective_name, id, vec2_pos, rotation
         local chance = math.random(random_zone_table["min"] or 0, random_zone_table["max"] or 100)
         for _, random_group_table in pairs(random_zone_table["groups"] or {}) do
             if UTILS.PercentageChance(chance) then
-                local random_spawned_group = self:__LoadGroup(random_group_table, vec2_pos, rotation, country)
+                local random_spawned_group = self:__LoadGroup(random_group_table, vec2_pos, rotation, country, extra_data)
                 table.insert_unique(spawned_objects, random_spawned_group)
             end
         end
@@ -204,18 +202,8 @@ function OBJECTIVE_MANAGER:SpawnObjective(objective_name, id, vec2_pos, rotation
         end
     end
 
-
-    --F10 circle
-    --if f10_circle_size > 0 then
-    --    f10_circle_mark_id = COORDINATE:NewFromVec2(vec2_pos)
-    --                                   :Translate(math.random(self.mark_offset_min, self.mark_offset_max), math.random(0, 360))
-    --                                   :CircleToAll(f10_circle_size, -1, color, alpha, color, alpha)
-    --    print(f10_circle_mark_id)
-    --end
-
     self.objective_spawn_info[id] = {
         objects = spawned_objects,
-        --f10_circle_mark_id = f10_circle_mark_id
     }
 
     return spawned_objects
@@ -234,13 +222,14 @@ function OBJECTIVE_MANAGER:__LoadStatic(static_table, vec2_pos, rotation, countr
     return static
 end
 
-function OBJECTIVE_MANAGER:__LoadGroup(group_table, vec2_pos, rotation, country)
+function OBJECTIVE_MANAGER:__LoadGroup(group_table, vec2_pos, rotation, country, extra_data)
     local group_rotated = UTILS.RotatePointAroundPivot({ x = group_table.x, y = group_table.y }, { x = 0, y = 0 }, rotation)
     group_rotated = UTILS.Vec2Add(group_rotated, vec2_pos)
     --group_table["visible"] = true
     --group_table["hidden"]  = false
     group_table["CountryID"] = country
     group_table["lateActivation"] = true
+    table.merge(group_table, extra_data)
 
     for _, unit_table in pairs(group_table["units"]) do
         local unit_rotated = UTILS.RotatePointAroundPivot({ x = unit_table.x, y = unit_table.y }, { x = 0, y = 0 }, rotation)
@@ -270,13 +259,11 @@ function OBJECTIVE_MANAGER:__LoadGroup(group_table, vec2_pos, rotation, country)
 end
 
 function OBJECTIVE_MANAGER:DestroyObjective(id)
-    id = tostring(id)
+    --id = tostring(id)
     if table.contains_key(self.objective_spawn_info, id) then
         for _, object in pairs(self.objective_spawn_info[id].objects) do
             object:Destroy()
         end
-
-        UTILS.RemoveMark(self.objective_spawn_info[id].f10_circle_mark_id)
     end
     self.objective_spawn_info[id] = nil
 end
