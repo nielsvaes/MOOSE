@@ -5,6 +5,8 @@ function table.random(tbl)
     return tbl[math.random(1, #tbl)]
 end
 
+--- One liners
+
 function dev_message(message, time_delay)
     if time_delay then
         delay(time_delay, function() trigger.action.outText("[DEV: " .. message .. "]", 10)  end)
@@ -29,6 +31,43 @@ function ask_user(text, flagname_true, flagname_false, usersound)
     local question = [[c_start_wait_for_user("]] .. flagname_true .. [[", "]] .. flagname_false .. [[")]]
     net.dostring_in('mission', question)
 end
+
+
+function all_of_group_in_zone(group, zone)
+    if type(zone) == "string" then
+        zone = ZONE:FindByName(zone)
+    end
+
+    if type(group) == "string" then
+        group = GROUP:FindByName(group)
+    end
+
+    for _, unit in pairs(group:GetUnits()) do
+        if not zone:IsVec2InZone(unit:GetVec2()) then
+            return false
+        end
+    end
+    return true
+end
+
+function part_of_group_in_zone(group, zone)
+    if type(zone) == "string" then
+        zone = ZONE:FindByName(zone)
+    end
+
+    if type(group) == "string" then
+        group = GROUP:FindByName(group)
+    end
+
+    for _, unit in pairs(group:GetUnits()) do
+        if zone:IsVec2InZone(unit:GetVec2()) then
+            return true
+        end
+    end
+    return false
+end
+
+
 
 --- Extra USERFLAG
 
