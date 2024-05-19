@@ -6,7 +6,6 @@ RULE.TYPE = {
     ONCE = "once",
     CONTINUOUS = "continous",
     TOGGLE = "toggle",
-    MULTIPLE = "multiple"
 }
 
 function RULE:New(name, type, f_condition, f_action, ...)
