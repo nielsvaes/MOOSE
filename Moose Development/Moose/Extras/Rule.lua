@@ -111,6 +111,7 @@ end
 
 function RULE_MANAGER:TestAllRules()
     self:I("\n\n------------------- RULE TESTING-------------------")
+
     for _, rule in pairs(self.rules) do
         local test_table = {
             ["dev_condition"] = rule.dev_condition,
@@ -118,15 +119,21 @@ function RULE_MANAGER:TestAllRules()
             ["f_action     "] = rule.f_action
         }
 
-
         for name, func in pairs(test_table) do
             local succeeded, return_value = pcall(func)
             if not succeeded then
+                succeeded = "FAILED"
                 return_value = "ERROR: " .. tostring(return_value)
+            elseif func == rule.f_action and not string.contains(string.dump(func), "dev_message") then
+                succeeded = "WARNING"
+                return_value = tostring(return_value) .. " -- No dev_message"
+            else
+                succeeded = "PASSED"
             end
-            self:I(string.format("%s: %s [%s] - [%s]", rule:GetName(), name, tostring(succeeded), tostring(return_value)))
+            self:I(string.format("  %s: %s [%s] --> %s", rule:GetName(), name, tostring(succeeded), tostring(return_value)))
         end
     end
+
     self:I("\n\n------------------- RULE TESTING-------------------\n\n")
 end
 
