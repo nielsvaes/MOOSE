@@ -31,7 +31,7 @@ AC130.WEAPONS = {
     },
     GAU12 = {
         NAME = "GAU12",
-        WARHEAD = 1,
+        WARHEAD = 3,
         FIRETIMER = 0.0035,
         TRAVEL_TIME = 9,
         TRAVEL_TIME_DIVIDER = 3000,
@@ -49,14 +49,20 @@ function AC130:FindByName(unit_name)
     return self
 end
 
-function AC130:Attack(weapon_table, target, num_shots, use_line, line_length)
+function AC130:Attack(weapon_table, target, num_shots, use_line, line_length, respect_weapon_travel_time)
     BASE:I("Firing... ")
-    local travel_time = UTILS.MetersToFeet(self:GetAltitude(true)) / weapon_table.TRAVEL_TIME_DIVIDER
+    respect_weapon_travel_time = respect_weapon_travel_time or false
+
+    local travel_time = 0
+    if respect_weapon_travel_time then
+        travel_time = UTILS.MetersToFeet(self:GetAltitude(true)) / weapon_table.TRAVEL_TIME_DIVIDER
+    end
     local heading = 0
     local target_coordinate
     local projectile_impact_coordinates = {}
     use_line = use_line or false
     line_length = line_length or 20
+
 
     if target.ClassName == "COORDINATE" then
         target_coordinate = target
@@ -85,7 +91,7 @@ function AC130:Attack(weapon_table, target, num_shots, use_line, line_length)
         local center = math.floor(#projectile_impact_coordinates / 2)
         local range = 10
 
-        local num_elements = math.max(math.floor(#projectile_impact_coordinates / 30), 1)
+        local num_elements = math.max(math.floor(#projectile_impact_coordinates / 15), 1)
         local start_index = math.max(center - range, 1)
         local end_index = math.min(center + range, #projectile_impact_coordinates)
 
