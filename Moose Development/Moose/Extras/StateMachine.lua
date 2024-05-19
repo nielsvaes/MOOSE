@@ -52,7 +52,7 @@ function MIZSTATEMACHINE:Check()
             end
         )
 
-        self:I("Timer for state expired: " .. self.active_state.name)
+        --self:I("Timer for state expired: " .. self.active_state.name)
     end
 end
 
