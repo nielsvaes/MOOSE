@@ -64,6 +64,15 @@ function CIRCLE:New(vec2, radius)
     return self
 end
 
+function CIRCLE:NewFromZone(zone_name)
+    local zone = _DATABASE:FindZone(zone_name)
+
+    if zone then
+        self.CenterVec2 = zone:GetVec2()
+        self.Radius = zone:GetRadius()
+    end
+end
+
 --- Gets the radius of the circle.
 -- @return #number The radius of the circle
 function CIRCLE:GetRadius()
@@ -194,7 +203,7 @@ end
 -- @param #table center The center point of the radius
 -- @param #number radius The radius to check
 -- @return #bool True if any unit of the group is contained, false otherwise
-function CIRCLE:AnyOfGroupInRadius(group_name, center, radius)
+function CIRCLE:ContainsPartOfGroup(group_name, center, radius)
     center = center or self.CenterVec2
     radius = radius or self.Radius
 
@@ -211,7 +220,7 @@ end
 -- @param #table center The center point of the radius
 -- @param #number radius The radius to check
 -- @return #bool True if all units of the group are contained, false otherwise
-function CIRCLE:AllOfGroupInRadius(group_name, center, radius)
+function CIRCLE:ContainsGroup(group_name, center, radius)
     center = center or self.CenterVec2
     radius = radius or self.Radius
 

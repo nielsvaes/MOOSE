@@ -8,6 +8,10 @@ end
 --- One liners
 
 function dev_message(message, time_delay)
+    if not DEVCODE then
+        return
+    end
+
     if time_delay then
         delay(time_delay, function() trigger.action.outText("[DEV: " .. message .. "]", 10)  end)
         BASE:I("[DEV: " .. message .. "]")

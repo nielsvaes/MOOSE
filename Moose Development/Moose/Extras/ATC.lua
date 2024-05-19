@@ -125,22 +125,27 @@ function ATC:DetectLanded()
     -- audio 12 via golf hotel
 end
 
-function ATC:SpawnGroup(group)
-    local spawned_group = SPAWN:New("ai_dutch_viper_single")
-                               :SpawnAtParkingSpot(self.airbase, {MIZ.GetParkingID("07")}, SPAWN.Takeoff.Cold)
+function ATC:SpawnGroup(group_name, parking_spot_numbers)
+    local spots = {}
+    for _, number in pairs(parking_spot_numbers) do
+        table.add(spots, MIZ.GetParkingID(number))
+    end
+
+    local spawned_group = SPAWN:New(group_name)
+                               :SpawnAtParkingSpot(self.airbase, spots, SPAWN.Takeoff.Cold)
 
     local blocker
     BASE:ScheduleOnce(1, function()
-        blocker = SPAWNSTATIC:NewFromType(ATC.BLOCKER.type, ATC.BLOCKER.category, country.CJTF_BLUE)
-                          :InitNamePrefix(spawned_group:GetName() .. "_blocker")
-                          :InitShape(ATC.BLOCKER.shape_name)
-                          :InitHeading(UTILS.ClampAngle(spawned_group:GetHeading() - 180))
-                          :SpawnFromCoordinate(spawned_group:GetCoordinate():Translate(15, spawned_group:GetHeading(), true))
-        spawned_group.blocker = blocker
+    blocker = SPAWNSTATIC:NewFromType(ATC.BLOCKER.type, ATC.BLOCKER.category, country.CJTF_BLUE)
+                         :InitNamePrefix(spawned_group:GetName() .. "_blocker")
+                         :InitShape(ATC.BLOCKER.shape_name)
+                         :InitHeading(UTILS.ClampAngle(spawned_group:GetHeading() - 180))
+                         :SpawnFromCoordinate(spawned_group:GetCoordinate():Translate(15, spawned_group:GetHeading(), true))
+    spawned_group.blocker = blocker
     end)
 
     table.add(self.all_groups, spawned_group)
-end
+    end
 
 function ATC:DestroyBlocker(group)
     if group.blocker then

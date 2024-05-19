@@ -161,6 +161,14 @@ function SHAPE_BASE:ContainsPoint(_)
     self:E("This needs to be set in the derived class")
 end
 
+function SHAPE_BASE:ContainsGroup(_)
+    self:E("This needs to be set in the derived class")
+end
+
+function SHAPE_BASE:ContainsPartOfGroup(_)
+    self:E("This needs to be set in the derived class")
+end
+
 --- Checks if a unit is contained within the shape.
 -- @param #string unit_name The name of the unit to check
 -- @return #bool True if the unit is contained, false otherwise

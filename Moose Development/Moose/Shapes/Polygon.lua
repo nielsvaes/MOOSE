@@ -414,6 +414,35 @@ function POLYGON:Draw(include_inner_triangles)
     end
 end
 
+function POLYGON:ContainsGroup(group_name)
+    local group = GROUP:FindByName(group_name)
+    if group == nil or not group:IsAlive() then
+        return false
+    end
+
+    for _, unit in pairs(group:GetUnits()) do
+        if not self:ContainsPoint(unit:GetVec2()) then
+            return false
+        end
+    end
+    return true
+end
+
+
+function POLYGON:ContainsPartOfGroup(group_name)
+    local group = GROUP:FindByName(group_name)
+    if group == nil or not group:IsAlive() then
+        return false
+    end
+
+    for _, unit in pairs(group:GetUnits()) do
+        if self:ContainsPoint(unit:GetVec2()) then
+            return true
+        end
+    end
+    return false
+end
+
 --- Removes the drawing of the polygon from the map.
 function POLYGON:RemoveDraw()
     for _, triangle in pairs(self.Triangles) do
