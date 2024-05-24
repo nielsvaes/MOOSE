@@ -3112,7 +3112,7 @@ function ZONE_POLYGON:NewFromDrawing(DrawingName)
 
                     points = {p1, p2, p3, p4}
                 else
-                    -- TODO: bring the Arrow code over from Shape/Polygon
+                    -- bring the Arrow code over from Shape/Polygon
                     -- something else that might be added in the future
                 end
             end
