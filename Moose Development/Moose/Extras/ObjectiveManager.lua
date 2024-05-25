@@ -11,8 +11,6 @@ function OBJECTIVE_MANAGER:New(json_file_path, indexing_zone_search_prefix, inde
     BASE:I(self.json_file_path)
     self.objective_spawn_info = {}
     self.ID = 1
-    self.mark_offset_min = 2000
-    self.mark_offset_max = 8000
 
     self.indexing_zone_search_prefix = indexing_zone_search_prefix or "obj_"
     self.indexing_zone_random_prefix = indexing_zone_random_refix or "random"
