@@ -3406,7 +3406,9 @@ end
 -- @param #table data table to write
 -- @param #string file_path File path
 function UTILS.WriteJSON(data, file_path)
-    package.path  = package.path ..  ";.\\Scripts\\?.lua"
+    if not string.contains(package.path, ";.\\Scripts\\?.lua") then
+        package.path  = package.path ..  ";.\\Scripts\\?.lua"
+    end
     local JSON = require("json")
     local pretty_json_text = JSON:encode_pretty(data)
     local write_file = io.open(file_path, "w")
@@ -3419,7 +3421,9 @@ end
 -- @param #string file_path File path
 -- @return #table
 function UTILS.ReadJSON(file_path)
-    package.path  = package.path ..  ";.\\Scripts\\?.lua"
+    if not string.contains(package.path, ";.\\Scripts\\?.lua") then
+        package.path = package.path ..  ";.\\Scripts\\?.lua"
+    end
     local JSON = require("json")
     local read_file = io.open(file_path, "r")
     local contents = read_file:read( "*a" )
