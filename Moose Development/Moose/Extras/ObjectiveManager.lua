@@ -5,9 +5,18 @@ OBJECTIVE_MANAGER = {
 
 function OBJECTIVE_MANAGER:New(json_file_path, indexing_zone_search_prefix, indexing_zone_random_refix)
     local self = BASE:Inherit(self, BASE:New())
+    if not string.contains(package.path, ";.\\Scripts\\?.lua") then
+        package.path = package.path ..  ";.\\Scripts\\?.lua"
+    end
+    local JSON = require("json")
 
-    self.json_file_path = json_file_path
-    self.objectives_info_table = UTILS.ReadJSON(json_file_path)
+    if UTILS.FileExists(json_file_path) then
+        self.json_file_path = json_file_path
+        self.objectives_info_table = UTILS.ReadJSON(json_file_path)
+    else
+        self.objectives_info_table = JSON:decode(json_file_path)
+    end
+
     BASE:I(self.json_file_path)
     self.objective_spawn_info = {}
     self.ID = 1
