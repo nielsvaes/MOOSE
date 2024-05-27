@@ -114,11 +114,11 @@ RANGE_CIRCLE = {
             rotation_offset = 90
         },
         DOUBLE_WALL = {
-            type = "M92_Twall_x6",
+            type = "Twall_x6_3mts",
             category = "Fortifications",
-            shape = "M92_Twall_x6",
-            size = 30,
-            rotation_offset = 0
+            shape = "M92_Twall_x6_3mts",
+            size = 40,
+            rotation_offset = 90
         },
         HESCO_DOUBLE = {
             type = "Hesco5_Doble",
