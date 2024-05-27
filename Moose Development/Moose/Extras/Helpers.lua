@@ -91,3 +91,10 @@ function userflag_equals(flag_name, value)
 
     return trigger.misc.getUserFlag(flag_name) == value
 end
+
+
+function go_to_waypoint(group, waypoint)
+    waypoint = waypoint + 1
+    local cmd = group:CommandSwitchWayPoint(1, waypoint)
+    group:SetCommand(cmd)
+end
