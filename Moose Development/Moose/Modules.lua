@@ -173,5 +173,6 @@ __Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/Conversation.lua' )
 __Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/BARCAPLine.lua' )
 __Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/ATC.lua' )
 __Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/StateMachine.lua' )
+__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/ICPReader.lua' )
 
 __Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Globals.lua' )
