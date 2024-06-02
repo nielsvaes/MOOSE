@@ -37,6 +37,17 @@ function ask_user(text, flagname_true, flagname_false, usersound)
     net.dostring_in('mission', question)
 end
 
+function listen_for_cockpit_command(device_num, command_num, flag, hits_to_trigger, min_value, max_value)
+    hits_to_trigger = hits_to_trigger or 1
+    min_value = min_value or -1000000
+    max_value = max_value or  1000000
+
+    local cmd = 'a_start_listen_command(' .. tostring(command_num) .. ', "' .. flag .. '", ' .. tostring(hits_to_trigger) .. ', ' .. tostring(min_value) .. ', ' .. tostring(max_value) .. ', ' .. tostring(device_num) .. ')'
+    net.dostring_in("mission", cmd)
+    BASE:I("COMMAND LISTENER: Device: " .. tostring(device_num) .. ", command: " .. tostring(command_num) .. ", firing after " .. tostring(hits_to_trigger) .. " hits")
+end
+
+
 function all_of_group_in_zone(group, zone)
     if type(zone) == "string" then
         zone = ZONE:FindByName(zone)
