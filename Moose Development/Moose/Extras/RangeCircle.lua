@@ -120,11 +120,11 @@ RANGE_CIRCLE = {
             size = 40,
             rotation_offset = 90
         },
-        HESCO_DOUBLE = {
-            type = "Hesco5_Doble",
+        HESCO_WALL_PERIMETER = {
+            type = "HESCO_wallperimeter_1",
             category = "Fortifications",
-            shape = "M92_Hesco_5doble",
-            size = 20,
+            shape = "M92_HESCO_wallperimeter_1",
+            size = 45,
             rotation_offset = 0
         },
         TANK_CAR_A = {
