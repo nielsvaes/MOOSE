@@ -49,8 +49,6 @@ function ICPREADER:RegisterButton(button)
                 self.inputted_coordinate = string.remove_last_characters(self.inputted_coordinate, 3)
             elseif string.len(self.inputted_coordinate) == 13 then
                 self.inputted_coordinate = string.remove_last_characters(self.inputted_coordinate, 4)
-            --elseif string.endswith(self.inputted_coordinate, ".") or string.endswith(self.inputted_coordinate, "*") then
-            --    self.inputted_coordinate = string.remove_last_characters(self.inputted_coordinate, 2)
             else
                 self.inputted_coordinate = string.remove_last_characters(self.inputted_coordinate, 1)
             end
@@ -70,7 +68,7 @@ function ICPREADER:RegisterButton(button)
         elseif string.match(self.inputted_coordinate, "^[NS]") and not string.match(self.inputted_coordinate, "[WE]") then
             if string.len(self.inputted_coordinate) < 10 then
                 if string.len(self.inputted_coordinate) == 3 then
-                    self.inputted_coordinate = self.inputted_coordinate .. "*"
+                    self.inputted_coordinate = self.inputted_coordinate .. "°"
                 elseif string.len(self.inputted_coordinate) == 6 then
                     self.inputted_coordinate = self.inputted_coordinate .. "."
                 end
@@ -90,7 +88,7 @@ function ICPREADER:RegisterButton(button)
 
         elseif string.match(self.inputted_coordinate, "[WE]") and string.len(self.inputted_coordinate) < 22 then
                 if string.len(self.inputted_coordinate) == 15 then
-                    self.inputted_coordinate = self.inputted_coordinate .. "*"
+                    self.inputted_coordinate = self.inputted_coordinate .. "°"
                 elseif string.len(self.inputted_coordinate) == 18 then
                     self.inputted_coordinate = self.inputted_coordinate .. "."
                 end
