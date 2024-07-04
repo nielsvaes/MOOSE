@@ -1147,10 +1147,13 @@ end
 -- @param #string GroupName Group name.
 -- @return #table Group template table.
 function DATABASE:GetGroupTemplate( GroupName )
-  local GroupTemplate = self.Templates.Groups[GroupName].Template
-  GroupTemplate.SpawnCoalitionID = self.Templates.Groups[GroupName].CoalitionID
-  GroupTemplate.SpawnCategoryID = self.Templates.Groups[GroupName].CategoryID
-  GroupTemplate.SpawnCountryID = self.Templates.Groups[GroupName].CountryID
+  local GroupTemplate=nil
+  if self.Templates.Groups[GroupName] then
+    GroupTemplate = self.Templates.Groups[GroupName].Template
+    GroupTemplate.SpawnCoalitionID = self.Templates.Groups[GroupName].CoalitionID
+    GroupTemplate.SpawnCategoryID = self.Templates.Groups[GroupName].CategoryID
+    GroupTemplate.SpawnCountryID = self.Templates.Groups[GroupName].CountryID
+  end
   return GroupTemplate
 end
 
@@ -1268,7 +1271,11 @@ end
 -- @param #string ClientName Name of the Client.
 -- @return #number Coalition ID.
 function DATABASE:GetCoalitionFromClientTemplate( ClientName )
-  return self.Templates.ClientsByName[ClientName].CoalitionID
+  if self.Templates.ClientsByName[ClientName] then  
+    return self.Templates.ClientsByName[ClientName].CoalitionID
+  end
+  self:E("ERROR: Template does not exist for client "..tostring(ClientName))
+  return nil
 end
 
 --- Get category ID from client name.
@@ -1276,7 +1283,11 @@ end
 -- @param #string ClientName Name of the Client.
 -- @return #number Category ID.
 function DATABASE:GetCategoryFromClientTemplate( ClientName )
-  return self.Templates.ClientsByName[ClientName].CategoryID
+  if self.Templates.ClientsByName[ClientName] then  
+    return self.Templates.ClientsByName[ClientName].CategoryID
+  end
+  self:E("ERROR: Template does not exist for client "..tostring(ClientName))
+  return nil
 end
 
 --- Get country ID from client name.
@@ -1284,7 +1295,11 @@ end
 -- @param #string ClientName Name of the Client.
 -- @return #number Country ID.
 function DATABASE:GetCountryFromClientTemplate( ClientName )
-  return self.Templates.ClientsByName[ClientName].CountryID
+  if self.Templates.ClientsByName[ClientName] then  
+    return self.Templates.ClientsByName[ClientName].CountryID
+  end
+  self:E("ERROR: Template does not exist for client "..tostring(ClientName))
+  return nil  
 end
 
 --- Airbase
