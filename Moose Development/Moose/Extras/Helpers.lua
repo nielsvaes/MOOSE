@@ -173,3 +173,66 @@ end
 function string.remove_last_characters(str, num_characters)
     return str:sub(1, -num_characters - 1)
 end
+
+
+--- tanker_menu = MENU_COALITION:New(
+---         coalition.side.BLUE,
+---         "TANKER"
+--- )
+---
+--- local speed = { {2, 3, 4}, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9} }
+--- UTILS.NestedMenu(speed,
+---                  1,
+---                  tanker_menu,
+---                  coalition.side.BLUE,
+---                  nil,
+---                  true,
+---                  function(speed, message) BASE:I("Setting speed to " .. tostring(speed) .. " and printing " .. message) end, "hellloooo!!")
+local nested_menu_text = ""
+function nested_menu(list, depth, parent_menu, coa, label, last_item_is_first_arg, f, ...)
+    local args = {...}
+    coa = coa or coalition.side.BLUE
+    depth = depth or 1
+
+    local root = {}
+    for _, item in ipairs(list[depth]) do
+        if label == nil then
+            nested_menu_text = tostring(item)
+        else
+            nested_menu_text = label .. tostring(item)
+        end
+        --BASE:I("menu text is " .. menu_text)
+
+        local sub_menu = MENU_COALITION:New(coa, nested_menu_text, parent_menu)
+        root[sub_menu] = {}
+        if depth + 1 < #list then
+            root[sub_menu] = nested_menu(list, depth + 1, sub_menu, coa, nested_menu_text, last_item_is_first_arg, f, unpack(args))
+        else
+            local prev_menu_text = nested_menu_text
+            for _, last_item in ipairs(list[depth + 1]) do
+                nested_menu_text = prev_menu_text .. tostring(last_item)
+                --BASE:I("menu text for last item is " .. menu_text)
+
+                local exec_command
+                if last_item_is_first_arg then
+                    exec_command = MENU_COALITION_COMMAND:New(
+                                        coa,
+                                        tostring(nested_menu_text),
+                                        sub_menu,
+                                        f, nested_menu_text, unpack(args)
+                    )
+                else
+                    exec_command = MENU_COALITION_COMMAND:New(
+                                        coa,
+                                        tostring(nested_menu_text),
+                                        sub_menu,
+                                        f, unpack(args)
+                    )
+                end
+                table.insert(root[sub_menu], exec_command)
+            end
+            nested_menu_text = ""
+        end
+    end
+    return root
+end

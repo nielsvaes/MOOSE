@@ -59,8 +59,9 @@ function UAV:StartLasingUnit(unit, laser_code, force)
             local id = self:GetName() .. "_lookat_glf"
             GAMELOOP:Get():RemoveByID(id)
             local lookat_glf = GAMELOOPFUNCTION:New(function()  return self:LookAt(unit:GetCoordinate()) end,{}, -1, id)
-                                               :SetTimesPerSecond(1)
-            GAMELOOP:Get():Add(lookat_glf)
+                                               :SetTimesPerSecond(10)
+                                               :Add()
+            --GAMELOOP:Get():Add(lookat_glf)
             self:LaseUnit(unit, self.laser_code, UAV.Forever)
             self.currently_lased_unit = unit
         else
@@ -137,7 +138,7 @@ end
 
 function UAV:LookAt(coor)
     self.view_coordinate = coor
-    UTILS.MessageToAll("x: " .. tostring(coor:GetVec2().x) .. ", y: " .. tostring(coor:GetVec2().x), 1, true)
+    dev_message("x: " .. tostring(coor:GetVec2().x) .. ", y: " .. tostring(coor:GetVec2().x), 1, true)
 end
 
 function UAV:TranslateViewCoordinate(distance, bearing)
@@ -179,6 +180,10 @@ function UAV:GetScanTime()
 end
 
 function UAV:ScanArea(certainty)
+    if not self.view_coordinate then
+        self.view_coordinate = self:GetCoordinate()
+    end
+
     certainty = certainty or 1
     self:ScheduleOnce(self:GetScanTime(), self.__Scan, self)
     return math.pi * (self:GetViewRadius() ^ 2)
@@ -204,7 +209,7 @@ function UAV:BuildRadioMenu()
             BASE:I(tostring(j))
             MENU_COALITION_COMMAND:New(
                 self:GetCoalition(),
-                self.currently_detected_units[j]:GetTypeName(),
+                self.currently_detected_units[j]:GetTypeName() .. "(" .. self.currently_detected_units[j]:GetName().. ")",
                 self.target_menu,
                 function()
                     BASE:I(self.currently_detected_units[j]:GetTypeName())
@@ -214,6 +219,22 @@ function UAV:BuildRadioMenu()
         BASE:I("Done with inner loop")
         i = i + 10
     end
+
+
+    self.laser_code_menu = MENU_COALITION:New(
+        self:GetCoalition(),
+        "Set laser code",
+         self.root_menu
+    )
+
+    local numbers = {{1}, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}}
+    nested_menu(numbers, 1, self.laser_code_menu, self:GetCoalition(), nil, true,
+    function(laser_code)
+        self:SetLaserCode(tonumber(laser_code))
+        dev_message("Laser code set to " .. tostring(laser_code))
+    end)
+
+
 end
 
 function UAV:RemoveMenu()
@@ -232,8 +253,11 @@ end
 
 function UAV:__Scan(...)
     BASE:I("Scanning...")
+    if not self.view_coordinate then
+        self.view_coordinate = self:GetCoordinate()
+    end
     for _, unit in pairs(self.all_units:GetSetObjects()) do
-        if UTILS.IsInRadius(unit:GetVec2(), self.view_coordinate:GetVec2(), self:GetViewRadius()) then
+        if UTILS.IsInRadius(unit:GetVec2(), self.view_coordinate:GetVec2(), self:GetViewRadius()) and unit:GetName() ~= self:GetName() then
             self:I(unit:GetName())
             table.insert_unique(self.currently_detected_units, unit)
         end
