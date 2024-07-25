@@ -1516,6 +1516,7 @@ do
       self:HandleEvent( EVENTS.Dead, self._EventOnDeadOrCrash )
       self:HandleEvent( EVENTS.Crash, self._EventOnDeadOrCrash )
       self:HandleEvent( EVENTS.RemoveUnit, self._EventOnDeadOrCrash )
+      self:HandleEvent( EVENTS.UnitLost, self._EventOnDeadOrCrash )
       self:HandleEvent( EVENTS.PlayerLeaveUnit, self._EventOnDeadOrCrash )
       if self.Filter.Zones then
         self.ZoneTimer = TIMER:New(self._ContinousZoneFilter,self)
@@ -1548,6 +1549,7 @@ do
       self:UnHandleEvent(EVENTS.Dead)
       self:UnHandleEvent(EVENTS.Crash)
       self:UnHandleEvent(EVENTS.RemoveUnit)
+      self:UnHandleEvent(EVENTS.UnitLost)
       
       if self.Filter.Zones and self.ZoneTimer and self.ZoneTimer:IsRunning() then
         self.ZoneTimer:Stop()
@@ -2622,6 +2624,7 @@ do -- SET_UNIT
       self:HandleEvent( EVENTS.Dead, self._EventOnDeadOrCrash )
       self:HandleEvent( EVENTS.Crash, self._EventOnDeadOrCrash )
       self:HandleEvent( EVENTS.RemoveUnit, self._EventOnDeadOrCrash )
+      self:HandleEvent( EVENTS.UnitLost, self._EventOnDeadOrCrash )
       if self.Filter.Zones then
         self.ZoneTimer = TIMER:New(self._ContinousZoneFilter,self)
         local timing = self.ZoneTimerInterval or 30
@@ -4740,17 +4743,23 @@ do -- SET_CLIENT
         self:T( { "Evaluated Coalition", MClientCoalition } )
         MClientInclude = MClientInclude and MClientCoalition
       end
-
+      
       if self.Filter.Categories and MClientInclude then
         local MClientCategory = false
         for CategoryID, CategoryName in pairs( self.Filter.Categories ) do
           local ClientCategoryID = _DATABASE:GetCategoryFromClientTemplate( MClientName )
-          if ClientCategoryID==nil and MClient:IsAlive()~=nil then
-            ClientCategoryID=MClient:GetCategory()
-          end
-          self:T3( { "Category:", ClientCategoryID, self.FilterMeta.Categories[CategoryName], CategoryName } )
-          if self.FilterMeta.Categories[CategoryName] and ClientCategoryID and self.FilterMeta.Categories[CategoryName] == ClientCategoryID then
-            MClientCategory = true
+          local UnitCategory = 0
+          if ClientCategoryID==nil and MClient:IsExist() then
+            ClientCategoryID,UnitCategory=MClient:GetCategory()
+            self:T3( { "Category:", UnitCategory, self.FilterMeta.Categories[CategoryName], CategoryName } )
+            if self.FilterMeta.Categories[CategoryName] and UnitCategory and self.FilterMeta.Categories[CategoryName] == UnitCategory then
+              MClientCategory = true
+            end
+          else
+            self:T3( { "Category:", ClientCategoryID, self.FilterMeta.Categories[CategoryName], CategoryName } )
+            if self.FilterMeta.Categories[CategoryName] and ClientCategoryID and self.FilterMeta.Categories[CategoryName] == ClientCategoryID then
+              MClientCategory = true
+            end
           end
         end
         self:T( { "Evaluated Category", MClientCategory } )
@@ -5193,12 +5202,15 @@ do -- SET_PLAYER
     if MClient then
       local MClientName = MClient.UnitName
 
-      if self.Filter.Coalitions then
+      if self.Filter.Coalitions and MClientInclude then
         local MClientCoalition = false
         for CoalitionID, CoalitionName in pairs( self.Filter.Coalitions ) do
           local ClientCoalitionID = _DATABASE:GetCoalitionFromClientTemplate( MClientName )
+          if ClientCoalitionID==nil and MClient:IsAlive()~=nil then
+            ClientCoalitionID=MClient:GetCoalition()
+          end
           self:T3( { "Coalition:", ClientCoalitionID, self.FilterMeta.Coalitions[CoalitionName], CoalitionName } )
-          if self.FilterMeta.Coalitions[CoalitionName] and self.FilterMeta.Coalitions[CoalitionName] == ClientCoalitionID then
+          if self.FilterMeta.Coalitions[CoalitionName] and ClientCoalitionID and self.FilterMeta.Coalitions[CoalitionName] == ClientCoalitionID then
             MClientCoalition = true
           end
         end
@@ -5206,13 +5218,22 @@ do -- SET_PLAYER
         MClientInclude = MClientInclude and MClientCoalition
       end
 
-      if self.Filter.Categories then
+      if self.Filter.Categories and MClientInclude then
         local MClientCategory = false
         for CategoryID, CategoryName in pairs( self.Filter.Categories ) do
           local ClientCategoryID = _DATABASE:GetCategoryFromClientTemplate( MClientName )
-          self:T3( { "Category:", ClientCategoryID, self.FilterMeta.Categories[CategoryName], CategoryName } )
-          if self.FilterMeta.Categories[CategoryName] and self.FilterMeta.Categories[CategoryName] == ClientCategoryID then
-            MClientCategory = true
+          local UnitCategory = 0
+          if ClientCategoryID==nil and MClient:IsExist() then
+            ClientCategoryID,UnitCategory=MClient:GetCategory()
+            self:T3( { "Category:", UnitCategory, self.FilterMeta.Categories[CategoryName], CategoryName } )
+            if self.FilterMeta.Categories[CategoryName] and UnitCategory and self.FilterMeta.Categories[CategoryName] == UnitCategory then
+              MClientCategory = true
+            end
+          else
+            self:T3( { "Category:", ClientCategoryID, self.FilterMeta.Categories[CategoryName], CategoryName } )
+            if self.FilterMeta.Categories[CategoryName] and ClientCategoryID and self.FilterMeta.Categories[CategoryName] == ClientCategoryID then
+              MClientCategory = true
+            end
           end
         end
         self:T( { "Evaluated Category", MClientCategory } )
@@ -7845,6 +7866,7 @@ do -- SET_OPSGROUP
       self:HandleEvent( EVENTS.Dead, self._EventOnDeadOrCrash )
       self:HandleEvent( EVENTS.Crash, self._EventOnDeadOrCrash )
       self:HandleEvent( EVENTS.RemoveUnit, self._EventOnDeadOrCrash )
+      self:HandleEvent( EVENTS.UnitLost, self._EventOnDeadOrCrash )
     end
 
     return self
