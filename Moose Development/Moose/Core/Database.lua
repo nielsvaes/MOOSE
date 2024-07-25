@@ -135,7 +135,7 @@ function DATABASE:New()
   self:HandleEvent( EVENTS.Dead, self._EventOnDeadOrCrash )
   self:HandleEvent( EVENTS.Crash, self._EventOnDeadOrCrash )
   self:HandleEvent( EVENTS.RemoveUnit, self._EventOnDeadOrCrash )
-  --self:HandleEvent( EVENTS.UnitLost, self._EventOnDeadOrCrash )  -- DCS 2.7.1 for Aerial units no dead event ATM
+  self:HandleEvent( EVENTS.UnitLost, self._EventOnDeadOrCrash )  -- DCS 2.7.1 for Aerial units no dead event ATM
   self:HandleEvent( EVENTS.Hit, self.AccountHits )
   self:HandleEvent( EVENTS.NewCargo )
   self:HandleEvent( EVENTS.DeleteCargo )
@@ -170,10 +170,11 @@ end
 --- Adds a Unit based on the Unit Name in the DATABASE.
 -- @param #DATABASE self
 -- @param #string DCSUnitName Unit name.
+-- @param #boolean force
 -- @return Wrapper.Unit#UNIT The added unit.
-function DATABASE:AddUnit( DCSUnitName )
+function DATABASE:AddUnit( DCSUnitName, force )
 
-  if not self.UNITS[DCSUnitName] then
+  if not self.UNITS[DCSUnitName] or force == true then
     -- Debug info.
     self:T( { "Add UNIT:", DCSUnitName } )
 
@@ -188,6 +189,7 @@ end
 --- Deletes a Unit from the DATABASE based on the Unit Name.
 -- @param #DATABASE self
 function DATABASE:DeleteUnit( DCSUnitName )
+  self:T("DeleteUnit "..tostring(DCSUnitName))
   self.UNITS[DCSUnitName] = nil
 end
 
@@ -813,10 +815,11 @@ end
 --- Adds a CLIENT based on the ClientName in the DATABASE.
 -- @param #DATABASE self
 -- @param #string ClientName Name of the Client unit.
+-- @param #boolean Force (optional) Force registration of client.
 -- @return Wrapper.Client#CLIENT The client object.
-function DATABASE:AddClient( ClientName )
+function DATABASE:AddClient( ClientName, Force )
 
-  if not self.CLIENTS[ClientName] then
+  if not self.CLIENTS[ClientName] or Force == true then
     self.CLIENTS[ClientName] = CLIENT:Register( ClientName )
   end
 
@@ -831,15 +834,25 @@ end
 function DATABASE:FindGroup( GroupName )
 
   local GroupFound = self.GROUPS[GroupName]
+  
+  if GroupFound == nil and GroupName ~= nil and self.Templates.Groups[GroupName] == nil then
+    -- see if the group exists in the API, maybe a dynamic slot
+    self:_RegisterDynamicGroup(GroupName)
+    return self.GROUPS[GroupName]
+  end
+  
   return GroupFound
 end
 
 
 --- Adds a GROUP based on the GroupName in the DATABASE.
 -- @param #DATABASE self
-function DATABASE:AddGroup( GroupName )
+-- @param #string GroupName
+-- @param #boolean force
+-- @return Wrapper.Group#GROUP The Group
+function DATABASE:AddGroup( GroupName, force )
 
-  if not self.GROUPS[GroupName] then
+  if not self.GROUPS[GroupName] or force == true then
     self:T( { "Add GROUP:", GroupName } )
     self.GROUPS[GroupName] = GROUP:Register( GroupName )
   end
@@ -1345,6 +1358,36 @@ function DATABASE:_RegisterPlayers()
   return self
 end
 
+--- Private method that registers a single dynamic slot Group and Units within in the mission.
+-- @param #DATABASE self
+-- @return #DATABASE self
+function DATABASE:_RegisterDynamicGroup(Groupname)
+  local DCSGroup = Group.getByName(Groupname)
+  if DCSGroup and DCSGroup:isExist() then
+  
+    -- Group name.
+    local DCSGroupName = DCSGroup:getName()
+  
+    -- Add group.
+    self:I(string.format("Register Group: %s", tostring(DCSGroupName)))
+    self:AddGroup( DCSGroupName, true )
+  
+    -- Loop over units in group.
+    for DCSUnitId, DCSUnit in pairs( DCSGroup:getUnits() ) do
+  
+      -- Get unit name.
+      local DCSUnitName = DCSUnit:getName()
+  
+      -- Add unit.
+      self:I(string.format("Register Unit: %s", tostring(DCSUnitName)))
+      self:AddUnit( DCSUnitName, true )
+  
+    end
+  else
+    self:E({"Group does not exist: ", DCSGroup})
+  end
+  return self
+end
 
 --- Private method that registers all Groups and Units within in the mission.
 -- @param #DATABASE self
@@ -1517,9 +1560,9 @@ function DATABASE:_EventOnBirth( Event )
     end
 
     if Event.IniObjectCategory == Object.Category.UNIT then
-
-      Event.IniUnit = self:FindUnit( Event.IniDCSUnitName )
+      
       Event.IniGroup = self:FindGroup( Event.IniDCSGroupName )
+      Event.IniUnit = self:FindUnit( Event.IniDCSUnitName )
 
       -- Client
       local client=self.CLIENTS[Event.IniDCSUnitName] --Wrapper.Client#CLIENT
@@ -1535,10 +1578,10 @@ function DATABASE:_EventOnBirth( Event )
 
         -- Debug info.
         self:I(string.format("Player '%s' joined unit '%s' of group '%s'", tostring(PlayerName), tostring(Event.IniDCSUnitName), tostring(Event.IniDCSGroupName)))
-
+              
         -- Add client in case it does not exist already.
-        if not client then
-          client=self:AddClient(Event.IniDCSUnitName)
+        if client == nil or (client and client:CountPlayers() == 0) then
+          client=self:AddClient(Event.IniDCSUnitName, true)
         end
 
         -- Add player.
@@ -1548,14 +1591,19 @@ function DATABASE:_EventOnBirth( Event )
         if not self.PLAYERS[PlayerName] then
           self:AddPlayer( Event.IniUnitName, PlayerName )
         end
-
-        -- Player settings.
-        local Settings = SETTINGS:Set( PlayerName )
-        Settings:SetPlayerMenu(Event.IniUnit)
-
-        -- Create an event.
-        self:CreateEventPlayerEnterAircraft(Event.IniUnit)
-
+        
+        local function SetPlayerSettings(self,PlayerName,IniUnit)
+          -- Player settings.
+          local Settings = SETTINGS:Set( PlayerName )
+          --Settings:SetPlayerMenu(Event.IniUnit)
+          Settings:SetPlayerMenu(IniUnit)
+          -- Create an event.
+          self:CreateEventPlayerEnterAircraft(IniUnit)
+          --self:CreateEventPlayerEnterAircraft(Event.IniUnit)
+        end
+        
+        self:ScheduleOnce(1,SetPlayerSettings,self,PlayerName,Event.IniUnit)
+        
       end
 
     end
@@ -1569,7 +1617,6 @@ end
 -- @param #DATABASE self
 -- @param Core.Event#EVENTDATA Event
 function DATABASE:_EventOnDeadOrCrash( Event )
-
   if Event.IniDCSUnit then
 
     local name=Event.IniDCSUnitName
@@ -1577,7 +1624,7 @@ function DATABASE:_EventOnDeadOrCrash( Event )
     if Event.IniObjectCategory == 3 then
 
       ---
-      -- STATICS
+      -- STATICS 
       ---
 
       if self.STATICS[Event.IniDCSUnitName] then
@@ -1587,7 +1634,7 @@ function DATABASE:_EventOnDeadOrCrash( Event )
       ---
       -- Maybe a UNIT?
       ---
-
+ 
       -- Delete unit.
       if self.UNITS[Event.IniDCSUnitName] then
         self:T("STATIC Event for UNIT "..tostring(Event.IniDCSUnitName))
@@ -1610,7 +1657,8 @@ function DATABASE:_EventOnDeadOrCrash( Event )
 
         -- Delete unit.
         if self.UNITS[Event.IniDCSUnitName] then
-          self:DeleteUnit(Event.IniDCSUnitName)
+          self:ScheduleOnce(1,self.DeleteUnit,self,Event.IniDCSUnitName)
+          --self:DeleteUnit(Event.IniDCSUnitName)
         end
 
         -- Remove client players.
@@ -1718,6 +1766,7 @@ function DATABASE:_EventOnPlayerLeaveUnit( Event )
         local client=self.CLIENTS[Event.IniDCSUnitName] --Wrapper.Client#CLIENT
         if client then
           client:RemovePlayer(PlayerName)
+          --self.PLAYERSETTINGS[PlayerName] = nil
         end
 
       end

@@ -124,6 +124,10 @@
 --     UTILS.PrintTableToLog(liquids)
 --     UTILS.PrintTableToLog(weapons)
 --
+-- # Weapons Helper Enumerater
+-- 
+-- The currently available weapon items are available in the `ENUMS.Storage.weapons`, e.g. `ENUMS.Storage.weapons.bombs.Mk_82Y`.
+--
 -- @field #STORAGE
 STORAGE = {
   ClassName          = "STORAGE",
@@ -145,7 +149,7 @@ STORAGE.Liquid = {
 
 --- STORAGE class version.
 -- @field #string version
-STORAGE.version="0.0.1"
+STORAGE.version="0.0.2"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- TODO list
@@ -158,7 +162,7 @@ STORAGE.version="0.0.1"
 -- Constructor
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
---- Create a new STORAGE object from the DCS weapon object.
+--- Create a new STORAGE object from the DCS airbase object.
 -- @param #STORAGE self
 -- @param #string AirbaseName Name of the airbase.
 -- @return #STORAGE self
@@ -178,8 +182,28 @@ function STORAGE:New(AirbaseName)
   return self
 end
 
+--- Create a new STORAGE object from an DCS static cargo object.
+-- @param #STORAGE self
+-- @param #string StaticCargoName Unit name of the static.
+-- @return #STORAGE self
+function STORAGE:NewFromStaticCargo(StaticCargoName)
 
---- Find a STORAGE in the **_DATABASE** using the name associated airbase.
+  -- Inherit everything from BASE class.
+  local self=BASE:Inherit(self, BASE:New()) -- #STORAGE
+
+  self.airbase=StaticObject.getByName(StaticCargoName)
+
+  if Airbase.getWarehouse then
+    self.warehouse=Warehouse.getCargoAsWarehouse(self.airbase)
+  end
+
+  self.lid = string.format("STORAGE %s", StaticCargoName)
+
+  return self
+end
+
+
+--- Airbases only - Find a STORAGE in the **_DATABASE** using the name associated airbase.
 -- @param #STORAGE self
 -- @param #string AirbaseName The Airbase Name.
 -- @return #STORAGE self
@@ -406,7 +430,7 @@ end
 --- Returns whether a given type of aircraft, liquid, weapon is set to be unlimited.
 -- @param #STORAGE self
 -- @param #string Type Name of aircraft, weapon or equipment or type of liquid (as `#number`).
--- @return #boolen If `true` the given type is unlimited or `false` otherwise.
+-- @return #boolean If `true` the given type is unlimited or `false` otherwise.
 function STORAGE:IsUnlimited(Type)
 
   -- Get current amount of type.
@@ -423,7 +447,7 @@ function STORAGE:IsUnlimited(Type)
     local n=self:GetAmount(Type)
 
     -- If amount did not change, it is unlimited.
-    unlimited=n==N
+    unlimited=unlimited or n > 2^29 or n==N
 
     -- Add item back.
     if not unlimited then
@@ -440,7 +464,7 @@ end
 --- Returns whether a given type of aircraft, liquid, weapon is set to be limited.
 -- @param #STORAGE self
 -- @param #number Type Type of liquid or name of aircraft, weapon or equipment.
--- @return #boolen If `true` the given type is limited or `false` otherwise.
+-- @return #boolean If `true` the given type is limited or `false` otherwise.
 function STORAGE:IsLimited(Type)
 
   local limited=not self:IsUnlimited(Type)
@@ -450,7 +474,7 @@ end
 
 --- Returns whether aircraft are unlimited.
 -- @param #STORAGE self
--- @return #boolen If `true` aircraft are unlimited or `false` otherwise.
+-- @return #boolean If `true` aircraft are unlimited or `false` otherwise.
 function STORAGE:IsUnlimitedAircraft()
 
   -- We test with a specific type but if it is unlimited, than all aircraft are.
@@ -461,7 +485,7 @@ end
 
 --- Returns whether liquids are unlimited.
 -- @param #STORAGE self
--- @return #boolen If `true` liquids are unlimited or `false` otherwise.
+-- @return #boolean If `true` liquids are unlimited or `false` otherwise.
 function STORAGE:IsUnlimitedLiquids()
 
   -- We test with a specific type but if it is unlimited, than all are.
@@ -472,7 +496,7 @@ end
 
 --- Returns whether weapons and equipment are unlimited.
 -- @param #STORAGE self
--- @return #boolen If `true` weapons and equipment are unlimited or `false` otherwise.
+-- @return #boolean If `true` weapons and equipment are unlimited or `false` otherwise.
 function STORAGE:IsUnlimitedWeapons()
 
   -- We test with a specific type but if it is unlimited, than all are.
@@ -483,7 +507,7 @@ end
 
 --- Returns whether aircraft are limited.
 -- @param #STORAGE self
--- @return #boolen If `true` aircraft are limited or `false` otherwise.
+-- @return #boolean If `true` aircraft are limited or `false` otherwise.
 function STORAGE:IsLimitedAircraft()
 
   -- We test with a specific type but if it is limited, than all are.
@@ -494,7 +518,7 @@ end
 
 --- Returns whether liquids are limited.
 -- @param #STORAGE self
--- @return #boolen If `true` liquids are limited or `false` otherwise.
+-- @return #boolean If `true` liquids are limited or `false` otherwise.
 function STORAGE:IsLimitedLiquids()
 
   -- We test with a specific type but if it is limited, than all are.
@@ -505,7 +529,7 @@ end
 
 --- Returns whether weapons and equipment are limited.
 -- @param #STORAGE self
--- @return #boolen If `true` liquids are limited or `false` otherwise.
+-- @return #boolean If `true` liquids are limited or `false` otherwise.
 function STORAGE:IsLimitedWeapons()
 
   -- We test with a specific type but if it is limited, than all are.
