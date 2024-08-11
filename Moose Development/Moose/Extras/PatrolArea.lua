@@ -66,22 +66,24 @@ end
 function PATROL_AREA:PickNewLocation()
     for group, group_data in pairs(self.groups) do
         if group ~= nil and group:IsAlive() then
-            local is_waiting = false
-            if UTILS.PercentageChance(20) then
-                delay(math.random(5, 10), function()
-                    group:RouteStop()
-                end)
-                is_waiting = true
-            end
-            if not is_waiting then
-                local new_pos = self:GetRandomVec2()
-                delay(math.random(1, 10), function()
-                    group:ClearTasks()
-                    group:RouteToVec2(new_pos, self.walk_speed)
-                    self.groups[group].vec2 = { new_pos }
-                end)
+            delay(0.1, function()
+                local is_waiting = false
+                if UTILS.PercentageChance(20) then
+                    delay(math.random(5, 10), function()
+                        group:RouteStop()
+                    end)
+                    is_waiting = true
+                end
+                if not is_waiting then
+                    local new_pos = self:GetRandomVec2()
+                    delay(math.random(1, 10), function()
+                        group:ClearTasks()
+                        group:RouteToVec2(new_pos, self.walk_speed)
+                        self.groups[group].vec2 = { new_pos }
+                    end)
 
-            end
+                end
+            end)
         end
     end
 end

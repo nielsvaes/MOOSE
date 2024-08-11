@@ -3495,6 +3495,12 @@ function UTILS.ReadJSON(file_path)
     if not string.contains(package.path, ";.\\Scripts\\?.lua") then
         package.path = package.path ..  ";.\\Scripts\\?.lua"
     end
+
+    if not UTILS.FileExists(file_path) then
+        BASE:E("UTILS.ReadJson - " .. tostring(file_path) .. " doesn't exist!")
+        return nil
+    end
+
     local JSON = require("json")
     local read_file = io.open(file_path, "r")
     local contents = read_file:read( "*a" )
