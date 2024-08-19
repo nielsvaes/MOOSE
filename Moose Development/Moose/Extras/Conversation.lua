@@ -26,7 +26,7 @@ function CONVERSATION:PlayNumber(number, radio_unit, initial_delay, before_play_
 
                 radio:NewUnitTransmission(voice_line.sound_file, voice_line.subtitle, subtitle_duration, voice_line.frequency, voice_line.modulation, false)
                 radio:Broadcast()
-                BASE:I("Playing line: " .. voice_line.subtitle)
+                dev_message("Playing line: " .. voice_line.subtitle)
             end
         )
         pause = pause + voice_line.duration + 0.5
