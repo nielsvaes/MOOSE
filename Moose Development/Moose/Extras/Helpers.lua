@@ -72,6 +72,14 @@ function all_of_group_in_zone(group, zone)
         group = GROUP:FindByName(group)
     end
 
+    if zone == nil then
+        BASE:E("Couldn't find a zone named " .. zone:GetName())
+    end
+
+    if group == nil then
+        BASE:E("Couldn't find a group named " .. zone:GetName())
+    end
+
     for _, unit in pairs(group:GetUnits()) do
         if not zone:IsVec2InZone(unit:GetVec2()) then
             return false
@@ -87,6 +95,14 @@ function part_of_group_in_zone(group, zone)
 
     if type(group) == "string" then
         group = GROUP:FindByName(group)
+    end
+
+    if zone == nil then
+        BASE:E("Couldn't find a zone named " .. zone:GetName())
+    end
+
+    if group == nil then
+        BASE:E("Couldn't find a group named " .. zone:GetName())
     end
 
     for _, unit in pairs(group:GetUnits()) do
