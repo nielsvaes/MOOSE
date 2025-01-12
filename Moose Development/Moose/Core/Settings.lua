@@ -29,7 +29,9 @@
 -- @module Core.Settings
 -- @image Core_Settings.JPG
 
---- @type SETTINGS
+
+---
+-- @type SETTINGS
 -- @extends Core.Base#BASE
 
 --- Takes care of various settings that influence the behavior of certain functionalities and classes within the MOOSE framework.
@@ -218,7 +220,8 @@ SETTINGS = {
 
 SETTINGS.__Enum = {}
 
---- @type SETTINGS.__Enum.Era
+---
+-- @type SETTINGS.__Enum.Era
 -- @field #number WWII
 -- @field #number Korea
 -- @field #number Cold

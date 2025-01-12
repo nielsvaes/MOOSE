@@ -107,6 +107,9 @@
 -- @field Sound.SRS#MSRSQUEUE instructsrsQ SRS queue for range instructor.
 -- @field #number Coalition Coalition side for the menu, if any.
 -- @field Core.Menu#MENU_MISSION menuF10root Specific user defined root F10 menu.
+-- @field #number ceilingaltitude Range ceiling altitude in ft MSL.  Aircraft above this altitude are not considered to be in the range. Default is 20000 ft.
+-- @field #boolean ceilingenabled Range has a ceiling and is not unlimited.  Default is false.
+
 -- @extends Core.Fsm#FSM
 
 --- *Don't only practice your art, but force your way into its secrets; art deserves that, for it and knowledge can raise man to the Divine.* - Ludwig van Beethoven
@@ -273,6 +276,10 @@
 --      -- Create a range object.
 --      GoldwaterRange=RANGE:New("Goldwater Range")
 --
+--      -- Set and enable the range ceiling altitude in feet MSL.  If aircraft are above this altitude they are not considered to be in the range.
+--      GoldwaterRange:SetRangeCeiling(20000)
+--      GoldwaterRange:EnableRangeCeiling(true)
+--
 --      -- Distance between strafe target and foul line. You have to specify the names of the unit or static objects.
 --      -- Note that this could also be done manually by simply measuring the distance between the target and the foul line in the ME.
 --      GoldwaterRange:GetFoullineDistance("GWR Strafe Pit Left 1", "GWR Foul Line Left")
@@ -358,6 +365,8 @@ RANGE = {
   targetpath = nil,
   targetprefix = nil,
   Coalition = nil,
+  ceilingaltitude = 20000,
+  ceilingenabled = false,
   }
 
 --- Default range parameters.
@@ -1085,6 +1094,37 @@ function RANGE:SetRangeZone( zone )
   return self
 end
 
+--- Set range ceiling altitude in feet MSL.
+-- @param #RANGE self
+-- @param #number altitude (optional) Ceiling altitude of the range in ft MSL. Default 20000ft MSL
+-- @return #RANGE self
+function RANGE:SetRangeCeiling( altitude )
+  self:T(self.lid.."SetRangeCeiling")
+  if altitude and type(altitude) == "number" then
+    self.ceilingaltitude=altitude
+  else
+    self:E(self.lid.."Altitude either not provided or is not a number, using default setting (20000).")
+    self.ceilingaltitude=20000
+  end
+  return self
+end
+
+--- Enable range ceiling. Aircraft must be below the ceiling altitude to be considered in the range zone. 
+-- @param #RANGE self
+-- @param #boolean enabled True if you would like to enable the ceiling check.  If no value give, will Default to false.
+-- @return #RANGE self
+function RANGE:EnableRangeCeiling( enabled )
+  self:T(self.lid.."EnableRangeCeiling")
+  if enabled and type(enabled) == "boolean" then
+    self.ceilingenabled=enabled
+  else
+    self:E(self.lid.."Enabled either not provide or is not a boolean, using default setting (false).")
+    self.ceilingenabled=false
+  end
+
+  return self
+end
+
 --- Set smoke color for marking bomb targets. By default bomb targets are marked by red smoke.
 -- @param #RANGE self
 -- @param Utilities.Utils#SMOKECOLOR colorid Color id. Default `SMOKECOLOR.Red`.
@@ -1340,7 +1380,7 @@ end
 -- @return #RANGE self
 function RANGE:SetSoundfilesPath( path )
   self.soundpath = tostring( path or "Range Soundfiles/" )
-  self:I( self.lid .. string.format( "Setting sound files path to %s", self.soundpath ) )
+  self:T2( self.lid .. string.format( "Setting sound files path to %s", self.soundpath ) )
   return self
 end
 
@@ -1636,9 +1676,9 @@ function RANGE:AddBombingTargetUnit( unit, goodhitrange, randommove )
 
   -- Debug or error output.
   if _isstatic == true then
-    self:I( self.lid .. string.format( "Adding STATIC bombing target %s with good hit range %d. Random move = %s.", name, goodhitrange, tostring( randommove ) ) )
+    self:T( self.lid .. string.format( "Adding STATIC bombing target %s with good hit range %d. Random move = %s.", name, goodhitrange, tostring( randommove ) ) )
   elseif _isstatic == false then
-    self:I( self.lid .. string.format( "Adding UNIT bombing target %s with good hit range %d. Random move = %s.", name, goodhitrange, tostring( randommove ) ) )
+    self:T( self.lid .. string.format( "Adding UNIT bombing target %s with good hit range %d. Random move = %s.", name, goodhitrange, tostring( randommove ) ) )
   else
     self:E( self.lid .. string.format( "ERROR! No bombing target with name %s could be found. Carefully check all UNIT and STATIC names defined in the mission editor!", name ) )
   end
@@ -1706,7 +1746,7 @@ function RANGE:AddBombingTargetScenery( scenery, goodhitrange)
 
   -- Debug or error output.
   if name then
-    self:I( self.lid .. string.format( "Adding SCENERY bombing target %s with good hit range %d", name, goodhitrange) )
+    self:T( self.lid .. string.format( "Adding SCENERY bombing target %s with good hit range %d", name, goodhitrange) )
   else
     self:E( self.lid .. string.format( "ERROR! No bombing target with name %s could be found!", name ) )
   end
@@ -1811,7 +1851,7 @@ function RANGE:OnEventBirth( EventData )
   if not EventData.IniPlayerName then return end
 
   local _unitName = EventData.IniUnitName
-  local _unit, _playername = self:_GetPlayerUnitAndName( _unitName )
+  local _unit, _playername = self:_GetPlayerUnitAndName( _unitName, EventData.IniPlayerName )
 
   self:T3( self.lid .. "BIRTH: unit   = " .. tostring( EventData.IniUnitName ) )
   self:T3( self.lid .. "BIRTH: group  = " .. tostring( EventData.IniGroupName ) )
@@ -1967,7 +2007,9 @@ end
 -- @param #number attackAlt Attack altitude.
 -- @param #number attackVel Attack velocity.
 function RANGE._OnImpact(weapon, self, playerData, attackHdg, attackAlt, attackVel)
-
+  
+  if not playerData then return end
+  
   -- Get closet target to last position.
   local _closetTarget = nil -- #RANGE.BombTarget
   local _distance = nil
@@ -1984,13 +2026,13 @@ function RANGE._OnImpact(weapon, self, playerData, attackHdg, attackAlt, attackV
   -- Coordinate of impact point.
   local impactcoord = weapon:GetImpactCoordinate()
 
-  -- Check if impact happened in range zone.
+  -- Check if impact happened in range zone.+
   local insidezone = self.rangezone:IsCoordinateInZone( impactcoord )
 
 
   -- Smoke impact point of bomb.
-  if playerData.smokebombimpact and insidezone then
-    if playerData.delaysmoke then
+  if playerData and playerData.smokebombimpact and insidezone then
+    if playerData and playerData.delaysmoke then
       timer.scheduleFunction( self._DelayedSmoke, { coord = impactcoord, color = playerData.smokecolor }, timer.getTime() + self.TdelaySmoke )
     else
       impactcoord:Smoke( playerData.smokecolor )
@@ -2115,7 +2157,7 @@ function RANGE:OnEventShot( EventData )
   local _unitName = EventData.IniUnitName
 
   -- Get player unit and name.
-  local _unit, _playername = self:_GetPlayerUnitAndName( _unitName )
+  local _unit, _playername = self:_GetPlayerUnitAndName( _unitName, EventData.IniPlayerName )
 
   -- Distance Player-to-Range. Set this to larger value than the threshold.
   local dPR = self.BombtrackThreshold * 2
@@ -2127,11 +2169,13 @@ function RANGE:OnEventShot( EventData )
   end
 
   -- Only track if distance player to range is < 25 km. Also check that a player shot. No need to track AI weapons.
-  if _track and dPR <= self.BombtrackThreshold and _unit and _playername then
+  if _track and dPR <= self.BombtrackThreshold and _unit and _playername and self.PlayerSettings[_playername] then
 
     -- Player data.
     local playerData = self.PlayerSettings[_playername] -- #RANGE.PlayerData
-
+    
+    if not playerData then return end
+    
     -- Attack parameters.
     local attackHdg=_unit:GetHeading()
     local attackAlt=_unit:GetHeight()
@@ -2192,7 +2236,7 @@ function RANGE:onafterStatus( From, Event, To )
     end
 
     -- Check range status.
-    self:I( self.lid .. text )
+    self:T( self.lid .. text )
 
   end
 
@@ -2393,7 +2437,7 @@ function RANGE:onafterSave( From, Event, To )
     if f then
       f:write( data )
       f:close()
-      self:I( self.lid .. string.format( "Saving player results to file %s", tostring( filename ) ) )
+      self:T( self.lid .. string.format( "Saving player results to file %s", tostring( filename ) ) )
     else
       self:E( self.lid .. string.format( "ERROR: Could not save results to file %s", tostring( filename ) ) )
     end
@@ -2472,7 +2516,7 @@ function RANGE:onafterLoad( From, Event, To )
 
   -- Info message.
   local text = string.format( "Loading player bomb results from file %s", filename )
-  self:I( self.lid .. text )
+  self:T( self.lid .. text )
 
   -- Load asset data from file.
   local data = _loadfile( filename )
@@ -2845,7 +2889,7 @@ function RANGE:_DisplayRangeInfo( _unitname )
 
   -- Check if we have a player.
   if unit and playername then
-    self:I(playername)
+    --self:I(playername)
     -- Message text.
     local text = ""
 
@@ -2983,7 +3027,7 @@ function RANGE:_DisplayBombTargets( _unitname )
       end
     end
 
-    self:_DisplayMessageToGroup( _unit, _text, 120, true, true, _multiplayer )
+    self:_DisplayMessageToGroup( _unit, _text, 150, true, true, _multiplayer )
   end
 end
 
@@ -3108,7 +3152,10 @@ function RANGE:_CheckPlayers()
 
     if unit and unit:IsAlive() then
 
-      if unit:IsInZone( self.rangezone ) then
+      local unitalt = unit:GetAltitude(false)
+      local unitaltinfeet = UTILS.MetersToFeet(unitalt)
+
+      if unit:IsInZone(self.rangezone) and (not self.ceilingenabled or unitaltinfeet < self.ceilingaltitude) then
 
         ------------------------------
         -- Player INSIDE Range Zone --
@@ -3449,10 +3496,10 @@ function RANGE:_AddF10Commands( _unitName )
         -- Range menu
         local _rangePath = MENU_GROUP:New( group, self.rangename, _rootMenu )
 
-        local _statsPath = MENU_GROUP:New( group, "Statistics", _rangePath )
-        local _markPath = MENU_GROUP:New( group, "Mark Targets", _rangePath )
-        local _settingsPath = MENU_GROUP:New( group, "My Settings", _rangePath )
         local _infoPath = MENU_GROUP:New( group, "Range Info", _rangePath )
+        local _markPath = MENU_GROUP:New( group, "Mark Targets", _rangePath )
+        local _statsPath = MENU_GROUP:New( group, "Statistics", _rangePath )
+        local _settingsPath = MENU_GROUP:New( group, "My Settings", _rangePath )
 
         -- F10/On the Range/<Range Name>/My Settings/
         local _mysmokePath = MENU_GROUP:New( group, "Smoke Color", _settingsPath )
@@ -4099,8 +4146,8 @@ end
 -- @return Wrapper.Unit#UNIT Unit of player.
 -- @return #string Name of the player.
 -- @return #boolean If true, group has > 1 player in it
-function RANGE:_GetPlayerUnitAndName( _unitName )
-  self:F2( _unitName )
+function RANGE:_GetPlayerUnitAndName( _unitName, PlayerName )
+  --self:I( _unitName )
 
   if _unitName ~= nil then
 
@@ -4109,9 +4156,9 @@ function RANGE:_GetPlayerUnitAndName( _unitName )
     -- Get DCS unit from its name.
     local DCSunit = Unit.getByName( _unitName )
 
-    if DCSunit then
+    if DCSunit and DCSunit.getPlayerName then
 
-      local playername = DCSunit:getPlayerName()
+      local playername = DCSunit:getPlayerName() or PlayerName or "None"
       local unit = UNIT:Find( DCSunit )
 
       self:T2( { DCSunit = DCSunit, unit = unit, playername = playername } )
