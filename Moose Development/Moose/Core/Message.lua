@@ -75,35 +75,37 @@ MESSAGE.Type = {
 
 --- Creates a new MESSAGE object. Note that these MESSAGE objects are not yet displayed on the display panel. You must use the functions @{#MESSAGE.ToClient} or @{#MESSAGE.ToCoalition} or @{#MESSAGE.ToAll} to send these Messages to the respective recipients.
 -- @param self
--- @param #string MessageText is the text of the Message.
--- @param #number MessageDuration is a number in seconds of how long the MESSAGE should be shown on the display panel.
--- @param #string MessageCategory (optional) is a string expressing the "category" of the Message. The category will be shown as the first text in the message followed by a ": ".
+-- @param #string Text is the text of the Message.
+-- @param #number Duration Duration in seconds how long the message text is shown.
+-- @param #string Category (Optional) String expressing the "category" of the Message. The category will be shown as the first text in the message followed by a ": ".
 -- @param #boolean ClearScreen (optional) Clear all previous messages if true.
--- @return #MESSAGE
+-- @return #MESSAGE self
 -- @usage
 --
---    -- Create a series of new Messages.
---    -- MessageAll is meant to be sent to all players, for 25 seconds, and is classified as "Score".
---    -- MessageRED is meant to be sent to the RED players only, for 10 seconds, and is classified as "End of Mission", with ID "Win".
---    -- MessageClient1 is meant to be sent to a Client, for 25 seconds, and is classified as "Score", with ID "Score".
---    -- MessageClient1 is meant to be sent to a Client, for 25 seconds, and is classified as "Score", with ID "Score".
+--   -- Create a series of new Messages.
+--   -- MessageAll is meant to be sent to all players, for 25 seconds, and is classified as "Score".
+--   -- MessageRED is meant to be sent to the RED players only, for 10 seconds, and is classified as "End of Mission", with ID "Win".
+--   -- MessageClient1 is meant to be sent to a Client, for 25 seconds, and is classified as "Score", with ID "Score".
+--   -- MessageClient1 is meant to be sent to a Client, for 25 seconds, and is classified as "Score", with ID "Score".
 --   MessageAll = MESSAGE:New( "To all Players: BLUE has won! Each player of BLUE wins 50 points!",  25, "End of Mission" )
 --   MessageRED = MESSAGE:New( "To the RED Players: You receive a penalty because you've killed one of your own units", 25, "Penalty" )
 --   MessageClient1 = MESSAGE:New( "Congratulations, you've just hit a target",  25, "Score" )
 --   MessageClient2 = MESSAGE:New( "Congratulations, you've just killed a target", 25, "Score")
 --
-function MESSAGE:New( MessageText, MessageDuration, MessageCategory, ClearScreen )
+function MESSAGE:New( Text, Duration, Category, ClearScreen )
+
   local self = BASE:Inherit( self, BASE:New() )
-  self:F( { MessageText, MessageDuration, MessageCategory } )
+  
+  self:F( { Text, Duration, Category } )
 
   self.MessageType = nil
 
   -- When no MessageCategory is given, we don't show it as a title... 
-  if MessageCategory and MessageCategory ~= "" then
-    if MessageCategory:sub( -1 ) ~= "\n" then
-      self.MessageCategory = MessageCategory .. ": "
+  if Category and Category ~= "" then
+    if Category:sub( -1 ) ~= "\n" then
+      self.MessageCategory = Category .. ": "
     else
-      self.MessageCategory = MessageCategory:sub( 1, -2 ) .. ":\n"
+      self.MessageCategory = Category:sub( 1, -2 ) .. ":\n"
     end
   else
     self.MessageCategory = ""
@@ -114,9 +116,9 @@ function MESSAGE:New( MessageText, MessageDuration, MessageCategory, ClearScreen
     self.ClearScreen = ClearScreen
   end
 
-  self.MessageDuration = MessageDuration or 5
+  self.MessageDuration = Duration or 5
   self.MessageTime = timer.getTime()
-  self.MessageText = MessageText:gsub( "^\n", "", 1 ):gsub( "\n$", "", 1 )
+  self.MessageText = Text:gsub( "^\n", "", 1 ):gsub( "\n$", "", 1 )
 
   self.MessageSent = false
   self.MessageGroup = false
@@ -177,7 +179,7 @@ end
 --
 --   -- Send the 2 messages created with the @{New} method to the Client Group.
 --   -- Note that the Message of MessageClient2 is overwriting the Message of MessageClient1.
---   Client = CLIENT:FindByName("UnitNameOfMyClient")
+--   Client = CLIENT:FindByName("NameOfClientUnit")
 --
 --   MessageClient1 = MESSAGE:New( "Congratulations, you've just hit a target", 25, "Score" ):ToClient( Client )
 --   MessageClient2 = MESSAGE:New( "Congratulations, you've just killed a target", 25, "Score" ):ToClient( Client )
@@ -192,7 +194,7 @@ end
 --
 function MESSAGE:ToClient( Client, Settings )
   self:F( Client )
-  self:ToUnit(Client, Settings) 
+  self:ToUnit(Client,Settings)
   return self
 end
 
@@ -239,6 +241,7 @@ function MESSAGE:ToUnit( Unit, Settings )
 
     if self.MessageDuration ~= 0 then
       self:T( self.MessageCategory .. self.MessageText:gsub("\n$",""):gsub("\n$","") .. " / " .. self.MessageDuration )
+      local ID = Unit:GetID()
       trigger.action.outTextForUnit( Unit:GetID(), self.MessageCategory .. self.MessageText:gsub("\n$",""):gsub("\n$",""), self.MessageDuration, self.ClearScreen )
     end
   end
@@ -377,7 +380,8 @@ end
 --- Sends a MESSAGE to all players. 
 -- @param #MESSAGE self
 -- @param Core.Settings#Settings Settings (Optional) Settings for message display.
--- @return #MESSAGE
+-- @param #number Delay (Optional) Delay in seconds before the message is send. Default instantly (`nil`).
+-- @return #MESSAGE self
 -- @usage
 --
 --   -- Send a message created to all players.
@@ -388,18 +392,24 @@ end
 --   MessageAll = MESSAGE:New( "To all Players: BLUE has won! Each player of BLUE wins 50 points!", 25, "End of Mission")
 --   MessageAll:ToAll()
 --
-function MESSAGE:ToAll( Settings )
+function MESSAGE:ToAll( Settings, Delay )
   self:F()
 
-  if self.MessageType then
-    local Settings = Settings or _SETTINGS -- Core.Settings#SETTINGS
-    self.MessageDuration = Settings:GetMessageTime( self.MessageType )
-    self.MessageCategory = "" -- self.MessageType .. ": "
-  end
+  if Delay and Delay>0 then
+    self:ScheduleOnce(Delay, MESSAGE.ToAll, self, Settings, 0)
+  else
 
-  if self.MessageDuration ~= 0 then
-    self:T( self.MessageCategory .. self.MessageText:gsub( "\n$", "" ):gsub( "\n$", "" ) .. " / " .. self.MessageDuration )
-    trigger.action.outText( self.MessageCategory .. self.MessageText:gsub( "\n$", "" ):gsub( "\n$", "" ), self.MessageDuration, self.ClearScreen )
+    if self.MessageType then
+      local Settings = Settings or _SETTINGS -- Core.Settings#SETTINGS
+      self.MessageDuration = Settings:GetMessageTime( self.MessageType )
+      self.MessageCategory = "" -- self.MessageType .. ": "
+    end
+  
+    if self.MessageDuration ~= 0 then
+      self:T( self.MessageCategory .. self.MessageText:gsub( "\n$", "" ):gsub( "\n$", "" ) .. " / " .. self.MessageDuration )
+      trigger.action.outText( self.MessageCategory .. self.MessageText:gsub( "\n$", "" ):gsub( "\n$", "" ), self.MessageDuration, self.ClearScreen )
+    end
+    
   end
 
   return self

@@ -20,6 +20,7 @@
 --   * Manage database of hits to units and statics.
 --   * Manage database of destroys of units and statics.
 --   * Manage database of @{Core.Zone#ZONE_BASE} objects.
+--   * Manage database of @{Wrapper.DynamicCargo#DYNAMICCARGO} objects alive in the mission.
 --
 -- ===
 --
@@ -39,6 +40,7 @@
 -- @field #table STORAGES DCS warehouse storages.
 -- @field #table STNS Used Link16 octal numbers for F16/15/18/AWACS planes.
 -- @field #table SADL Used Link16 octal numbers for A10/C-II planes.
+-- @field #table DYNAMICCARGO Dynamic Cargo objects.
 -- @extends Core.Base#BASE
 
 --- Contains collections of wrapper objects defined within MOOSE that reflect objects within the simulator.
@@ -54,6 +56,7 @@
 --  * PLAYERS
 --  * CARGOS
 --  * STORAGES (DCS warehouses)
+--  * DYNAMICCARGO
 --
 -- On top, for internal MOOSE administration purposes, the DATABASE administers the Unit and Group TEMPLATES as defined within the Mission Editor.
 --
@@ -98,6 +101,7 @@ DATABASE = {
   STORAGES = {},
   STNS={},
   SADL={},
+  DYNAMICCARGO={},
 }
 
 local _DATABASECoalition =
@@ -144,6 +148,8 @@ function DATABASE:New()
   self:HandleEvent( EVENTS.DeleteZone )
   --self:HandleEvent( EVENTS.PlayerEnterUnit, self._EventOnPlayerEnterUnit ) -- This is not working anymore!, handling this through the birth event.
   self:HandleEvent( EVENTS.PlayerLeaveUnit, self._EventOnPlayerLeaveUnit )
+  -- DCS 2.9.7 Moose own dynamic cargo events
+  self:HandleEvent( EVENTS.DynamicCargoRemoved, self._EventOnDynamicCargoRemoved)
 
   self:_RegisterTemplates()
   self:_RegisterGroupsAndUnits()
@@ -175,16 +181,20 @@ end
 -- @param #boolean force
 -- @return Wrapper.Unit#UNIT The added unit.
 function DATABASE:AddUnit( DCSUnitName, force )
-
-  if not self.UNITS[DCSUnitName] or force == true then
+  
+  local DCSunitName = DCSUnitName
+  
+  if type(DCSunitName) == "number" then DCSunitName = string.format("%d",DCSUnitName) end
+  
+  if not self.UNITS[DCSunitName] or force == true then
     -- Debug info.
-    self:T( { "Add UNIT:", DCSUnitName } )
+    self:T( { "Add UNIT:", DCSunitName } )
 
     -- Register unit
-    self.UNITS[DCSUnitName]=UNIT:Register(DCSUnitName)
+    self.UNITS[DCSunitName]=UNIT:Register(DCSunitName)
   end
 
-  return self.UNITS[DCSUnitName]
+  return self.UNITS[DCSunitName]
 end
 
 
@@ -203,10 +213,9 @@ function DATABASE:AddStatic( DCSStaticName )
 
   if not self.STATICS[DCSStaticName] then
     self.STATICS[DCSStaticName] = STATIC:Register( DCSStaticName )
-    return self.STATICS[DCSStaticName]
   end
 
-  return nil
+  return self.STATICS[DCSStaticName]
 end
 
 
@@ -216,14 +225,105 @@ function DATABASE:DeleteStatic( DCSStaticName )
   self.STATICS[DCSStaticName] = nil
 end
 
---- Finds a STATIC based on the StaticName.
+--- Finds a STATIC based on the Static Name.
 -- @param #DATABASE self
--- @param #string StaticName
+-- @param #string StaticName Name of the static object.
 -- @return Wrapper.Static#STATIC The found STATIC.
 function DATABASE:FindStatic( StaticName )
-
   local StaticFound = self.STATICS[StaticName]
   return StaticFound
+end
+
+--- Adds a polygonal shape based on the name in the DATABASE.
+-- @param #DATABASE self
+-- @param #string name Name of the shape.
+-- @return Shpaes.Polygon#POLYGON The polygon shape
+function DATABASE:AddPolygon(name)
+    self.SHAPES[name] = POLYGON:FindOnMap(name)
+end
+
+--- Adds a circle shape based on the name in the DATABASE.
+-- @param #DATABASE self
+-- @param #string name Name of the shape.
+-- @return Shapes.Circle#CIRCLE The circle shape
+function DATABASE:AddCircle(name)
+    self.SHAPES[name] = CIRCLE:FindOnMap(name)
+end
+
+--- Adds a circle shape based on the name in the DATABASE.
+-- @param #DATABASE self
+-- @param #string name Name of the shape.
+-- @return Shapes.Oval#OVAL The circle shape
+function DATABASE:AddOval(name)
+    self.SHAPES[name] = OVAL:FindOnMap(name)
+end
+
+--- Adds a line shape based on the name in the DATABASE.
+-- @param #DATABASE self
+-- @param #string name Name of the shape.
+-- @return Shapes.Line#LINE The Line shape
+function DATABASE:AddLine(name)
+    self.SHAPES[name] = LINE:FindOnMap(name)
+end
+
+--- Finds a SHAPE based on the name.
+-- @param #DATABASE self
+-- @param #string name
+-- @return Shapes.ShapeBase The found SHAPE.
+function DATABASE:FindShape(name)
+    return self.SHAPES[name]
+end
+
+--- Registers the shapes found on the map in the DATABASE. It gets this from the env.mission table
+function DATABASE:_RegisterShapes()
+    if env.mission.drawings == nil then
+        self:I("Mission doesn't have any shapes, skipping")
+        return
+    end
+    for _, layer in pairs(env.mission.drawings.layers) do
+        for _, object in pairs(layer["objects"]) do
+            if object["polygonMode"] == "circle" then
+                self:AddCircle(object["name"])
+                self:I(string.format("Register CIRCLE: %s ", object["name"]))
+            elseif object["polygonMode"] == "oval" then
+                self:AddOval(object["name"])
+                self:I(string.format("Register OVAL: %s ", object["name"]))
+            elseif (object["primitiveType"] == "Line" and object["closed"] == true) or (object["polygonMode"] == "free") or (object["polygonMode"] == "rect") or object["polygonMode"] == "arrow" then
+                self:AddPolygon(object["name"])
+                self:I(string.format("Register POLYGON: %s ", object["name"]))
+            elseif object["primitiveType"] == "Line" and object["lineMode"] == "segment" then
+                self:AddLine(object["name"])
+                self:I(string.format("Register LINE: %s ", object["name"]))
+            end
+        end
+    end
+end
+
+--- Add a DynamicCargo to the database.
+-- @param #DATABASE self
+-- @param #string Name Name of the dynamic cargo.
+-- @return Wrapper.DynamicCargo#DYNAMICCARGO The dynamic cargo object.
+function DATABASE:AddDynamicCargo( Name )
+  if not self.DYNAMICCARGO[Name] then
+    self.DYNAMICCARGO[Name] = DYNAMICCARGO:Register(Name)
+  end
+  return self.DYNAMICCARGO[Name]
+end
+
+--- Finds a DYNAMICCARGO based on the Dynamic Cargo Name.
+-- @param #DATABASE self
+-- @param #string DynamicCargoName
+-- @return Wrapper.DynamicCargo#DYNAMICCARGO The found DYNAMICCARGO.
+function DATABASE:FindDynamicCargo( DynamicCargoName )
+  local StaticFound = self.DYNAMICCARGO[DynamicCargoName]
+  return StaticFound
+end
+
+--- Deletes a DYNAMICCARGO from the DATABASE based on the Dynamic Cargo Name.
+-- @param #DATABASE self
+function DATABASE:DeleteDynamicCargo( DynamicCargoName )
+  self.DYNAMICCARGO[DynamicCargoName] = nil
+  return self
 end
 
 --- Adds a polygonal shape based on the name in the DATABASE.
@@ -886,12 +986,16 @@ end
 -- @param #boolean Force (optional) Force registration of client.
 -- @return Wrapper.Client#CLIENT The client object.
 function DATABASE:AddClient( ClientName, Force )
-
-  if not self.CLIENTS[ClientName] or Force == true then
-    self.CLIENTS[ClientName] = CLIENT:Register( ClientName )
+  
+  local DCSUnitName = ClientName
+  
+  if type(DCSUnitName) == "number" then DCSUnitName = string.format("%d",ClientName) end
+  
+  if not self.CLIENTS[DCSUnitName] or Force == true then
+    self.CLIENTS[DCSUnitName] = CLIENT:Register( DCSUnitName )
   end
 
-  return self.CLIENTS[ClientName]
+  return self.CLIENTS[DCSUnitName]
 end
 
 
@@ -931,14 +1035,31 @@ end
 --- Adds a player based on the Player Name in the DATABASE.
 -- @param #DATABASE self
 function DATABASE:AddPlayer( UnitName, PlayerName )
-
+  
+  if type(UnitName) == "number" then UnitName = string.format("%d",UnitName) end
+  
   if PlayerName then
-    self:T( { "Add player for unit:", UnitName, PlayerName } )
+    self:I( { "Add player for unit:", UnitName, PlayerName } )
     self.PLAYERS[PlayerName] = UnitName
     self.PLAYERUNITS[PlayerName] = self:FindUnit( UnitName )
     self.PLAYERSJOINED[PlayerName] = PlayerName
   end
   
+end
+
+--- Get a PlayerName by UnitName from PLAYERS in DATABASE.
+-- @param #DATABASE self
+-- @return #string PlayerName
+-- @return Wrapper.Unit#UNIT PlayerUnit
+function DATABASE:_FindPlayerNameByUnitName(UnitName)
+  if UnitName then
+    for playername,unitname in pairs(self.PLAYERS) do
+      if unitname == UnitName and self.PLAYERUNITS[playername] and self.PLAYERUNITS[playername]:IsAlive() then
+        return playername, self.PLAYERUNITS[playername]
+      end
+    end
+  end
+  return nil
 end
 
 --- Deletes a player from the DATABASE based on the Player Name.
@@ -1312,7 +1433,7 @@ function DATABASE:_GetGenericStaticCargoGroupTemplate(Name,Typename,Mass,Coaliti
   StaticTemplate.CategoryID = "static"
   StaticTemplate.CoalitionID = Coalition or coalition.side.BLUE
   StaticTemplate.CountryID = Country or country.id.GERMANY
-  UTILS.PrintTableToLog(StaticTemplate)
+  --UTILS.PrintTableToLog(StaticTemplate)
   return StaticTemplate
 end
 
@@ -1392,7 +1513,7 @@ function DATABASE:GetCoalitionFromClientTemplate( ClientName )
   if self.Templates.ClientsByName[ClientName] then  
     return self.Templates.ClientsByName[ClientName].CoalitionID
   end
-  self:E("ERROR: Template does not exist for client "..tostring(ClientName))
+  self:E("WARNING: Template does not exist for client "..tostring(ClientName))
   return nil
 end
 
@@ -1404,7 +1525,7 @@ function DATABASE:GetCategoryFromClientTemplate( ClientName )
   if self.Templates.ClientsByName[ClientName] then  
     return self.Templates.ClientsByName[ClientName].CategoryID
   end
-  self:E("ERROR: Template does not exist for client "..tostring(ClientName))
+  self:E("WARNING: Template does not exist for client "..tostring(ClientName))
   return nil
 end
 
@@ -1416,7 +1537,7 @@ function DATABASE:GetCountryFromClientTemplate( ClientName )
   if self.Templates.ClientsByName[ClientName] then  
     return self.Templates.ClientsByName[ClientName].CountryID
   end
-  self:E("ERROR: Template does not exist for client "..tostring(ClientName))
+  self:E("WARNING: Template does not exist for client "..tostring(ClientName))
   return nil  
 end
 
@@ -1485,7 +1606,7 @@ function DATABASE:_RegisterDynamicGroup(Groupname)
   
       -- Add unit.
       self:I(string.format("Register Unit: %s", tostring(DCSUnitName)))
-      self:AddUnit( DCSUnitName, true )
+      self:AddUnit( tostring(DCSUnitName), true )
   
     end
   else
@@ -1591,12 +1712,29 @@ end
 -- @param DCS#Airbase airbase Airbase.
 -- @return #DATABASE self
 function DATABASE:_RegisterAirbase(airbase)
-
+  
+  local IsSyria = UTILS.GetDCSMap() == "Syria" and true or false
+  local countHSyria = 0
+  
   if airbase then
 
     -- Get the airbase name.
     local DCSAirbaseName = airbase:getName()
-
+    
+    -- DCS 2.9.8.1107 added 143 helipads all named H with the same object ID ..
+    if IsSyria and DCSAirbaseName == "H" and countHSyria > 0 then
+      --[[
+      local p = airbase:getPosition().p
+      local mgrs = COORDINATE:New(p.x,p.z,p.y):ToStringMGRS()
+      self:I("Airbase on Syria map named H @ "..mgrs)
+      countHSyria = countHSyria + 1
+      if countHSyria > 1 then return self end
+      --]]
+      return self
+    elseif IsSyria and DCSAirbaseName == "H" and countHSyria == 0 then
+      countHSyria = countHSyria + 1
+    end
+    
     -- This gave the incorrect value to be inserted into the airdromeID for DCS 2.5.6. Is fixed now.
     local airbaseID=airbase:getID()
 
@@ -1636,7 +1774,7 @@ end
 -- @param #DATABASE self
 -- @param Core.Event#EVENTDATA Event
 function DATABASE:_EventOnBirth( Event )
-  self:F( { Event } )
+  self:T( { Event } )
 
   if Event.IniDCSUnit then
 
@@ -1644,7 +1782,17 @@ function DATABASE:_EventOnBirth( Event )
 
       -- Add static object to DB.
       self:AddStatic( Event.IniDCSUnitName )
+    
+    elseif Event.IniObjectCategory == Object.Category.CARGO and string.match(Event.IniUnitName,".+|%d%d:%d%d|PKG%d+") then
 
+      -- Add dynamic cargo object to DB
+      
+      local cargo = self:AddDynamicCargo(Event.IniDCSUnitName)
+      
+      self:I(string.format("Adding dynamic cargo %s", tostring(Event.IniDCSUnitName)))
+      
+      self:CreateEventNewDynamicCargo( cargo )
+        
     else
 
       if Event.IniObjectCategory == Object.Category.UNIT then
@@ -1830,6 +1978,15 @@ function DATABASE:_EventOnPlayerEnterUnit( Event )
   end
 end
 
+--- Handles the OnDynamicCargoRemoved event to clean the active dynamic cargo table.
+-- @param #DATABASE self
+-- @param Core.Event#EVENTDATA Event
+function DATABASE:_EventOnDynamicCargoRemoved( Event )
+  self:T( { Event } )
+  if Event.IniDynamicCargoName then
+    self:DeleteDynamicCargo(Event.IniDynamicCargoName)
+  end
+end
 
 --- Handles the OnPlayerLeaveUnit event to clean the active players table.
 -- @param #DATABASE self
