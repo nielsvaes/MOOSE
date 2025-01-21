@@ -24,8 +24,8 @@ PATROL_AREA = {
 }
 
 PATROL_AREA.DENSITY = {
-    LOW = 0.001,
-    NORMAL = 0.001,
+    LOW = 0.0005,
+    NORMAL = 0.008,
     HIGH = 0.005,
     EXTREME = 0.009
 }

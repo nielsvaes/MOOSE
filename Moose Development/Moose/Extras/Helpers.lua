@@ -252,3 +252,31 @@ function nested_menu(list, depth, parent_menu, coa, label, last_item_is_first_ar
     end
     return root
 end
+
+function AmmoDumpExplosionRectangular(Coordinate, InitialIntensity, Vertices, SubExplosionChance, SubExplosionMinIntensity, SubExplosionMaxIntensity, FlarePercentage, SubExplosionInterval, CookOffTime, CookOffBeginTime)
+    SubExplosionMinIntensity = SubExplosionMaxIntensity or 0.5
+    SubExplosionMaxIntensity = SubExplosionMaxIntensity or 10
+    FlarePercentage = FlarePercentage or 85
+    SubExplosionInterval = SubExplosionInterval or 0.9
+    CookOffTime = CookOffTime or 20
+    CookOffBeginTime = CookOffBeginTime or math.random(5, CookOffTime / 2)
+    Coordinate:Explosion(InitialIntensity)
+    local triangles = {
+        { Vertices[1], Vertices[2], Vertices[3] },
+        { Vertices[3], Vertices[4], Vertices[1] },
+    }
+    local cookoff_timer = TIMER:New(function()
+        if UTILS.PercentageChance(SubExplosionChance) then
+            local triangle = triangles[math.random(1, 2)]
+            local vec2 = UTILS.RandomPointInTriangle(triangle[1], triangle[2], triangle[3])
+            local new_pos = COORDINATE:NewFromVec2(vec2)
+            new_pos:Explosion(math.random(SubExplosionMinIntensity, SubExplosionMaxIntensity))
+            if UTILS.PercentageChance(FlarePercentage) then
+                for i = 0, math.random(0, 5) do
+                    new_pos:FlareRed(math.random(0, 90))
+                end
+            end
+        end
+    end)
+    cookoff_timer:Start(CookOffBeginTime, SubExplosionInterval, CookOffTime)
+end
