@@ -188,4 +188,33 @@ __Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Tasking/Task_Cargo_Dispatcher
 __Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Tasking/Task_Capture_Zone.lua' )
 __Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Tasking/Task_Capture_Dispatcher.lua' )
 
+__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/AC130.lua')
+__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/ATC.lua')
+__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/BARCAPLine.lua')
+__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/CCMissionDB.lua')
+__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/CockpitDevices.lua')
+__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/Conversation.lua')
+__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/Dogfighter.lua')
+__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/GameLoop.lua')
+__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/GroundTransport.lua')
+__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/Helpers.lua')
+__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/ICPReader.lua')
+__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/ObjectiveManager.lua')
+__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/PatrolArea.lua')
+__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/RangeCircle.lua')
+__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/RedFlagManager.lua')
+__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/RedFlagPlayer.lua')
+__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/Rule.lua')
+__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/StateMachine.lua')
+__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/StrafeArea.lua')
+__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/StrobeUnit.lua')
+__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/Tanker.lua')
+__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/TankerLine.lua')
+__Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Extras/UAV.lua')
+
+
+
+
+
+
 __Moose.Include( MOOSE_DEVELOPMENT_FOLDER..'/Moose/Globals.lua' )
