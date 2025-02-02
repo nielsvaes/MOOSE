@@ -24,6 +24,20 @@ function dev_message(message, clear, time_delay)
     end
 end
 
+function message_to_all(message, clear, on_screen_seconds, time_delay)
+    clear = clear or false
+    on_screen_seconds = on_screen_seconds or 10
+    time_delay = time_delay or false
+    
+    if time_delay then
+        delay(time_delay, function()
+            trigger.action.outText(message, on_screen_seconds, clear)
+        end)
+    else
+        trigger.action.outText(message, on_screen_seconds, clear)
+    end
+end
+
 function delay(t, f)
     BASE:ScheduleOnce(t, f)
 end
