@@ -4056,7 +4056,12 @@ function RAT:_OnBirth(EventData)
       local i=self:GetSpawnIndexFromGroup(SpawnGroup)
       
       local ratcraft=self.ratcraft[i] --#RAT.RatCraft
-      
+
+      if ratcraft == nil then
+          BASE:E("Ratcraft " .. tostring(i) .. " was nil, returning")
+          return
+      end
+        
       local _departure=ratcraft.departure:GetName()
       local _destination=ratcraft.destination:GetName()
       local _nrespawn=ratcraft.nrespawn
