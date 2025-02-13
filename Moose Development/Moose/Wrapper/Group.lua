@@ -757,7 +757,11 @@ end
 -- @param #GROUP self
 -- @return #boolean If true, group is associated with a client or player slot.
 function GROUP:IsPlayer()
-  return self:GetUnit(1):IsPlayer()
+  local unit = self:GetUnit(1)
+  if unit then
+    return unit:IsPlayer()
+  end
+  return false
 end
 
 --- Returns the UNIT wrapper object with number UnitNumber. If it doesn't exist, tries to return the next available unit.
@@ -1221,7 +1225,14 @@ end
 -- @return Core.Point#COORDINATE The COORDINATE of the GROUP.
 function GROUP:GetCoordinate()
 
-  local Units = self:GetUnits()  or {}
+  -- First try to get the 3D vector of the group. This uses 
+  local vec3=self:GetVec3()
+  if vec3 then
+    local coord=COORDINATE:NewFromVec3(vec3)
+    return coord
+  end
+
+  local Units = self:GetUnits() or {}
 
   for _,_unit in pairs(Units) do
     local FirstUnit = _unit -- Wrapper.Unit#UNIT
@@ -3141,7 +3152,7 @@ function GROUP:IsSAM()
   local units = self:GetUnits()
   for _,_unit in pairs(units or {}) do
     local unit = _unit -- Wrapper.Unit#UNIT
-    if unit:HasSEAD() and unit:IsGround() and (not unit:HasAttribute("Mobile AAA")) then
+    if unit:IsSAM() then
       issam = true
       break
     end
@@ -3151,18 +3162,16 @@ end
 
 --- [GROUND] Determine if a GROUP has a AAA unit, i.e. has no radar or optical tracker but the AAA = true or the "Mobile AAA" = true attribute.
 -- @param #GROUP self
--- @return #boolean IsSAM True if AAA, else false
+-- @return #boolean IsAAA True if AAA, else false
 function GROUP:IsAAA()
-  local issam = false
+  local isAAA = false
   local units = self:GetUnits()
   for _,_unit in pairs(units or {}) do
     local unit = _unit -- Wrapper.Unit#UNIT
-    local desc = unit:GetDesc() or {}
-    local attr = desc.attributes or {}
-    if unit:HasSEAD() then return false end
-    if attr["AAA"] or attr["SAM related"] then
-      issam = true
+    if unit:IsAAA() then
+      isAAA = true
+      break
     end
   end
-  return issam
+  return isAAA
 end
