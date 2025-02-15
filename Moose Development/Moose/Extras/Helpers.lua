@@ -148,6 +148,9 @@ function userflag_equals(flag_name, value)
     return trigger.misc.getUserFlag(flag_name) == value
 end
 
+function get_percentage_of(num_percentage, total) 
+    return (total * num_percentage) / 100
+end
 
 function go_to_waypoint(group, waypoint)
     waypoint = waypoint + 1
