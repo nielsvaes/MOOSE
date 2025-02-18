@@ -3489,7 +3489,9 @@ end
 -- @param #table data table to write
 -- @param #string file_path File path
 function UTILS.WriteJSON(data, file_path)
-    package.path  = package.path ..  ";.\\Scripts\\?.lua"
+    if not string.contains(package.path, ";.\\Scripts\\?.lua") then
+        package.path = package.path .. ";.\\Scripts\\?.lua"
+    end
     local JSON = require("json")
     local pretty_json_text = JSON:encode_pretty(data)
     local write_file = io.open(file_path, "w")
@@ -3502,7 +3504,9 @@ end
 -- @param #string file_path File path
 -- @return #table
 function UTILS.ReadJSON(file_path)
-    package.path  = package.path ..  ";.\\Scripts\\?.lua"
+    if not string.contains(package.path, ";.\\Scripts\\?.lua") then
+        package.path = package.path .. ";.\\Scripts\\?.lua"
+    end
     local JSON = require("json")
     local read_file = io.open(file_path, "r")
     local contents = read_file:read( "*a" )
@@ -3524,11 +3528,12 @@ function UTILS.GetZoneProperties(zone_name)
                 end
               return return_table
             else
-                BASE:I(string.format("%s doesn't have any properties", zone_name))
+                --BASE:I(string.format("%s doesn't have any properties", zone_name))
                 return {}
             end
         end
     end
+    return return_table
 end
 
 --- Rotates a point around another point with a given angle. Useful if you're loading in groups or
