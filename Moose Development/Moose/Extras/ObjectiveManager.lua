@@ -38,7 +38,6 @@ function OBJECTIVE_MANAGER:IndexObjectives()
         local objective_zone_name = objective_zone:GetName()
         local properties = UTILS.GetZoneProperties(objective_zone_name)
         if table.length(properties) > 0 and properties["name"] ~= nil and tonumber(properties["include"]) == 1 then
-            BASE:I(properties["name"])
             -- get name, id and description from properties
             local objective_table = properties
             objective_table["global_x"] = objective_zone:GetVec2().x
@@ -49,7 +48,6 @@ function OBJECTIVE_MANAGER:IndexObjectives()
 
             local statics = SET_STATIC:New():FilterZones({ objective_zone }):FilterOnce():GetSetObjects()
             local groups = SET_GROUP:New():FilterZones({ objective_zone }):FilterOnce():GetSetObjects()
-            BASE:I(groups)
 
             -- save statics
             for _, static in pairs(statics) do
@@ -88,8 +86,6 @@ function OBJECTIVE_MANAGER:IndexObjectives()
             -- save groups
             for _, group in pairs(groups) do
                 if group:GetID() ~= nil then
-                    BASE:I("Searching for: ")
-                    BASE:I(tostring(group:GetID()))
                     local has_been_added = false
                     local group_tables = table.find_key_value_pair(env.mission.coalition, "groupId", tonumber(group:GetID()), true, true)
                     for _, group_table in pairs({group_tables}) do
@@ -126,7 +122,6 @@ function OBJECTIVE_MANAGER:IndexObjectives()
                                         ["name"] = "whatever"
                                     }
                                 end
-                                BASE:I(unit_table)
                             end
 
                             for _, random_zone in pairs(random_zones) do
@@ -163,7 +158,7 @@ function OBJECTIVE_MANAGER:IndexObjectives()
     BASE:I("JSON written")
 end
 
-function OBJECTIVE_MANAGER:SpawnObjective(objective_name, id, vec2_pos, rotation, country, extra_data)
+function OBJECTIVE_MANAGER:SpawnObjective(objective_name, id, vec2_pos, rotation, country, extra_data, custom_name)
     if id == nil then id = tostring(self:GetNewID()) end
     rotation = rotation or math.random(0, 360)
     extra_data = extra_data or {}
@@ -184,13 +179,13 @@ function OBJECTIVE_MANAGER:SpawnObjective(objective_name, id, vec2_pos, rotation
 
     -- Statics
     for _, static_table in pairs(objective_table["statics"]) do
-        local static = self:__LoadStatic(static_table, vec2_pos, rotation, country)
+        local static = self:__LoadStatic(static_table, vec2_pos, rotation, country, custom_name)
         table.insert_unique(spawned_objects, static)
     end
 
     -- Groups
     for _, group_table in pairs(objective_table["groups"]) do
-        local spawned_group = self:__LoadGroup(group_table, vec2_pos, rotation, country, extra_data)
+        local spawned_group = self:__LoadGroup(group_table, vec2_pos, rotation, country, extra_data, custom_name)
         table.insert_unique(spawned_objects, spawned_group)
     end
 
@@ -218,11 +213,16 @@ function OBJECTIVE_MANAGER:SpawnObjective(objective_name, id, vec2_pos, rotation
     return spawned_objects
 end
 
-function OBJECTIVE_MANAGER:__LoadStatic(static_table, vec2_pos, rotation, country)
+function OBJECTIVE_MANAGER:__LoadStatic(static_table, vec2_pos, rotation, country, custom_name)
     local rotated = UTILS.RotatePointAroundPivot({ x = static_table.x, y = static_table.y }, { x = 0, y = 0 }, rotation)
     static_table.x = rotated.x + vec2_pos.x
     static_table.y = rotated.y + vec2_pos.y
     static_table.name = UTILS.UniqueName(static_table.name)
+    
+    -- if there's a custom name, use that
+    if custom_name and type(custom_name) == "string" then
+        static_table.name = custom_name
+    end
 
     local static = SPAWNSTATIC:NewFromType(static_table.type, static_table.category, country)
                               :InitNamePrefix(UTILS.UniqueName(static_table.name))
@@ -231,7 +231,7 @@ function OBJECTIVE_MANAGER:__LoadStatic(static_table, vec2_pos, rotation, countr
     return static
 end
 
-function OBJECTIVE_MANAGER:__LoadGroup(group_table, vec2_pos, rotation, country, extra_data)
+function OBJECTIVE_MANAGER:__LoadGroup(group_table, vec2_pos, rotation, country, extra_data, custom_name)
     local group_rotated = UTILS.RotatePointAroundPivot({ x = group_table.x, y = group_table.y }, { x = 0, y = 0 }, rotation)
     group_rotated = UTILS.Vec2Add(group_rotated, vec2_pos)
     --group_table["visible"] = true
@@ -260,10 +260,16 @@ function OBJECTIVE_MANAGER:__LoadGroup(group_table, vec2_pos, rotation, country,
     end
 
     local grp = CCMISSIONDB:Get():Add(group_table)
-    local spawned_group = SPAWN:NewWithAlias(grp:GetName(), UTILS.UniqueName(grp:GetName()))
+    
+    -- if there's a custom name, use that
+    local group_name = grp:GetName()
+    if custom_name and type(custom_name) == "string" then
+        group_name = custom_name
+    end
+    
+    
+    local spawned_group = SPAWN:NewWithAlias(grp:GetName(), UTILS.UniqueName(group_name))
                                :SpawnFromVec2(group_rotated)
-    BASE:I("this is spawned group")
-    BASE:I(spawned_group:GetName())
     return spawned_group
 end
 
