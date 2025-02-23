@@ -138,7 +138,6 @@ end
 
 function UAV:LookAt(coor)
     self.view_coordinate = coor
-    dev_message("x: " .. tostring(coor:GetVec2().x) .. ", y: " .. tostring(coor:GetVec2().x), 1, true)
 end
 
 function UAV:TranslateViewCoordinate(distance, bearing)
@@ -213,10 +212,10 @@ function UAV:BuildRadioMenu()
                 self.target_menu,
                 function()
                     BASE:I(self.currently_detected_units[j]:GetTypeName())
+                    self:StartLasingUnit(UNIT:FindByName(self.currently_detected_units[j]:GetName()))
                 end
             )
         end
-        BASE:I("Done with inner loop")
         i = i + 10
     end
 
