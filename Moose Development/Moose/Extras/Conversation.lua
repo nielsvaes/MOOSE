@@ -12,7 +12,8 @@ function CONVERSATION:PlayNumber(number, radio_unit, initial_delay, before_play_
         BASE:ScheduleOnce(initial_delay, before_play_function())
     end
 
-    for _, voice_line in pairs(voice_line_table) do
+    for _, voice_line in pairs(voice_line_table[number]) do
+        BASE:I(voice_line.sound_file)
         BASE:ScheduleOnce(pause,
             function()
                 local radio
