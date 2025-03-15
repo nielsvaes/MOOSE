@@ -11,47 +11,48 @@ DOGFIGHTER = {
     specific_group_menus = {},
     specific_unit_menus = {},
     unit_enemy_pairs = {},
-    vhf_frequencies = {},
+    uhf_frequencies = {},
     unit_frequencies = {},
-    scheduler = nil,
-    SRS_path = "C:/PROGRA~1/DCS-SimpleRadio-Standalone/",
     fights_on = "fights_on.ogg"
 }
 
 function DOGFIGHTER:New()
     self = BASE:Inherit(self, BASE:New())
-    self.vhf_frequencies = UTILS.GenerateUHFrequencies()
+    self.uhf_frequencies = UTILS.GenerateUHFrequencies()
 
-    self:HandleEvent(EVENTS.Takeoff)
-    self:HandleEvent(EVENTS.Land)
-    self:HandleEvent(EVENTS.Dead)
-    self:HandleEvent(EVENTS.Crash)
-    self:HandleEvent(EVENTS.PilotDead)
-    self:HandleEvent(EVENTS.Ejection)
+    --self:HandleEvent(EVENTS.Takeoff)
+    --self:HandleEvent(EVENTS.Land)
+    --self:HandleEvent(EVENTS.Dead)
+    --self:HandleEvent(EVENTS.Crash)
+    --self:HandleEvent(EVENTS.PilotDead)
+    --self:HandleEvent(EVENTS.Ejection)
     self:HandleEvent(EVENTS.PlayerEnterAircraft)
-    self:HandleEvent(EVENTS.PlayerLeaveUnit)
+    --self:HandleEvent(EVENTS.PlayerLeaveUnit)
 
     self.scheduler = SCHEDULER:New(
             nil,
             function()
-                self:can_go_hot()
+                self:CanGoHot()
             end,
             {},
-            0.5,
-            0.5
+            0.1,
+            0.1
     )
+    
+    return self
 end
 
 
-function DOGFIGHTER:broadcast_fights_on(frequency)
-    BASE:I(SCRIPT_PATH .. "sounds")
-    local soundfile=SOUNDFILE:New("fights_on.ogg", SCRIPT_PATH .. "sounds")
-    local msrs=MSRS:New(self.SRS_path, frequency, radio.modulation.AM)
-    msrs:PlaySoundFile(soundfile)
+function DOGFIGHTER:BroadcastFightsOn(unit, frequency)
+    local unit_radio = unit:GetRadio()
+    unit_radio:SetPower(1000)
+    unit_radio:NewUnitTransmission("fights_on.ogg", "Fight's on!", 5, frequency, radio.modulation.AM, false)
+    unit_radio:Broadcast()
+    dev_message("fight's on")
 end
 
 
-function DOGFIGHTER:can_go_hot()
+function DOGFIGHTER:CanGoHot()
     local to_remove = {}
 
     for _, unit_enemy_pair in pairs(self.unit_enemy_pairs) do
@@ -59,13 +60,15 @@ function DOGFIGHTER:can_go_hot()
         local enemy_group = unit_enemy_pair[2]
 
         local distance = UTILS.MetersToNM(unit:GetCoordinate():Get3DDistance(enemy_group:GetCoordinate()))
-        if distance < self.fights_on_distance then
-            self:broadcast_fights_on(self.unit_frequencies[unit])
-            MessageToAll(unit:GetPlayerName() .. ", fight's on!")
+        if enemy_group ~= nil then
+            if distance < self.fights_on_distance then
+                self:BroadcastFightsOn(unit, self.unit_frequencies[unit])
 
-            enemy_group:OptionROEWeaponFree()
-
-            table.insert(to_remove, unit_enemy_pair)
+                enemy_group:OptionROEWeaponFree()
+                local task = enemy_group:EnRouteTaskEngageTargetsInZone(enemy_group:GetVec2(), 40000)
+                enemy_group:PushTask(task)
+                table.insert(to_remove, unit_enemy_pair)
+            end
         end
     end
 
@@ -74,7 +77,7 @@ function DOGFIGHTER:can_go_hot()
     end
 end
 
-function DOGFIGHTER:spawn_bandit(unit, number, prefix)
+function DOGFIGHTER:SpawnBandit(unit, number, prefix)
     number = number or 1
     local possible_enemies = SET_GROUP:New()
                                       :FilterPrefixes(prefix)
@@ -82,43 +85,43 @@ function DOGFIGHTER:spawn_bandit(unit, number, prefix)
                                       :GetSetNames()
 
     local player_name = unit:GetPlayerName()
-    local player_group = unit:GetGroup()
     local player_coordinates = unit:GetCoord()
     local player_altitude = player_coordinates:GetVec3().y
     local player_heading = unit:GetHeading()
-
+    local enemy_group_name = table.random(possible_enemies)
+    
     local enemy_heading = (360 + ((player_heading + 2 - 180) % 360)) % 360
     local enemy_coordinates = player_coordinates:Translate(UTILS.NMToMeters(self.spawn_distance), player_heading, true, false)
-    local enemy_waypoint = enemy_coordinates:Translate(UTILS.NMToMeters(self.spawn_distance + 5), enemy_heading, true, false):SetAltitude(player_altitude - 500)
+    local enemy_waypoint = enemy_coordinates:Translate(UTILS.NMToMeters(self.spawn_distance + 5), enemy_heading, true, false):SetAltitude(player_altitude)
     local enemy_speed = math.random(800, 1200)
     local enemy_route = {}
     enemy_route[1] = enemy_coordinates:WaypointAirTurningPoint("BARO", enemy_speed, {}, "Current")
     enemy_route[2] = enemy_waypoint:WaypointAirTurningPoint("BARO", enemy_speed, {}, "WP1")
-
-    local enemy = SPAWN:NewWithAlias("DOGFIGHT GUNS 01", "DOGFIGHT " .. player_name .. tostring(math.random(0, 999)))
+    
+    local enemy = SPAWN:NewWithAlias(enemy_group_name, UTILS.UniqueName("DOGFIGHT " .. player_name))
                        :InitGroupHeading(enemy_heading)
-                       :InitRandomizeTemplate(possible_enemies)
                        :SpawnFromVec3(enemy_coordinates:GetVec3())
 
     enemy:Route(enemy_route, 0.5)
-    enemy:EnRouteTaskEngageGroup(player_group)
-    enemy:OptionROEHoldFire()
+    local task = enemy:EnRouteTaskCAP()
+    delay(0.1, 
+        function()   
+            enemy:PushTask(task)
+            enemy:OptionROEHoldFire()
+        end
+    )
 
     table.insert(self.unit_enemy_pairs, {unit, enemy})
-    MessageToAll("Spawning bandit for " .. player_name)
+    dev_message("Spawning bandit for " .. player_name)
 end
 
-function DOGFIGHTER:build_menu_structure(moose_unit)
+function DOGFIGHTER:BuildMenuStructure(moose_unit)
     -- Destroy any existing menus
-    for unit, menu in pairs(self.specific_unit_menus) do
-        if unit:GetPlayerName() == moose_unit:GetPlayerName() then
-            menu:Remove()
-        end
-    end
+    self:DeleteRadioMenu(moose_unit)
 
     local moose_group = moose_unit:GetGroup()
     local player_name = moose_unit:GetPlayerName()
-    local player_frequency = self.vhf_frequencies[math.random(#self.vhf_frequencies)] / 1000000
+    local player_frequency = self.uhf_frequencies[math.random(#self.uhf_frequencies)] / 1000000
     self.unit_frequencies[player_name] = player_frequency
 
     local group_menu = MENU_GROUP:New(moose_group, "DOGFIGHT")
@@ -131,10 +134,10 @@ function DOGFIGHTER:build_menu_structure(moose_unit)
 
             for unit, unit_specific_menu in pairs(self.specific_unit_menus) do
                 if unit:GetName() == moose_unit:GetName() then
-                    MENU_GROUP_COMMAND:New(group, "Spawn enemy bandit GUNS", unit_specific_menu, self.spawn_bandit, self, unit, 1, "DOGFIGHT GUNS")
-                    MENU_GROUP_COMMAND:New(group, "Spawn enemy bandit MISSILES", unit_specific_menu, self.spawn_bandit, self, unit, 1, "DOGFIGHT MISSILES")
-                    MENU_GROUP_COMMAND:New(group, "Spawn enemy bandit EITHER", unit_specific_menu, self.spawn_bandit, self, unit, 1, "DOGFIGHT")
-                    MENU_GROUP_COMMAND:New(group, "Delete my bandits", unit_specific_menu, self.delete_bandits, self, player_name)
+                    MENU_GROUP_COMMAND:New(group, "Spawn enemy bandit GUNS", unit_specific_menu, self.SpawnBandit, self, unit, 1, "dogfight_guns")
+                    MENU_GROUP_COMMAND:New(group, "Spawn enemy bandit MISSILES", unit_specific_menu, self.SpawnBandit, self, unit, 1, "dogfight_missiles")
+                    MENU_GROUP_COMMAND:New(group, "Spawn enemy bandit EITHER", unit_specific_menu, self.SpawnBandit, self, unit, 1, "dogfight")
+                    MENU_GROUP_COMMAND:New(group, "Delete my bandits", unit_specific_menu, self.DeleteBandits, self, player_name)
 
                 end
             end
@@ -142,7 +145,15 @@ function DOGFIGHTER:build_menu_structure(moose_unit)
     end
 end
 
-function DOGFIGHTER:delete_bandits(player_name)
+function DOGFIGHTER:DeleteRadioMenu(moose_unit)
+    for unit, menu in pairs(self.specific_unit_menus) do
+        if unit:GetPlayerName() == moose_unit:GetPlayerName() then
+            menu:Remove()
+        end
+    end    
+end
+
+function DOGFIGHTER:DeleteBandits(player_name)
     local possible_enemies = SET_GROUP:New()
                                       :FilterPrefixes("DOGFIGHT")
                                       :FilterPrefixes(player_name)
@@ -157,6 +168,6 @@ end
 function DOGFIGHTER:OnEventPlayerEnterAircraft(event_data)
     local moose_unit = event_data.IniUnit
     if moose_unit:GetCategoryName() == "Airplane" then
-        self:build_menu_structure(moose_unit)
+        self:BuildMenuStructure(moose_unit)
     end
 end
