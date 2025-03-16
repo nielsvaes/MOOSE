@@ -46,10 +46,7 @@ function DOGFIGHTER:New()
 end
 
 function DOGFIGHTER:BroadcastFightsOn(unit, frequency)
-    local unit_radio = unit:GetRadio()
-    unit_radio:SetPower(1000)
-    unit_radio:NewUnitTransmission("fights_on.ogg", "Fight's on!", 5, frequency, radio.modulation.AM, false)
-    unit_radio:Broadcast()
+    trigger.action.radioTransmission("l10n/DEFAULT/fights_on.ogg", unit:GetVec3(), 0, false, frequency * 1000000, 1000, nil)
     dev_message("fight's on")
 end
 
@@ -63,7 +60,7 @@ function DOGFIGHTER:CanGoHot()
         if enemy_group ~= nil and unit ~= nil then
             local distance = UTILS.MetersToNM(unit:GetCoordinate():Get3DDistance(enemy_group:GetCoordinate()))
             if distance < self.fights_on_distance then
-                self:BroadcastFightsOn(unit, self.unit_frequencies[unit])
+                self:BroadcastFightsOn(enemy_group:GetUnit(1), self.unit_frequencies[unit:GetPlayerName()])
 
                 enemy_group:OptionROEWeaponFree()
                 local task = enemy_group:EnRouteTaskEngageTargetsInZone(enemy_group:GetVec2(), 40000)
@@ -94,9 +91,8 @@ function DOGFIGHTER:SpawnBandit(unit, prefix)
     local num_enemy_groups = self.specific_unit_settings[player_name]["num_enemy_groups"] or 1
     local half_count = math.floor(num_enemy_groups / 2)
 
-    for i=0, num_enemy_groups do
-        local offset_index = i - half_count
-        
+    for i=1, num_enemy_groups do
+        local offset_index = i - 1 - half_count
         local enemy_heading = (360 + ((player_heading - 180) % 360)) % 360
         local enemy_coordinates = player_coordinates:Translate(UTILS.NMToMeters(self.spawn_distance), (360 + ((player_heading + (offset_index * self.spacing_degree_offset)) % 360)) % 360, true, false):SetAltitude(player_altitude, true)
         local enemy_waypoint = enemy_coordinates:Translate(UTILS.NMToMeters(self.spawn_distance * 2), enemy_heading, true, false):SetAltitude(player_altitude, true)
@@ -133,7 +129,7 @@ function DOGFIGHTER:BuildMenuStructure(moose_unit)
 
     local moose_group = moose_unit:GetGroup()
     local player_name = moose_unit:GetPlayerName()
-    local player_frequency = self.uhf_frequencies[math.random(#self.uhf_frequencies)] / 1000000
+    local player_frequency = table.random(self.uhf_frequencies) / 1000000
     self.unit_frequencies[player_name] = player_frequency
 
     local group_menu = MENU_GROUP:New(moose_group, "DOGFIGHT")
