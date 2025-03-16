@@ -28,8 +28,15 @@ function UAV:FindByName(unit_name)
     self.coordinate_list = {}
 
     self.all_units = SET_UNIT:New():FilterStart()
+    self:HandleEvent(EVENTS.Dead, self.OnEventDead)
 
     return self
+end
+
+function UAV:OnEventDead(event_data)
+    BASE:I(event_data)
+    local unit_id = event_data.IniUnitName
+    dev_message(tostring(unit_id))
 end
 
 function UAV:StartLasingCoordinate(coor, laser_code)
@@ -49,19 +56,23 @@ function UAV:StartLasingUnit(unit, laser_code, force)
     laser_code = laser_code or self.laser_code
     self.laser_code = laser_code
 
+    if unit:GetCoordinate() == nil then
+        return
+    end
+    
     if table.contains(self.currently_detected_units, unit) or force then
         if force then
             self:LookAt(unit:GetCoordinate())
         end
 
+        
+        
         if self:GetCoordinate():IsLOS(unit:GetCoordinate()) then
-            self:I("lasing unit: " .. unit:GetName())
             local id = self:GetName() .. "_lookat_glf"
             GAMELOOP:Get():RemoveByID(id)
             local lookat_glf = GAMELOOPFUNCTION:New(function()  return self:LookAt(unit:GetCoordinate()) end,{}, -1, id)
                                                :SetTimesPerSecond(10)
                                                :Add()
-            --GAMELOOP:Get():Add(lookat_glf)
             self:LaseUnit(unit, self.laser_code, UAV.Forever)
             self.currently_lased_unit = unit
         else
@@ -196,6 +207,16 @@ function UAV:BuildRadioMenu()
         self:GetName() .. " - Drone menu"
     )
 
+    MENU_COALITION_COMMAND:New(
+        self:GetCoalition(),
+        "Scan area",
+        self.root_menu,
+        function()
+            self:ScanArea()
+        end
+    )    
+    
+
     self.target_menu = MENU_COALITION:New(
         self:GetCoalition(),
         "Targets",
@@ -251,14 +272,19 @@ end
 --end
 
 function UAV:__Scan(...)
+    self.currently_detected_units = {}
     BASE:I("Scanning...")
     if not self.view_coordinate then
         self.view_coordinate = self:GetCoordinate()
     end
     for _, unit in pairs(self.all_units:GetSetObjects()) do
-        if UTILS.IsInRadius(unit:GetVec2(), self.view_coordinate:GetVec2(), self:GetViewRadius()) and unit:GetName() ~= self:GetName() then
-            self:I(unit:GetName())
-            table.insert_unique(self.currently_detected_units, unit)
+        if unit:IsAlive() then
+            if UTILS.IsInRadius(unit:GetVec2(), self.view_coordinate:GetVec2(), self:GetViewRadius()) and unit:GetName() ~= self:GetName() then
+                self:I(unit:GetName())
+                table.insert_unique(self.currently_detected_units, unit)
+            end
         end
     end
+
+    self:BuildRadioMenu()    
 end
