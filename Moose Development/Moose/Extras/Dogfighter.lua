@@ -15,7 +15,8 @@ DOGFIGHTER = {
     uhf_frequencies = {},
     unit_frequencies = {},
     fights_on = "fights_on.ogg",
-    name_prefix = "DOGFIGHT__"
+    name_prefix = "DOGFIGHT__",
+    spacing_degree_offset = 2
 }
 
 function DOGFIGHTER:New()
@@ -43,7 +44,6 @@ function DOGFIGHTER:New()
     
     return self
 end
-
 
 function DOGFIGHTER:BroadcastFightsOn(unit, frequency)
     local unit_radio = unit:GetRadio()
@@ -78,8 +78,7 @@ function DOGFIGHTER:CanGoHot()
     end
 end
 
-function DOGFIGHTER:SpawnBandit(unit, number, prefix)
-    number = number or 1
+function DOGFIGHTER:SpawnBandit(unit, prefix)
     local possible_enemies = SET_GROUP:New()
                                       :FilterPrefixes(prefix)
                                       :FilterOnce()
@@ -91,32 +90,40 @@ function DOGFIGHTER:SpawnBandit(unit, number, prefix)
     local player_heading = unit:GetHeading()
     local enemy_group_name = table.random(possible_enemies)
     local skill = self.specific_unit_settings[player_name]["skill"] or "Random"
-    
-    local enemy_heading = (360 + ((player_heading + 2 - 180) % 360)) % 360
-    local enemy_coordinates = player_coordinates:Translate(UTILS.NMToMeters(self.spawn_distance), player_heading, true, false):SetAltitude(player_altitude)
-    local enemy_waypoint = enemy_coordinates:Translate(UTILS.NMToMeters(self.spawn_distance + 5), enemy_heading, true, false):SetAltitude(player_altitude)
-    local enemy_speed = math.random(800, 1200)
-    local enemy_route = {}
-    enemy_route[1] = enemy_coordinates:WaypointAirTurningPoint("BARO", enemy_speed, {}, "Current")
-    enemy_route[2] = enemy_waypoint:WaypointAirTurningPoint("BARO", enemy_speed, {}, "WP1")
-    
-    local enemy = SPAWN:NewWithAlias(enemy_group_name, UTILS.UniqueName(self.name_prefix .. player_name))
-                       :InitGroupHeading(enemy_heading)
-                       :InitSkill(skill)
-                       :SpawnFromVec3(enemy_coordinates:GetVec3())
 
-    enemy:Route(enemy_route, 0.5)
-    local task = enemy:EnRouteTaskCAP()
-    -- delaying otherwise the task is being set before the group is recognized in the mission
-    delay(0.1, 
-        function()   
+    local num_enemy_groups = self.specific_unit_settings[player_name]["num_enemy_groups"] or 1
+    local half_count = math.floor(num_enemy_groups / 2)
+
+    for i=0, num_enemy_groups do
+        local offset_index = i - half_count
+        
+        local enemy_heading = (360 + ((player_heading - 180) % 360)) % 360
+        local enemy_coordinates = player_coordinates:Translate(UTILS.NMToMeters(self.spawn_distance), (360 + ((player_heading + (offset_index * self.spacing_degree_offset)) % 360)) % 360, true, false):SetAltitude(player_altitude, true)
+        local enemy_waypoint = enemy_coordinates:Translate(UTILS.NMToMeters(self.spawn_distance * 2), enemy_heading, true, false):SetAltitude(player_altitude, true)
+        local enemy_speed = math.random(800, 1200)
+        local enemy_route = {}
+        enemy_route[1] = enemy_coordinates:WaypointAirTurningPoint("BARO", enemy_speed, {}, "Current")
+        enemy_route[2] = enemy_waypoint:WaypointAirTurningPoint("BARO", enemy_speed, {}, "WP1")
+
+        local enemy = SPAWN:NewWithAlias(enemy_group_name, UTILS.UniqueName(self.name_prefix .. player_name))
+                           :InitGroupHeading(enemy_heading)
+                           :InitSkill(skill)
+                           :SpawnFromVec3(enemy_coordinates:GetVec3())
+
+        enemy:Route(enemy_route, 0.5)
+        local task = enemy:EnRouteTaskCAP()
+        -- delaying otherwise the task is being set before the group is recognized in the mission
+        delay(0.1,
+        function()
             enemy:PushTask(task)
             enemy:OptionROEHoldFire()
         end
-    )
+        )
 
-    table.insert(self.unit_enemy_pairs, {unit, enemy})
-    dev_message("Spawning bandit for " .. player_name .. ", skill " .. skill)
+        table.insert(self.unit_enemy_pairs, { unit, enemy })
+    end
+    
+    dev_message("Spawning " .. tostring(num_enemy_groups) .. " groups for " .. player_name .. ", skill " .. skill)
 end
 
 function DOGFIGHTER:BuildMenuStructure(moose_unit)
@@ -163,7 +170,7 @@ function DOGFIGHTER:MakeSettingsMenu(moose_unit)
     local skill_menu = MENU_GROUP:New(
         moose_group,
         "Skill level",
-    settings_menu
+        settings_menu
     )
     
     for _, skill_level in pairs {"Rookie", "Trained", "Veteran", "Ace", "Random"} do
@@ -176,6 +183,23 @@ function DOGFIGHTER:MakeSettingsMenu(moose_unit)
             end
         )
     end
+
+    local num_groups = MENU_GROUP:New(
+        moose_group,
+        "Number of enemy groups",
+        settings_menu
+    )
+
+    for num=1, 5 do
+        MENU_GROUP_COMMAND:New(
+        moose_group,
+        tostring(num),
+        num_groups,
+        function()
+            self.specific_unit_settings[player_name]["num_enemy_groups"] = num
+        end
+        )
+    end    
 end
 
 function DOGFIGHTER:MakeSpawnMenu(moose_unit)
@@ -184,9 +208,9 @@ function DOGFIGHTER:MakeSpawnMenu(moose_unit)
     
     for _player_name, unit_specific_menu in pairs(self.specific_unit_menus) do
         if _player_name == player_name then
-            MENU_GROUP_COMMAND:New(moose_group, "Spawn enemy bandit GUNS", unit_specific_menu, self.SpawnBandit, self, moose_unit, 1, "dogfight_guns")
-            MENU_GROUP_COMMAND:New(moose_group, "Spawn enemy bandit MISSILES", unit_specific_menu, self.SpawnBandit, self, moose_unit, 1, "dogfight_missiles")
-            MENU_GROUP_COMMAND:New(moose_group, "Spawn enemy bandit EITHER", unit_specific_menu, self.SpawnBandit, self, moose_unit, 1, "dogfight")
+            MENU_GROUP_COMMAND:New(moose_group, "Spawn enemy bandit GUNS", unit_specific_menu, self.SpawnBandit, self, moose_unit, "dogfight_guns")
+            MENU_GROUP_COMMAND:New(moose_group, "Spawn enemy bandit MISSILES", unit_specific_menu, self.SpawnBandit, self, moose_unit, "dogfight_missiles")
+            MENU_GROUP_COMMAND:New(moose_group, "Spawn enemy bandit EITHER", unit_specific_menu, self.SpawnBandit, self, moose_unit, "dogfight")
             MENU_GROUP_COMMAND:New(moose_group, "Delete my bandits", unit_specific_menu, self.DeleteBandits, self, player_name)
         end
     end    
