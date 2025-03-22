@@ -605,10 +605,13 @@ function ZONE_BASE:Trigger(Objects)
   self:AddTransition("TriggerStopped","TriggerStart","TriggerRunning")
   self:AddTransition("*","EnteredZone","*")
   self:AddTransition("*","LeftZone","*")
+  self:AddTransition("*","ZoneEmpty","*")
+  self:AddTransition("*","ObjectDead","*")
   self:AddTransition("*","TriggerRunCheck","*")
   self:AddTransition("*","TriggerStop","TriggerStopped")
   self:TriggerStart()
   self.checkobjects = Objects
+  self.ObjectsInZone = false
   if UTILS.IsInstanceOf(Objects,"SET_BASE") then
     self.objectset = Objects.Set
   else
@@ -646,6 +649,22 @@ function ZONE_BASE:Trigger(Objects)
   -- @param #string Event Event.
   -- @param #string To To state.
   -- @param Wrapper.Controllable#CONTROLLABLE Controllable The controllable leaving the zone.
+  
+  --- On After "ObjectDead" event. An observed object has left the zone.
+  -- @function [parent=#ZONE_BASE] OnAfterObjectDead
+  -- @param #ZONE_BASE self
+  -- @param #string From From state.
+  -- @param #string Event Event.
+  -- @param #string To To state.
+  -- @param Wrapper.Controllable#CONTROLLABLE Controllable The controllable which died. Might be nil.
+  
+  --- On After "ZoneEmpty" event. All observed objects have left the zone or are dead.
+  -- @function [parent=#ZONE_BASE] OnAfterZoneEmpty
+  -- @param #ZONE_BASE self
+  -- @param #string From From state.
+  -- @param #string Event Event.
+  -- @param #string To To state.
+  
 end
 
 --- (Internal) Check the assigned objects for being in/out of the zone
@@ -659,9 +678,13 @@ function ZONE_BASE:_TriggerCheck(fromstart)
     -- just earmark everyone in/out
     for _,_object in pairs(objectset) do
       local obj = _object -- Wrapper.Controllable#CONTROLLABLE
-      if not obj.TriggerInZone then obj.TriggerInZone = {} end
+      if not obj.TriggerInZone then 
+        obj.TriggerInZone = {}
+        obj.TriggerZoneDeadNotification = false 
+      end
       if obj and obj:IsAlive() and self:IsCoordinateInZone(obj:GetCoordinate()) then
         obj.TriggerInZone[self.ZoneName] = true
+        self.ObjectsInZone = true
       else
         obj.TriggerInZone[self.ZoneName] = false
       end
@@ -669,6 +692,7 @@ function ZONE_BASE:_TriggerCheck(fromstart)
     end
   else
     -- Check for changes
+    local objcount = 0
     for _,_object in pairs(objectset) do
       local obj = _object -- Wrapper.Controllable#CONTROLLABLE
       if obj and obj:IsAlive() then
@@ -683,11 +707,20 @@ function ZONE_BASE:_TriggerCheck(fromstart)
         -- is obj in zone?
         local inzone = self:IsCoordinateInZone(obj:GetCoordinate())
         --self:I("Object "..obj:GetName().." is in zone: "..tostring(inzone))
+        if inzone and obj.TriggerInZone[self.ZoneName] then
+          -- just count
+          objcount = objcount + 1
+          self.ObjectsInZone = true
+          obj.TriggerZoneDeadNotification = false
+        end
         if inzone and not obj.TriggerInZone[self.ZoneName] then
           -- wasn't in zone before
           --self:I("Newly entered")
           self:__EnteredZone(0.5,obj)
           obj.TriggerInZone[self.ZoneName] = true
+          objcount = objcount + 1
+          self.ObjectsInZone = true
+          obj.TriggerZoneDeadNotification = false
         elseif (not inzone) and obj.TriggerInZone[self.ZoneName] then
           -- has left the zone
           --self:I("Newly left")
@@ -696,7 +729,20 @@ function ZONE_BASE:_TriggerCheck(fromstart)
         else
           --self:I("Not left or not entered, or something went wrong!")
         end
+      else
+        -- object dead
+        if not obj.TriggerZoneDeadNotification == true then
+          obj.TriggerInZone = nil
+          self:__ObjectDead(0.5,obj)
+          obj.TriggerZoneDeadNotification = true
+        end
       end
+    end
+    -- zone empty?
+    if objcount == 0 and self.ObjectsInZone == true then
+      -- zone was not but is now empty
+      self.ObjectsInZone = false
+      self:__ZoneEmpty(0.5)
     end
   end
   return self
@@ -2046,7 +2092,7 @@ function _ZONE_TRIANGLE:New(p1, p2, p3)
     end
 
     self.SurfaceArea = math.abs((p2.x - p1.x) * (p3.y - p1.y) - (p3.x - p1.x) * (p2.y - p1.y)) * 0.5
-
+    
     return self
 end
 
@@ -2054,7 +2100,7 @@ end
 -- @param #_ZONE_TRIANGLE self
 -- @param #table pt The point to check
 -- @param #table points (optional) The points of the triangle, or 3 other points if you're just using the TRIANGLE class without an object of it
--- @return #bool True if the point is contained, false otherwise
+-- @return #boolean True if the point is contained, false otherwise
 function _ZONE_TRIANGLE:ContainsPoint(pt, points)
     points = points or self.Points
 
@@ -2563,7 +2609,7 @@ function ZONE_POLYGON_BASE:ReFill(Color,Alpha)
     self.FillTriangles = {}
   end
   -- refill
-  for _, triangle in pairs(self._Triangles) do
+  for _,triangle in pairs(self._Triangles) do
       local draw_ids = triangle:Fill(coalition,color,alpha,nil)
       self.FillTriangles = draw_ids
       table.combine(self.DrawID, draw_ids)
@@ -3536,7 +3582,37 @@ do -- ZONE_ELASTIC
 
     return self
   end
+  
+  --- Remove a vertex (point) from the polygon.
+  -- @param #ZONE_ELASTIC self
+  -- @param DCS#Vec2 Vec2 Point in 2D (with x and y coordinates).
+  -- @return #ZONE_ELASTIC self
+  function ZONE_ELASTIC:RemoveVertex2D(Vec2)
+    
+    local found = false
+    local findex = 0
+    for _id,_vec2 in pairs(self.points) do
+      if _vec2.x == Vec2.x and _vec2.y == Vec2.y then
+        found = true
+        findex = _id
+        break
+      end
+    end
+    
+    if found == true and findex >  0 then
+      table.remove(self.points,findex)
+    end
 
+    return self
+  end
+    
+  --- Remove a vertex (point) from the polygon.
+  -- @param #ZONE_ELASTIC self
+  -- @param DCS#Vec3 Vec3 Point in 3D (with x, y and z coordinates). Only the x and z coordinates are used.
+  -- @return #ZONE_ELASTIC self
+  function ZONE_ELASTIC:RemoveVertex3D(Vec3)
+    return self:RemoveVertex2D({x=Vec3.x, y=Vec3.z})
+  end
 
   --- Add a vertex (point) to the polygon.
   -- @param #ZONE_ELASTIC self
@@ -3574,7 +3650,7 @@ do -- ZONE_ELASTIC
 
     -- Debug info.
     --self:T(string.format("Updating ZONE_ELASTIC %s", tostring(self.ZoneName)))
-
+    
     -- Copy all points.
     local points=UTILS.DeepCopy(self.points or {})
 
@@ -3592,6 +3668,9 @@ do -- ZONE_ELASTIC
 
     -- Update polygon verticies from points.
     self._.Polygon=self:_ConvexHull(points)
+          
+    self._Triangles = self:_Triangulate()
+    self.SurfaceArea = self:_CalculateSurfaceArea()
 
     if Draw~=false then
       if self.DrawID or Draw==true then
@@ -3790,7 +3869,7 @@ end
 --- Checks if a point is contained within the oval.
 -- @param #ZONE_OVAL self
 -- @param #table point The point to check
--- @return #bool True if the point is contained, false otherwise
+-- @return #boolean True if the point is contained, false otherwise
 function ZONE_OVAL:IsVec2InZone(vec2)
     local cos, sin = math.cos, math.sin
     local dx = vec2.x - self.CenterVec2.x
