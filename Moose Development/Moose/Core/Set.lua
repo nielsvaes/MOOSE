@@ -289,7 +289,14 @@ do -- SET_BASE
   
     -- Debug info.
     --self:T2( { ObjectName = ObjectName, Object = Object } )
-
+    
+    -- Error ahndling
+    if not ObjectName or ObjectName == "" then
+      self:E("SET_BASE:Add - Invalid ObjectName handed")
+      self:E({ObjectName=ObjectName, Object=Object})
+      return self
+    end
+    
     -- Ensure that the existing element is removed from the Set before a new one is inserted to the Set
     if self.Set[ObjectName] then
       self:Remove( ObjectName, true )
@@ -523,6 +530,21 @@ do -- SET_BASE
   function SET_BASE:GetSomeIteratorLimit()
 
     return self.SomeIteratorLimit or self:Count()
+  end
+  
+  --- Get max threat level of all objects in the SET.
+  -- @param #SET_BASE self
+  -- @return #number Max threat level found.
+  function SET_BASE:GetThreatLevelMax()
+    local ThreatMax = 0
+    for _,_unit in pairs(self.Set or {}) do
+      local unit = _unit -- Wrapper.Unit#UNIT
+      local threat = unit.GetThreatLevel and unit:GetThreatLevel() or 0
+      if threat > ThreatMax then
+        ThreatMax = threat
+      end
+    end
+    return ThreatMax
   end
 
   --- Filters for the defined collection.
@@ -4589,6 +4611,16 @@ do -- SET_CLIENT
     end
     return self
   end
+  
+  --- Make the SET handle CA slots **only** (GROUND units used by any player). Needs active filtering with `FilterStart()`
+  -- @param #SET_CLIENT self
+  -- @return #SET_CLIENT self
+  function SET_CLIENT:HandleCASlots()
+    self:HandleEvent(EVENTS.PlayerEnterUnit,SET_CLIENT._EventPlayerEnterUnit)
+    self:HandleEvent(EVENTS.PlayerLeaveUnit,SET_CLIENT._EventPlayerLeaveUnit)
+    self:FilterFunction(function(client) if client and client:IsAlive() and client:IsGround() then return true else return false end end)
+    return self
+  end  
 
   --- Handles the Database to check on an event (birth) that the Object was added in the Database.
   -- This is required, because sometimes the _DATABASE birth event gets called later than the SET_BASE birth event!
@@ -5371,6 +5403,7 @@ do -- SET_AIRBASE
     Airbases = {},
     Filter = {
       Coalitions = nil,
+      Zones = nil,
     },
     FilterMeta = {
       Coalitions = {
@@ -5522,6 +5555,31 @@ do -- SET_AIRBASE
     end
     return self
   end
+  
+  --- Builds a set of airbase objects in zones.
+  -- @param #SET_AIRBASE self
+  -- @param #table Zones Table of Core.Zone#ZONE Zone objects, or a Core.Set#SET_ZONE
+  -- @return #SET_AIRBASE self
+  function SET_AIRBASE:FilterZones( Zones )
+    if not self.Filter.Zones then
+      self.Filter.Zones = {}
+    end
+    local zones = {}
+    if Zones.ClassName and Zones.ClassName == "SET_ZONE" then
+      zones = Zones.Set
+    elseif type( Zones ) ~= "table" or (type( Zones ) == "table" and Zones.ClassName ) then
+      self:E("***** FilterZones needs either a table of ZONE Objects or a SET_ZONE as parameter!")
+      return self     
+    else
+      zones = Zones
+    end
+    for _,Zone in pairs( zones ) do
+      local zonename = Zone:GetName()
+      --self:T((zonename)
+      self.Filter.Zones[zonename] = Zone
+    end
+    return self
+  end  
 
   --- Starts the filtering.
   -- @param #SET_AIRBASE self
@@ -5660,6 +5718,20 @@ do -- SET_AIRBASE
         --self:T(( { "Evaluated Category", MAirbaseCategory } )
         MAirbaseInclude = MAirbaseInclude and MAirbaseCategory
       end
+      
+      if self.Filter.Zones and MAirbaseInclude then
+        local MAirbaseZone = false
+        for ZoneName, Zone in pairs( self.Filter.Zones ) do
+          --self:T(( "Zone:", ZoneName )
+          local coord = MAirbase:GetCoordinate()
+          if coord and Zone:IsCoordinateInZone(coord) then
+            MAirbaseZone = true
+          end
+          --self:T(( { "Evaluated Zone", MSceneryZone } )
+        end
+        MAirbaseInclude = MAirbaseInclude and MAirbaseZone
+      end      
+      
     end
     
     if self.Filter.Functions and MAirbaseInclude then
@@ -7978,7 +8050,7 @@ function SET_OPSGROUP:_EventOnBirth(Event)
   function SET_OPSGROUP:_EventOnDeadOrCrash( Event )
     --self:F( { Event } )
 
-    if Event.IniDCSUnit then
+    if Event.IniDCSGroup then
       local ObjectName, Object = self:FindInDatabase( Event )
       if ObjectName then
         if Event.IniDCSGroup:getSize() == 1 then -- Only remove if the last unit of the group was destroyed.
