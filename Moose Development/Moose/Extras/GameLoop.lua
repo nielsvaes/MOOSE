@@ -72,6 +72,7 @@ end
 
 function GAMELOOPFUNCTION:SetTimesPerSecond(value)
     self.times_per_second = value
+    GAMELOOP:Get():UpdateToHighestTickRate()
     return self
 end
 
