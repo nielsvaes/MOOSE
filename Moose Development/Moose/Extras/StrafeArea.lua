@@ -3,7 +3,8 @@ STRAFE_AREA = {
 }
 
 function STRAFE_AREA:New(area, targets, heading, name)
-    local self = BASE:Inherit(self, EVENTHANDLER:New())
+    BASE:I("making strafe area")
+    local self = BASE:Inherit(self, BASE:New())
     
     self.area = area
     self.targets = targets
@@ -39,7 +40,7 @@ function STRAFE_AREA:PlayerInZone(player_unit)
 end
 
 function STRAFE_AREA:OnEventShootingStart(event_data)
-    DevMessageToAll("Shooting started")
+    dev_message("Shooting started")
     local player_unit = event_data.IniUnit
     
     if not self:PlayerInZone(player_unit) then
@@ -57,7 +58,7 @@ function STRAFE_AREA:OnEventShootingStart(event_data)
 end
 
 function STRAFE_AREA:OnEventShootingEnd(event_data)
-    DevMessageToAll("Shooting stopped")
+    dev_message("Shooting stopped")
     local player_unit = event_data.IniUnit
     
     if not self:PlayerInZone(player_unit) then
@@ -74,7 +75,7 @@ function STRAFE_AREA:OnEventShootingEnd(event_data)
     self.player_data[player_unit]["heading"]  = (player_unit:GetHeading() + self.player_data[player_unit]["heading"]) / 2
 
 
-    BASE:ScheduleOnce(15, function()
+    delay(5, function()
         self:ShowHitData(player_unit)
     end)
 end
@@ -137,7 +138,7 @@ function STRAFE_AREA:ShowHitData(player_unit)
     msg = msg .. string.format("Percentage: %d %s\n", pct, pct_rating)
     msg = msg .. "================\n"
     msg = msg .. string.format("Overall: %s", overall)
-    UTILS.MessageToAll(msg, 20)
+    message_to_all(msg, 20)
 
     self:ResetPlayerData(player_unit)
 end
