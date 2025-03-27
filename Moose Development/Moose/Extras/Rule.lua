@@ -138,6 +138,7 @@ end
 
 function RULE_MANAGER:Add(rule)
     self:I("Adding: " .. rule:GetName())
+    self:I("Times per second is: " .. tostring(rule:GetTimesPerSecond()))
     local pos = #self.rules + 1
     table.insert(self.rules, pos, rule)
 
