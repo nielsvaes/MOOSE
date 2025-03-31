@@ -76,5 +76,4 @@ function RED_FLAG_PLAYER:OnEventShot(event_data)
         DevMessageToAll(string.format("%s: Can't fire weapon, out of ammo", self:GetName()))
         weapon_dcs_object:destroy()
     end
-
 end

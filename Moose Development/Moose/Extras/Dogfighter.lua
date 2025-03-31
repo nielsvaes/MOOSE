@@ -26,10 +26,10 @@ function DOGFIGHTER:New()
     --self:HandleEvent(EVENTS.Takeoff)
     --self:HandleEvent(EVENTS.Land)
     --self:HandleEvent(EVENTS.Dead)
-    --self:HandleEvent(EVENTS.Crash)
-    --self:HandleEvent(EVENTS.PilotDead)
-    --self:HandleEvent(EVENTS.Ejection)
-    --self:HandleEvent(EVENTS.PlayerLeaveUnit)
+    self:HandleEvent(EVENTS.Crash)
+    self:HandleEvent(EVENTS.PilotDead)
+    self:HandleEvent(EVENTS.Ejection)
+    self:HandleEvent(EVENTS.PlayerLeaveUnit)
     self:HandleEvent(EVENTS.PlayerEnterAircraft)
 
     self.scheduler = SCHEDULER:New(
@@ -231,9 +231,36 @@ function DOGFIGHTER:DeleteBandits(player_name)
     end
 end
 
+function DOGFIGHTER:CleanUp(moose_unit)
+    local player_name = moose_unit:GetPlayerName()
+    self:DeleteBandits(player_name)
+    self:DeleteRadioMenu(moose_unit)
+end
+
 function DOGFIGHTER:OnEventPlayerEnterAircraft(event_data)
     local moose_unit = event_data.IniUnit
     if moose_unit:GetCategoryName() == "Airplane" then
         self:BuildMenuStructure(moose_unit)
     end
 end
+
+function DOGFIGHTER:OnEventPlayerLeaveUnit(event_data)
+    local moose_unit = event_data.IniUnit
+    self:CleanUp(moose_unit)
+end
+
+function DOGFIGHTER:OnEventCrash(event_data)
+    local moose_unit = event_data.IniUnit
+    self:CleanUp(moose_unit)
+end
+
+function DOGFIGHTER:OnEventPilotDead(event_data)
+    local moose_unit = event_data.IniUnit
+    self:CleanUp(moose_unit)
+end
+
+function DOGFIGHTER:OnEventEjection(event_data)
+    local moose_unit = event_data.IniUnit
+    self:CleanUp(moose_unit)
+end
+
