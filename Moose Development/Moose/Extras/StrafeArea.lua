@@ -40,7 +40,6 @@ function STRAFE_AREA:PlayerInZone(player_unit)
 end
 
 function STRAFE_AREA:OnEventShootingStart(event_data)
-    dev_message("Shooting started")
     local player_unit = event_data.IniUnit
     
     if not self:PlayerInZone(player_unit) then
@@ -58,7 +57,6 @@ function STRAFE_AREA:OnEventShootingStart(event_data)
 end
 
 function STRAFE_AREA:OnEventShootingEnd(event_data)
-    dev_message("Shooting stopped")
     local player_unit = event_data.IniUnit
     
     if not self:PlayerInZone(player_unit) then
