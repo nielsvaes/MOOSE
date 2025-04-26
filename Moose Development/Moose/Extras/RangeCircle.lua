@@ -205,12 +205,13 @@ function RANGE_CIRCLE:New(zone_or_circle, object_table, gap_percentage, perfect,
             end
             current_radius = current_radius - radius_decr
         end
-        SPAWNSTATIC:NewFromType(center_static.type, center_static.category, country.CJTF_BLUE)
+        local center = SPAWNSTATIC:NewFromType(center_static.type, center_static.category, country.CJTF_BLUE)
                       :InitNamePrefix(self.name .. tostring(math.random(0, 99999)))
                       :InitShape(center_static.shape)
                       :InitHeading(math.random(0, 360))
                       :InitDead(center_static_dead)
                       :SpawnFromCoordinate(self.center)
+        table.insert(self.statics, center)
     end
 
     return self
