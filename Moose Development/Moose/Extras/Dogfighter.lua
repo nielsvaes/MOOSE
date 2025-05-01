@@ -31,6 +31,8 @@ function DOGFIGHTER:New()
     self:HandleEvent(EVENTS.Ejection)
     self:HandleEvent(EVENTS.PlayerLeaveUnit)
     self:HandleEvent(EVENTS.PlayerEnterAircraft)
+    
+    self.radio_call_file_name = "fights_on.ogg"
 
     self.scheduler = SCHEDULER:New(
             nil,
@@ -46,7 +48,7 @@ function DOGFIGHTER:New()
 end
 
 function DOGFIGHTER:BroadcastFightsOn(unit, frequency)
-    trigger.action.radioTransmission("l10n/DEFAULT/fights_on.ogg", unit:GetVec3(), 0, false, frequency * 1000000, 1000, nil)
+    trigger.action.radioTransmission("l10n/DEFAULT/" .. self.radio_call_file_name, unit:GetVec3(), 0, false, frequency * 1000000, 1000, nil)
     dev_message("fight's on")
 end
 
