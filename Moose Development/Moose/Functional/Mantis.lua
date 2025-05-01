@@ -22,7 +22,7 @@
 -- @module Functional.Mantis
 -- @image Functional.Mantis.jpg
 --
--- Last Update: Mar 2025
+-- Last Update: Apr 2025
 
 -------------------------------------------------------------------------
 --- **MANTIS** class, extends Core.Base#BASE
@@ -374,7 +374,7 @@ MANTIS.radiusscale[MANTIS.SamType.POINT] = 3
 MANTIS.SamData = {
   ["Hawk"] = { Range=35, Blindspot=0, Height=12, Type="Medium", Radar="Hawk" }, -- measures in km
   ["NASAMS"] = { Range=14, Blindspot=0, Height=7, Type="Short", Radar="NSAMS" }, -- AIM 120B
-  ["Patriot"] = { Range=99, Blindspot=0, Height=25, Type="Long", Radar="Patriot" },
+  ["Patriot"] = { Range=99, Blindspot=0, Height=25, Type="Long", Radar="Patriot str" },
   ["Rapier"] = { Range=10, Blindspot=0, Height=3, Type="Short", Radar="rapier" },
   ["SA-2"] = { Range=40, Blindspot=7, Height=25, Type="Medium", Radar="S_75M_Volhov" },
   ["SA-3"] = { Range=18, Blindspot=6, Height=18, Type="Short", Radar="5p73 s-125 ln" },
@@ -382,7 +382,8 @@ MANTIS.SamData = {
   ["SA-6"] = { Range=25, Blindspot=0, Height=8, Type="Medium", Radar="1S91" },
   ["SA-10"] = { Range=119, Blindspot=0, Height=18, Type="Long" , Radar="S-300PS 4"},
   ["SA-11"] = { Range=35, Blindspot=0, Height=20, Type="Medium", Radar="SA-11" },
-  ["Roland"] = { Range=5, Blindspot=0, Height=5, Type="Point", Radar="Roland" },
+  ["Roland"] = { Range=6, Blindspot=0, Height=5, Type="Short", Radar="Roland" },
+  ["Gepard"] = { Range=5, Blindspot=0, Height=4, Type="Point", Radar="Gepard" },
   ["HQ-7"] = { Range=12, Blindspot=0, Height=3, Type="Short", Radar="HQ-7" },
   ["SA-9"] = { Range=4, Blindspot=0, Height=3, Type="Point", Radar="Strela", Point="true" },
   ["SA-8"] = { Range=10, Blindspot=0, Height=5, Type="Short", Radar="Osa 9A33" },
@@ -393,6 +394,7 @@ MANTIS.SamData = {
   ["Chaparral"] = { Range=8, Blindspot=0, Height=3, Type="Short", Radar="Chaparral" },
   ["Linebacker"] = { Range=4, Blindspot=0, Height=3, Type="Point", Radar="Linebacker", Point="true" },
   ["Silkworm"] = { Range=90, Blindspot=1, Height=0.2, Type="Long", Radar="Silkworm" },
+  ["HEMTT_C-RAM_Phalanx"] = { Range=2, Blindspot=0, Height=2, Type="Point", Radar="HEMTT_C-RAM_Phalanx", Point="true" },
   -- units from HDS Mod, multi launcher options is tricky
   ["SA-10B"] = { Range=75, Blindspot=0, Height=18, Type="Medium" , Radar="SA-10B"},
   ["SA-17"] = { Range=50, Blindspot=3, Height=30, Type="Medium", Radar="SA-17" },
@@ -689,7 +691,7 @@ do
     
     -- TODO Version
     -- @field #string version
-    self.version="0.9.27"
+    self.version="0.9.28"
     self:I(string.format("***** Starting MANTIS Version %s *****", self.version))
 
     --- FSM Functions ---
@@ -1493,7 +1495,7 @@ do
     elseif chm then
       SAMData = self.SamDataCH
     end
-    --self:T("Looking to auto-match for "..grpname)
+    --self:I("Looking to auto-match for "..grpname)
     for _,_unit in pairs(units) do
       local unit = _unit -- Wrapper.Unit#UNIT
       local type = string.lower(unit:GetTypeName())

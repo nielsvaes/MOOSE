@@ -3564,7 +3564,7 @@ end
 function CTLD:IsFixedWing(Unit)
   local typename = Unit:GetTypeName() or "none"  
   for _,_name in pairs(self.FixedWingTypes or {}) do
-    if typename == _name or string.find(typename,_name,1,true) then
+    if _name and (typename==_name or string.find(typename,_name,1,true))then
       return true
     end
   end
@@ -5662,6 +5662,7 @@ function CTLD:IsUnitInZone(Unit,Zonetype)
     if Zonetype == CTLD.CargoZoneType.SHIP then
       self:T("Checking Type Ship: "..zonename)
       local ZoneUNIT = UNIT:FindByName(zonename)
+      if not ZoneUNIT then return false end
       zonecoord = ZoneUNIT:GetCoordinate()
       zoneradius = czone.shiplength
       zonewidth = czone.shipwidth

@@ -12,27 +12,35 @@
 -- @module Utilities.Utils
 -- @image MOOSE.JPG
 
----
+--- Smoke color enum `trigger.smokeColor`.
 -- @type SMOKECOLOR
--- @field Green
--- @field Red
--- @field White
--- @field Orange
--- @field Blue
+-- @field #number Green Green smoke (0)
+-- @field #number Red Red smoke (1)
+-- @field #number White White smoke (2)
+-- @field #number Orange Orange smoke (3)
+-- @field #number Blue Blue smoke (4)
 
 SMOKECOLOR = trigger.smokeColor -- #SMOKECOLOR
 
----
+--- Flare colur enum `trigger.flareColor`.
 -- @type FLARECOLOR
--- @field Green
--- @field Red
--- @field White
--- @field Yellow
+-- @field #number Green (0)
+-- @field #number Red Red flare (1)
+-- @field #number White White flare (2)
+-- @field #number Yellow Yellow flare (3)
 
 FLARECOLOR = trigger.flareColor -- #FLARECOLOR
 
 --- Big smoke preset enum.
 -- @type BIGSMOKEPRESET
+-- @field #number SmallSmokeAndFire Small moke and fire (1)
+-- @field #number MediumSmokeAndFire Medium smoke and fire (2)
+-- @field #number LargeSmokeAndFire Large smoke and fire (3)
+-- @field #number HugeSmokeAndFire Huge smoke and fire (4)
+-- @field #number SmallSmoke Small smoke (5)
+-- @field #number MediumSmoke Medium smoke (6)
+-- @field #number LargeSmoke Large smoke (7)
+-- @field #number HugeSmoke Huge smoke (8)
 BIGSMOKEPRESET = {
   SmallSmokeAndFire=1,
   MediumSmokeAndFire=2,
@@ -58,6 +66,7 @@ BIGSMOKEPRESET = {
 -- @field #string Kola Kola map.
 -- @field #string Afghanistan Afghanistan map
 -- @field #string Iraq Iraq map
+-- @field #string GermanyCW Germany Cold War map
 DCSMAP = {
   Caucasus="Caucasus",
   NTTR="Nevada",
@@ -70,7 +79,8 @@ DCSMAP = {
   Sinai="SinaiMap",
   Kola="Kola",
   Afghanistan="Afghanistan",
-  Iraq="Iraq"
+  Iraq="Iraq",
+  GermanyCW="GermanyCW",
 }
 
 
@@ -349,7 +359,7 @@ end
 -- @return #string Table as a string.
 UTILS.OneLineSerialize = function( tbl )  -- serialization of a table all on a single line, no comments, made to replace old get_table_string function
 
-  lookup_table = {}
+  local lookup_table = {}
 
   local function _Serialize( tbl )
 
@@ -488,7 +498,7 @@ end
 
 --- Counts the number of elements in a table.
 -- @param #table T Table to count
--- @return #int Number of elements in the table
+-- @return #number Number of elements in the table
 function UTILS.TableLength(T)
   local count = 0
   for _ in pairs(T or {}) do count = count + 1 end
@@ -1759,7 +1769,9 @@ end
 -- * Sinai +4.8 (East)
 -- * Kola +15 (East) - note there is a lot of deviation across the map (-1° to +24°), as we are close to the North pole
 -- * Afghanistan +3 (East) - actually +3.6 (NW) to +2.3 (SE)
--- @param #string map (Optional) Map for which the declination is returned. Default is from env.mission.theatre
+-- * Iraq +4.4 (East)
+-- * Germany Cold War +0.1 (East) - near Fulda
+-- @param #string map (Optional) Map for which the declination is returned. Default is from `env.mission.theatre`.
 -- @return #number Declination in degrees.
 function UTILS.GetMagneticDeclination(map)
 
@@ -1791,6 +1803,8 @@ function UTILS.GetMagneticDeclination(map)
     declination=3
   elseif map==DCSMAP.Iraq then
     declination=4.4
+  elseif map==DCSMAP.GermanyCW then
+    declination=0.1
   else
     declination=0
   end
@@ -2024,6 +2038,10 @@ function UTILS.GMTToLocalTimeDifference()
     return 3   -- Currently map is +2 but should be +3 (DCS bug?)
   elseif theatre==DCSMAP.Afghanistan then
     return 4.5   -- UTC +4:30
+  elseif theatre==DCSMAP.Iraq then
+    return 3.0   -- UTC +3
+  elseif theatre==DCSMAP.GermanyCW then
+    return 1.0   -- UTC +1 Central European Time (not summer time)  
   else
     BASE:E(string.format("ERROR: Unknown Map %s in UTILS.GMTToLocal function. Returning 0", tostring(theatre)))
     return 0
