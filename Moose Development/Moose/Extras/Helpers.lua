@@ -178,8 +178,8 @@ function DMS_to_DD(coord) -- input like "N31*50.800" or "E036*46.200"
 end
 
 function DMS_to_coordinate(lat, lon)
-    dec_lat = DMS_to_DD(lat)
-    dec_lon = DMS_to_DD(lon)
+    local dec_lat = DMS_to_DD(lat)
+    local dec_lon = DMS_to_DD(lon)
     BASE:I(coord.LLtoLO(dec_lat, dec_lon))
     return COORDINATE:NewFromVec3(coord.LLtoLO(dec_lat, dec_lon))
 end
