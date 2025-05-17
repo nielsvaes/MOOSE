@@ -513,6 +513,7 @@ AIRBASE.TheChannel = {
 -- * AIRBASE.Syria.Hatzor
 -- * AIRBASE.Syria.Palmashim
 -- * AIRBASE.Syria.Tel_Nof
+-- * AIRBASE.Syria.Marka
 --
 --@field Syria
 AIRBASE.Syria={
@@ -586,6 +587,7 @@ AIRBASE.Syria={
   ["Hatzor"] = "Hatzor",
   ["Palmashim"] = "Palmashim",
   ["Tel_Nof"] = "Tel Nof",
+  ["Marka"] = "Marka",
 }
 
 --- Airbases of the Mariana Islands map:
@@ -790,7 +792,7 @@ AIRBASE.Sinai = {
 -- * AIRBASE.Kola.Vidsel
 -- * AIRBASE.Kola.Vuojarvi
 -- * AIRBASE.Kola.Andoya
--- * AIRBASE.Kola.Alakourtti
+-- * AIRBASE.Kola.Alakurtti
 -- * AIRBASE.Kola.Kittila
 -- * AIRBASE.Kola.Bardufoss
 -- * AIRBASE.Kola.Alta
@@ -820,7 +822,7 @@ AIRBASE.Kola = {
   ["Vidsel"] = "Vidsel",
   ["Vuojarvi"] = "Vuojarvi",
   ["Andoya"] = "Andoya",
-  ["Alakourtti"] = "Alakourtti",
+  ["Alakurtti"] = "Alakurtti",
   ["Kittila"] = "Kittila",
   ["Bardufoss"] = "Bardufoss",
   ["Alta"] = "Alta",
