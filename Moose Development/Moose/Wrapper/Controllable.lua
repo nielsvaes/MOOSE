@@ -168,16 +168,25 @@
 --   * @{#CONTROLLABLE.OptionAlarmStateGreen}
 --   * @{#CONTROLLABLE.OptionAlarmStateRed}
 --
--- ## 5.4) Jettison weapons:
+-- ## 5.4) [AIR] Jettison weapons:
 --
 --   * @{#CONTROLLABLE.OptionAllowJettisonWeaponsOnThreat}
 --   * @{#CONTROLLABLE.OptionKeepWeaponsOnThreat}
 --
--- ## 5.5) Air-2-Air missile attack range:
+-- ## 5.5) [AIR] Air-2-Air missile attack range:
 --   * @{#CONTROLLABLE.OptionAAAttackRange}(): Defines the usage of A2A missiles against possible targets.
 --   
 -- # 6) [GROUND] IR Maker Beacons for GROUPs and UNITs
 --  * @{#CONTROLLABLE:NewIRMarker}(): Create a blinking IR Marker on a GROUP or UNIT.
+--  
+-- # 7) [HELICOPTER] Units prefer vertical landing and takeoffs:
+--  * @{#CONTROLLABLE.OptionPreferVerticalLanding}(): Set aircraft to prefer vertical landing and takeoff.
+--  
+-- # 8) [AIRCRAFT] Landing approach options
+--  * @{#CONTROLLABLE.SetOptionLandingStraightIn}(): Landing approach straight in.
+--  * @{#CONTROLLABLE.SetOptionLandingForcePair}(): Landing approach in pairs for groups > 1 unit.
+--  * @{#CONTROLLABLE.SetOptionLandingRestrictPair}(): Landing approach single.
+--  * @{#CONTROLLABLE.SetOptionLandingOverheadBreak}():  Landing approach overhead break.
 --
 -- @field #CONTROLLABLE
 CONTROLLABLE = {
@@ -400,7 +409,7 @@ function CONTROLLABLE:SetTask( DCSTask, WaitTime )
         local Controller = self:_GetController()
         -- self:I( "Before SetTask" )
         Controller:setTask( DCSTask )
-        -- AI_FORMATION class (used by RESCUEHELO) calls SetTask twice per second! hence spamming the DCS log file ==> setting this to trace.
+        -- FORMATION class (used by RESCUEHELO) calls SetTask twice per second! hence spamming the DCS log file ==> setting this to trace.
         self:T( { ControllableName = self:GetName(), DCSTask = DCSTask } )
       else
         BASE:E( { DCSControllableName .. " is not alive anymore.", DCSTask = DCSTask } )
@@ -1432,7 +1441,7 @@ end
 -- @param #number Speed The speed [m/s] flying when holding the position.
 -- @return #CONTROLLABLE self
 function CONTROLLABLE:TaskOrbitCircleAtVec2( Point, Altitude, Speed )
-  self:F2( { self.ControllableName, Point, Altitude, Speed } )
+  --self:F2( { self.ControllableName, Point, Altitude, Speed } )
 
   local DCSTask = {
     id = 'Orbit',
@@ -2176,6 +2185,7 @@ function CONTROLLABLE:TaskFunction( FunctionString, ... )
     self:SetState( self, ArgumentKey, arg )
     DCSScript[#DCSScript + 1] = "local Arguments = MissionControllable:GetState( MissionControllable, '" .. ArgumentKey .. "' ) "
     DCSScript[#DCSScript + 1] = FunctionString .. "( MissionControllable, unpack( Arguments ) )"
+    --DCSScript[#DCSScript + 1] = FunctionString .. "( MissionControllable, ((type(Arguments)=='table') and unpack(Arguments) or nil))" -- this doesn't work
   else
     DCSScript[#DCSScript + 1] = FunctionString .. "( MissionControllable )"
   end
@@ -2846,7 +2856,7 @@ do -- Route methods
   -- @param Core.Zone#ZONE Zone The zone where to route to.
   -- @param #boolean Randomize Defines whether to target point gets randomized within the Zone.
   -- @param #number Speed The speed in m/s. Default is 5.555 m/s = 20 km/h.
-  -- @param Core.Base#FORMATION Formation The formation string.
+  -- @param DCS#FORMATION Formation The formation string.
   function CONTROLLABLE:TaskRouteToZone( Zone, Randomize, Speed, Formation )
     self:F2( Zone )
 
@@ -2906,7 +2916,7 @@ do -- Route methods
   -- @param #CONTROLLABLE self
   -- @param DCS#Vec2 Vec2 The Vec2 where to route to.
   -- @param #number Speed The speed in m/s. Default is 5.555 m/s = 20 km/h.
-  -- @param Core.Base#FORMATION Formation The formation string.
+  -- @param DCS#FORMATION Formation The formation string.
   function CONTROLLABLE:TaskRouteToVec2( Vec2, Speed, Formation )
 
     local DCSControllable = self:GetDCSObject()
@@ -3629,6 +3639,66 @@ function CONTROLLABLE:OptionROTPassiveDefense()
   return nil
 end
 
+--- Helicopter - prefer vertical landing.
+-- @param #CONTROLLABLE self
+-- @return #CONTROLLABLE self
+function CONTROLLABLE:OptionPreferVerticalLanding()
+  self:F2( { self.ControllableName } )
+
+  local DCSControllable = self:GetDCSObject()
+  if DCSControllable then
+    local Controller = self:_GetController()
+
+    if self:IsAir() then
+      Controller:setOption( AI.Option.Air.id.PREFER_VERTICAL, true )
+    end
+
+    return self
+  end
+
+  return nil
+end
+
+--- Air - Allow formation side swap
+-- @param #CONTROLLABLE self
+-- @return #CONTROLLABLE self
+function CONTROLLABLE:OptionAllowFormationSideSwap()
+  self:F2( { self.ControllableName } )
+
+  local DCSControllable = self:GetDCSObject()
+  if DCSControllable then
+    local Controller = self:_GetController()
+
+    if self:IsAir() then
+      Controller:setOption( AI.Option.Air.id.ALLOW_FORMATION_SIDE_SWAP, true )
+    end
+
+    return self
+  end
+
+  return nil
+end
+
+--- Air - Allow formation takeoff, if enough space
+-- @param #CONTROLLABLE self
+-- @return #CONTROLLABLE self
+function CONTROLLABLE:OptionAIRunwayLineUp()
+  self:F2( { self.ControllableName } )
+
+  local DCSControllable = self:GetDCSObject()
+  if DCSControllable then
+    local Controller = self:_GetController()
+
+    if self:IsAir() then
+      Controller:setOption( 37, true )
+    end
+
+    return self
+  end
+
+  return nil
+end
+
 --- Can the CONTROLLABLE evade on enemy fire?
 -- @param #CONTROLLABLE self
 -- @return #boolean
@@ -4134,7 +4204,7 @@ function CONTROLLABLE:OptionRestrictBurner( RestrictBurner )
 
 end
 
---- Sets Controllable Option for A2A attack range for AIR FIGHTER units.
+--- [AIR] Sets Controllable Option for A2A attack range for AIR FIGHTER units.
 -- @param #CONTROLLABLE self
 -- @param #number range Defines the range
 -- @return #CONTROLLABLE self
@@ -4159,6 +4229,66 @@ function CONTROLLABLE:OptionAAAttackRange( range )
   return nil
 end
 
+--- [GROUND/AAA] Sets Controllable Option for Ground AAA minimum firing height.
+-- @param #CONTROLLABLE self
+-- @param #number meters The minimum height in meters.
+-- @return #CONTROLLABLE self
+function CONTROLLABLE:OptionAAAMinFiringHeightMeters(meters)
+ self:F2( { self.ControllableName } )
+ local meters = meters or 20
+ local DCSControllable = self:GetDCSObject()
+ if DCSControllable then
+   local Controller = self:_GetController()
+   if Controller then
+     if self:IsGround() then
+       self:SetOption(27, meters)
+     end
+   end
+   return self
+ end
+ return nil
+end
+
+--- [GROUND/AAA] Sets Controllable Option for Ground AAA maximum firing height.
+-- @param #CONTROLLABLE self
+-- @param #number meters The maximum height in meters.
+-- @return #CONTROLLABLE self
+function CONTROLLABLE:OptionAAAMaxFiringHeightMeters(meters)
+ self:F2( { self.ControllableName } )
+ local meters = meters or 1000
+ local DCSControllable = self:GetDCSObject()
+ if DCSControllable then
+   local Controller = self:_GetController()
+   if Controller then
+     if self:IsGround() then
+       self:SetOption(29, meters)
+     end
+   end
+   return self
+ end
+ return nil
+end
+
+--- [GROUND/AAA] Sets Controllable Option for Ground AAA minimum firing height.
+-- @param #CONTROLLABLE self
+-- @param #number feet The minimum height in feet.
+-- @return #CONTROLLABLE self
+function CONTROLLABLE:OptionAAAMinFiringHeightFeet(feet)
+ self:F2( { self.ControllableName } )
+ local feet = feet or 60
+ return self:OptionAAAMinFiringHeightMeters(UTILS.FeetToMeters(feet))
+end
+
+--- [GROUND/AAA] Sets Controllable Option for Ground AAA maximum firing height.
+-- @param #CONTROLLABLE self
+-- @param #number feet The maximum height in feet.
+-- @return #CONTROLLABLE self
+function CONTROLLABLE:OptionAAAMaxFiringHeightfeet(feet)
+ self:F2( { self.ControllableName } )
+ local feet = feet or 3000
+ return self:OptionAAAMaxFiringHeightMeters(UTILS.FeetToMeters(feet))
+end
+
 --- Defines the range at which a GROUND unit/group is allowed to use its weapons automatically.
 -- @param #CONTROLLABLE self
 -- @param #number EngageRange Engage range limit in percent (a number between 0 and 100). Default 100.
@@ -4181,6 +4311,50 @@ function CONTROLLABLE:OptionEngageRange( EngageRange )
     return self
   end
   return nil
+end
+
+--- [AIR] Set how the AI lands on an airfield. Here: Straight in.
+-- @param #CONTROLLABLE self
+-- @return #CONTROLLABLE self
+function CONTROLLABLE:SetOptionLandingStraightIn()
+  self:F2( { self.ControllableName } )
+  if self:IsAir() then
+    self:SetOption("36","0")
+  end
+  return self
+end
+
+--- [AIR] Set how the AI lands on an airfield. Here: In pairs (if > 1 aircraft in group)
+-- @param #CONTROLLABLE self
+-- @return #CONTROLLABLE self
+function CONTROLLABLE:SetOptionLandingForcePair()
+  self:F2( { self.ControllableName } )
+  if self:IsAir() then
+    self:SetOption("36","1")
+  end
+  return self
+end
+
+--- [AIR] Set how the AI lands on an airfield. Here: No landing in pairs.
+-- @param #CONTROLLABLE self
+-- @return #CONTROLLABLE self
+function CONTROLLABLE:SetOptionLandingRestrictPair()
+  self:F2( { self.ControllableName } )
+  if self:IsAir() then
+    self:SetOption("36","2")
+  end
+  return self
+end
+
+--- [AIR] Set how the AI lands on an airfield. Here: Overhead break.
+-- @param #CONTROLLABLE self
+-- @return #CONTROLLABLE self
+function CONTROLLABLE:SetOptionLandingOverheadBreak()
+  self:F2( { self.ControllableName } )
+  if self:IsAir() then
+    self:SetOption("36","3")
+  end
+  return self
 end
 
 --- [AIR] Set how the AI uses the onboard radar.

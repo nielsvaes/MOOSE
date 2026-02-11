@@ -54,7 +54,6 @@
 --  * AIRBASES
 --  * PLAYERSJOINED
 --  * PLAYERS
---  * CARGOS
 --  * STORAGES (DCS warehouses)
 --  * DYNAMICCARGO
 --
@@ -82,7 +81,6 @@ DATABASE = {
   PLAYERSJOINED = {},
   PLAYERUNITS = {},
   CLIENTS = {},
-  CARGOS = {},
   AIRBASES = {},
   COUNTRY_ID = {},
   COUNTRY_NAME = {},
@@ -142,8 +140,6 @@ function DATABASE:New()
   self:HandleEvent( EVENTS.RemoveUnit, self._EventOnDeadOrCrash )
   self:HandleEvent( EVENTS.UnitLost, self._EventOnDeadOrCrash )  -- DCS 2.7.1 for Aerial units no dead event ATM
   self:HandleEvent( EVENTS.Hit, self.AccountHits )
-  self:HandleEvent( EVENTS.NewCargo )
-  self:HandleEvent( EVENTS.DeleteCargo )
   self:HandleEvent( EVENTS.NewZone )
   self:HandleEvent( EVENTS.DeleteZone )
   --self:HandleEvent( EVENTS.PlayerEnterUnit, self._EventOnPlayerEnterUnit ) -- This is not working anymore!, handling this through the birth event.
@@ -710,13 +706,19 @@ do -- Zones and Pathlines
             -- For a rectangular polygon drawing, we have the width (y) and height (x).
             local w=objectData.width
             local h=objectData.height
+            local rotation = UTILS.ToRadian(objectData.angle or 0)
 
-            -- Create points from center using with and height (width for y and height for x is a bit confusing, but this is how ED implemented it).
-            local points={}
-            points[1]={x=vec2.x-h/2, y=vec2.y+w/2} --Upper left
-            points[2]={x=vec2.x+h/2, y=vec2.y+w/2} --Upper right
-            points[3]={x=vec2.x+h/2, y=vec2.y-w/2} --Lower right
-            points[4]={x=vec2.x-h/2, y=vec2.y-w/2} --Lower left
+            local sinRot = math.sin(rotation)
+            local cosRot = math.cos(rotation)
+            local dx = h / 2
+            local dy = w / 2
+
+            local points = {
+                { x = -dx * cosRot - (-dy * sinRot) + vec2.x, y = -dx * sinRot + (-dy * cosRot) + vec2.y },
+                { x = dx * cosRot - (-dy * sinRot) + vec2.x, y = dx * sinRot + (-dy * cosRot) + vec2.y },
+                { x = dx * cosRot - (dy * sinRot) + vec2.x, y = dx * sinRot + (dy * cosRot) + vec2.y },
+                { x = -dx * cosRot - (dy * sinRot) + vec2.x, y = -dx * sinRot + (dy * cosRot) + vec2.y },
+            }
 
             --local coord=COORDINATE:NewFromVec2(vec2):MarkToAll("MapX, MapY")
 
@@ -872,102 +874,6 @@ do -- OpsZone
   end
 
 end -- OpsZone
-
-do -- cargo
-
-  --- Adds a Cargo based on the Cargo Name in the DATABASE.
-  -- @param #DATABASE self
-  -- @param #string CargoName The name of the airbase
-  function DATABASE:AddCargo( Cargo )
-
-    if not self.CARGOS[Cargo.Name] then
-      self.CARGOS[Cargo.Name] = Cargo
-    end
-  end
-
-
-  --- Deletes a Cargo from the DATABASE based on the Cargo Name.
-  -- @param #DATABASE self
-  -- @param #string CargoName The name of the airbase
-  function DATABASE:DeleteCargo( CargoName )
-
-    self.CARGOS[CargoName] = nil
-  end
-
-  --- Finds an CARGO based on the CargoName.
-  -- @param #DATABASE self
-  -- @param #string CargoName
-  -- @return Cargo.Cargo#CARGO The found CARGO.
-  function DATABASE:FindCargo( CargoName )
-
-    local CargoFound = self.CARGOS[CargoName]
-    return CargoFound
-  end
-
-  --- Checks if the Template name has a #CARGO tag.
-  -- If yes, the group is a cargo.
-  -- @param #DATABASE self
-  -- @param #string TemplateName
-  -- @return #boolean
-  function DATABASE:IsCargo( TemplateName )
-
-    TemplateName = env.getValueDictByKey( TemplateName )
-
-    local Cargo = TemplateName:match( "#(CARGO)" )
-
-    return Cargo and Cargo == "CARGO"
-  end
-
-  --- Private method that registers new Static Templates within the DATABASE Object.
-  -- @param #DATABASE self
-  -- @return #DATABASE self
-  function DATABASE:_RegisterCargos()
-
-    local Groups = UTILS.DeepCopy( self.GROUPS ) -- This is a very important statement. CARGO_GROUP:New creates a new _DATABASE.GROUP entry, which will confuse the loop. I searched 4 hours on this to find the bug!
-
-    for CargoGroupName, CargoGroup in pairs( Groups ) do
-      if self:IsCargo( CargoGroupName ) then
-        local CargoInfo = CargoGroupName:match("#CARGO(.*)")
-        local CargoParam = CargoInfo and CargoInfo:match( "%((.*)%)")
-        local CargoName1 = CargoGroupName:match("(.*)#CARGO%(.*%)")
-        local CargoName2 = CargoGroupName:match(".*#CARGO%(.*%)(.*)")
-        local CargoName = CargoName1 .. ( CargoName2 or "" )
-        local Type = CargoParam and CargoParam:match( "T=([%a%d ]+),?")
-        local Name = CargoParam and CargoParam:match( "N=([%a%d]+),?") or CargoName
-        local LoadRadius = CargoParam and tonumber( CargoParam:match( "RR=([%a%d]+),?") )
-        local NearRadius = CargoParam and tonumber( CargoParam:match( "NR=([%a%d]+),?") )
-
-        self:I({"Register CargoGroup:",Type=Type,Name=Name,LoadRadius=LoadRadius,NearRadius=NearRadius})
-        CARGO_GROUP:New( CargoGroup, Type, Name, LoadRadius, NearRadius )
-      end
-    end
-
-    for CargoStaticName, CargoStatic in pairs( self.STATICS ) do
-      if self:IsCargo( CargoStaticName ) then
-        local CargoInfo = CargoStaticName:match("#CARGO(.*)")
-        local CargoParam = CargoInfo and CargoInfo:match( "%((.*)%)")
-        local CargoName = CargoStaticName:match("(.*)#CARGO")
-        local Type = CargoParam and CargoParam:match( "T=([%a%d ]+),?")
-        local Category = CargoParam and CargoParam:match( "C=([%a%d ]+),?")
-        local Name = CargoParam and CargoParam:match( "N=([%a%d]+),?") or CargoName
-        local LoadRadius = CargoParam and tonumber( CargoParam:match( "RR=([%a%d]+),?") )
-        local NearRadius = CargoParam and tonumber( CargoParam:match( "NR=([%a%d]+),?") )
-
-        if Category == "SLING" then
-          self:I({"Register CargoSlingload:",Type=Type,Name=Name,LoadRadius=LoadRadius,NearRadius=NearRadius})
-          CARGO_SLINGLOAD:New( CargoStatic, Type, Name, LoadRadius, NearRadius )
-        else
-          if Category == "CRATE" then
-            self:I({"Register CargoCrate:",Type=Type,Name=Name,LoadRadius=LoadRadius,NearRadius=NearRadius})
-            CARGO_CRATE:New( CargoStatic, Type, Name, LoadRadius, NearRadius )
-          end
-        end
-      end
-    end
-
-  end
-
-end -- cargo
 
 --- Finds a CLIENT based on the ClientName.
 -- @param #DATABASE self
@@ -1245,7 +1151,7 @@ function DATABASE:_RegisterGroupTemplate( GroupTemplate, CoalitionSide, Category
           self:E("WARNING: Invalid STN "..tostring(UnitTemplate.AddPropAircraft.STN_L16).." for ".. UnitTemplate.name)
         else
           self.STNS[stn] = UnitTemplate.name
-          self:I("Register STN "..tostring(UnitTemplate.AddPropAircraft.STN_L16).." for ".. UnitTemplate.name)
+          self:T("Register STN "..tostring(UnitTemplate.AddPropAircraft.STN_L16).." for ".. UnitTemplate.name)
         end
       end
       if UnitTemplate.AddPropAircraft.SADL_TN then
@@ -1254,7 +1160,7 @@ function DATABASE:_RegisterGroupTemplate( GroupTemplate, CoalitionSide, Category
           self:E("WARNING: Invalid SADL "..tostring(UnitTemplate.AddPropAircraft.SADL_TN).." for ".. UnitTemplate.name)
         else
           self.SADL[sadl] = UnitTemplate.name
-          self:I("Register SADL "..tostring(UnitTemplate.AddPropAircraft.SADL_TN).." for ".. UnitTemplate.name)
+          self:T("Register SADL "..tostring(UnitTemplate.AddPropAircraft.SADL_TN).." for ".. UnitTemplate.name)
         end
       end  
     end
@@ -1515,7 +1421,7 @@ function DATABASE:GetCoalitionFromClientTemplate( ClientName )
   if self.Templates.ClientsByName[ClientName] then  
     return self.Templates.ClientsByName[ClientName].CoalitionID
   end
-  self:E("WARNING: Template does not exist for client "..tostring(ClientName))
+  self:T("WARNING: Template does not exist for client "..tostring(ClientName))
   return nil
 end
 
@@ -1527,7 +1433,7 @@ function DATABASE:GetCategoryFromClientTemplate( ClientName )
   if self.Templates.ClientsByName[ClientName] then  
     return self.Templates.ClientsByName[ClientName].CategoryID
   end
-  self:E("WARNING: Template does not exist for client "..tostring(ClientName))
+  self:T("WARNING: Template does not exist for client "..tostring(ClientName))
   return nil
 end
 
@@ -1539,7 +1445,7 @@ function DATABASE:GetCountryFromClientTemplate( ClientName )
   if self.Templates.ClientsByName[ClientName] then  
     return self.Templates.ClientsByName[ClientName].CountryID
   end
-  self:E("WARNING: Template does not exist for client "..tostring(ClientName))
+  self:T("WARNING: Template does not exist for client "..tostring(ClientName))
   return nil  
 end
 
@@ -1832,7 +1738,7 @@ function DATABASE:_EventOnBirth( Event )
       if PlayerName then
 
         -- Debug info.
-        self:I(string.format("Player '%s' joined unit '%s' of group '%s'", tostring(PlayerName), tostring(Event.IniDCSUnitName), tostring(Event.IniDCSGroupName)))
+        self:I(string.format("Player '%s' joined unit '%s' (%s) of group '%s'", tostring(PlayerName), tostring(Event.IniDCSUnitName), tostring(Event.IniTypeName), tostring(Event.IniDCSGroupName)))
               
         -- Add client in case it does not exist already.
         if client == nil or (client and client:CountPlayers() == 0) then
@@ -1947,7 +1853,7 @@ function DATABASE:_EventOnPlayerEnterUnit( Event )
 
   if Event.IniDCSUnit then
     -- Player entering a CA slot
-    if Event.IniObjectCategory == 1 and Event.IniGroup and Event.IniGroup:IsGround() then
+    if Event.IniObjectCategory == 1 and Event.IniUnit and Event.IniUnit:IsGround() then
         
       local IsPlayer = Event.IniDCSUnit:getPlayerName()
       if IsPlayer then
@@ -2176,19 +2082,6 @@ function DATABASE:ForEachClient( IteratorFunction, FinalizeFunction, ... )
 
   return self
 end
-
---- Iterate the DATABASE and call an iterator function for each CARGO, providing the CARGO object to the function and optional parameters.
--- @param #DATABASE self
--- @param #function IteratorFunction The function that will be called for each object in the database. The function needs to accept a CLIENT parameter.
--- @return #DATABASE self
-function DATABASE:ForEachCargo( IteratorFunction, FinalizeFunction, ... )
-  self:F2( arg )
-
-  self:ForEach( IteratorFunction, FinalizeFunction, arg, self.CARGOS )
-
-  return self
-end
-
 
 --- Handles the OnEventNewCargo event.
 -- @param #DATABASE self

@@ -324,6 +324,10 @@
 --
 -- A ground attack mission can be created with the @{#AUFTRAG.NewGROUNDATTACK}() function.
 --
+-- ## NAVALENGAGEMENT
+--
+-- A naval engagement mission can be created with the @{#AUFTRAG.NewNAVALENGAGEMENT}() function.
+--
 -- # Assigning Missions
 --
 -- An AUFTRAG can be assigned to groups (FLIGHTGROUP, ARMYGROUP, NAVYGROUP), legions (AIRWING, BRIGADE, FLEET) or to a COMMANDER.
@@ -397,6 +401,7 @@ AUFTRAG = {
   conditionPush      =    {},
   conditionSuccessSet = false,
   conditionFailureSet = false,
+  repeatDelay = 1,
 }
 
 --- Global mission counter.
@@ -442,6 +447,7 @@ _AUFTRAGSNR=0
 -- @field #string HOVER Hover.
 -- @field #string LANDATCOORDINATE Land at coordinate.
 -- @field #string GROUNDATTACK Ground attack.
+-- @field #string NAVALENGAGEMENT Naval engagement (similar to GROUNDATTACK).
 -- @field #string CARGOTRANSPORT Cargo transport.
 -- @field #string RELOCATECOHORT Relocate a cohort from one legion to another.
 -- @field #string AIRDEFENSE Air defense.
@@ -490,6 +496,7 @@ AUFTRAG.Type={
   HOVER="Hover",
   LANDATCOORDINATE="Land at Coordinate",
   GROUNDATTACK="Ground Attack",
+  NAVALENGAGEMENT="Naval Engagement",
   CARGOTRANSPORT="Cargo Transport",
   RELOCATECOHORT="Relocate Cohort",
   AIRDEFENSE="Air Defence",
@@ -514,6 +521,7 @@ AUFTRAG.Type={
 -- @field #string BARRAGE Barrage.
 -- @field #string HOVER Hover.
 -- @field #string GROUNDATTACK Ground attack.
+-- @field #string NAVALENGAGEMENT Naval engagement.
 -- @field #string FERRY Ferry mission.
 -- @field #string RELOCATECOHORT Relocate cohort.
 -- @field #string AIRDEFENSE Air defense.
@@ -536,6 +544,7 @@ AUFTRAG.SpecialTask={
   ARMORATTACK="AmorAttack",
   HOVER="Hover",
   GROUNDATTACK="Ground Attack",
+  NAVALENGAGEMENT="Naval Engagement",
   FERRY="Ferry",
   RELOCATECOHORT="Relocate Cohort",
   AIRDEFENSE="Air Defense",
@@ -665,7 +674,7 @@ AUFTRAG.Category={
 
 --- AUFTRAG class version.
 -- @field #string version
-AUFTRAG.version="1.2.1"
+AUFTRAG.version="1.3.0"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- TODO list
@@ -1320,13 +1329,19 @@ end
 -- @param #number Altitude Orbit altitude in feet. Default is y component of `Coordinate`.
 -- @param #number Speed Orbit indicated airspeed in knots at the set altitude ASL. Default 350 KIAS.
 -- @param #number Heading Heading of race-track pattern in degrees. Default 270 (East to West).
--- @param #number Leg Length of race-track in NM. Default 10 NM.
+-- @param #number Leg Length of race-track in NM. Default 10 NM. Set to 0 for a simple circular orbit.
 -- @param #number RefuelSystem Refueling system (0=boom, 1=probe). This info is *only* for AIRWINGs so they launch the right tanker type.
 -- @return #AUFTRAG self
 function AUFTRAG:NewTANKER(Coordinate, Altitude, Speed, Heading, Leg, RefuelSystem)
-
+  
+  local mission
+  if Leg == 0 then
+    mission=AUFTRAG:NewORBIT_CIRCLE(Coordinate,Altitude,Speed)
+  else
+    mission=AUFTRAG:NewORBIT_RACETRACK(Coordinate,Altitude,Speed,Heading,Leg)
+  end
   -- Create ORBIT first.
-  local mission=AUFTRAG:NewORBIT_RACETRACK(Coordinate, Altitude, Speed, Heading, Leg)
+  --local mission=AUFTRAG:NewORBIT_RACETRACK(Coordinate, Altitude, Speed, Heading, Leg)
 
   -- Mission type TANKER.
   mission.type=AUFTRAG.Type.TANKER
@@ -1428,7 +1443,7 @@ function AUFTRAG:NewCAP(ZoneCAP, Altitude, Speed, Coordinate, Heading, Leg, Targ
   mission:_SetLogID()
 
   -- DCS task parameters:
-  mission.engageZone=ZoneCAP
+  mission.engageZone=ZoneCAP or Coordinate
   mission.engageTargetTypes=TargetTypes or {"Air"}
 
   -- Mission options:
@@ -1715,9 +1730,45 @@ function AUFTRAG:NewSEAD(Target, Altitude)
   return mission
 end
 
+--- **[AIR]** Create a SEAD in Zone mission.
+-- @param #AUFTRAG self
+-- @param Core.Zone#ZONE TargetZone The target zone to attack.
+-- @param #number Altitude Engage altitude in feet. Default 25000 ft.
+-- @param #table TargetTypes Table of string of DCS known target types, defaults to {"Air Defence"}. See [DCS Target Attributes](https://wiki.hoggitworld.com/view/DCS_enum_attributes)
+-- @param #number Duration Engage this much time when the AUFTRAG starts executing.
+-- @return #AUFTRAG self
+function AUFTRAG:NewSEADInZone(TargetZone, Altitude, TargetTypes, Duration)
+
+  local mission=AUFTRAG:New(AUFTRAG.Type.SEAD)
+
+  --mission:_TargetFromObject(TargetZone)
+
+  -- DCS Task options:
+  mission.engageWeaponType=ENUMS.WeaponFlag.Auto
+  mission.engageWeaponExpend=AI.Task.WeaponExpend.ALL
+  mission.engageAltitude=UTILS.FeetToMeters(Altitude or 25000)
+  mission.engageZone = TargetZone
+  mission.engageTargetTypes = TargetTypes or {"Air Defence"}
+
+  -- Mission options:
+  mission.missionTask=ENUMS.MissionTask.SEAD
+  mission.missionAltitude=mission.engageAltitude
+  mission.missionFraction=0.2
+  mission.optionROE=ENUMS.ROE.OpenFire
+  mission.optionROT=ENUMS.ROT.EvadeFire
+
+  mission.categories={AUFTRAG.Category.AIRCRAFT}
+
+  mission.DCStask=mission:GetDCSMissionTask()
+  
+  mission:SetDuration(Duration or 1800)
+
+  return mission
+end
+
 --- **[AIR]** Create a STRIKE mission. Flight will attack the closest map object to the specified coordinate.
 -- @param #AUFTRAG self
--- @param Core.Point#COORDINATE Target The target coordinate. Can also be given as a GROUP, UNIT, STATIC or TARGET object.
+-- @param Core.Point#COORDINATE Target The target coordinate. Can also be given as a GROUP, UNIT, STATIC, SET_GROUP, SET_UNIT, SET_STATIC or TARGET object.
 -- @param #number Altitude Engage altitude in feet. Default 2000 ft.
 -- @param #number EngageWeaponType Which weapon to use. Defaults to auto, ie ENUMS.WeaponFlag.Auto. See ENUMS.WeaponFlag for options.
 -- @return #AUFTRAG self
@@ -1749,11 +1800,12 @@ end
 --- **[AIR]** Create a BOMBING mission. Flight will drop bombs a specified coordinate.
 -- See [DCS task bombing](https://wiki.hoggitworld.com/view/DCS_task_bombing).
 -- @param #AUFTRAG self
--- @param Core.Point#COORDINATE Target Target coordinate. Can also be specified as a GROUP, UNIT, STATIC or TARGET object.
+-- @param Core.Point#COORDINATE Target Target coordinate. Can also be specified as a GROUP, UNIT, STATIC, SET_GROUP, SET_UNIT, SET_STATIC or TARGET object.
 -- @param #number Altitude Engage altitude in feet. Default 25000 ft.
 -- @param #number EngageWeaponType Which weapon to use. Defaults to auto, ie ENUMS.WeaponFlag.Auto. See ENUMS.WeaponFlag for options.
+-- @param #boolean Divebomb If true, use a dive bombing attack approach.
 -- @return #AUFTRAG self
-function AUFTRAG:NewBOMBING(Target, Altitude, EngageWeaponType)
+function AUFTRAG:NewBOMBING(Target, Altitude, EngageWeaponType, Divebomb)
 
   local mission=AUFTRAG:New(AUFTRAG.Type.BOMBING)
 
@@ -1770,6 +1822,7 @@ function AUFTRAG:NewBOMBING(Target, Altitude, EngageWeaponType)
   mission.missionFraction=0.5
   mission.optionROE=ENUMS.ROE.OpenFire
   mission.optionROT=ENUMS.ROT.NoReaction   -- No reaction is better.
+  mission.optionDivebomb = Divebomb or nil
 
   -- Evaluate result after 5 min. We might need time until the bombs have dropped and targets have been detroyed.
   mission.dTevaluate=5*60
@@ -1984,7 +2037,7 @@ function AUFTRAG:NewRESCUEHELO(Carrier)
 
   -- Mission options:
   mission.missionTask=ENUMS.MissionTask.NOTHING
-  mission.missionFraction=0.5
+  mission.missionFraction=0.9
   mission.optionROE=ENUMS.ROE.WeaponHold
   mission.optionROT=ENUMS.ROT.NoReaction
 
@@ -2165,7 +2218,7 @@ end
 -- **Note** that it is recommended to set the weapon range via the `OPSGROUP:AddWeaponRange()` function as this cannot be retrieved from the DCS API.
 -- @param #AUFTRAG self
 -- @param Core.Point#COORDINATE Target Center of the firing solution.
--- @param #number Nshots Number of shots to be fired. Default `#nil`.
+-- @param #number Nshots Number of shots to be fired. Default `#nil`. If value is in (0,1), it is interpreted as per cent of available ammo.
 -- @param #number Radius Radius of the shells in meters. Default 100 meters.
 -- @param #number Altitude Altitude in meters. Can be used to setup a Barrage. Default `#nil`.
 -- @return #AUFTRAG self
@@ -2279,8 +2332,9 @@ end
 -- @param #number Speed Speed in knots.
 -- @param #number Altitude Altitude in feet. Only for airborne units. Default 2000 feet ASL.
 -- @param #string Formation Formation used by ground units during patrol. Default "Off Road".
+-- @param #number StayInZoneTime Stay this many seconds in the zone when done, only then drive back.
 -- @return #AUFTRAG self
-function AUFTRAG:NewCAPTUREZONE(OpsZone, Coalition, Speed, Altitude, Formation)
+function AUFTRAG:NewCAPTUREZONE(OpsZone, Coalition, Speed, Altitude, Formation, StayInZoneTime)
 
   local mission=AUFTRAG:New(AUFTRAG.Type.CAPTUREZONE)
 
@@ -2294,6 +2348,7 @@ function AUFTRAG:NewCAPTUREZONE(OpsZone, Coalition, Speed, Altitude, Formation)
   mission.optionROE=ENUMS.ROE.ReturnFire
   mission.optionROT=ENUMS.ROT.PassiveDefense
   mission.optionAlarm=ENUMS.AlarmState.Auto
+  mission.StayInZoneTime = StayInZoneTime
 
   mission.missionFraction=0.1
   mission.missionSpeed=Speed and UTILS.KnotsToKmph(Speed) or nil
@@ -2335,11 +2390,13 @@ function AUFTRAG:NewARMORATTACK(Target, Speed, Formation)
   return mission
 end
 
---- **[GROUND]** Create a GROUNDATTACK mission. Ground group(s) will go to a target object and attack.
+--- **[GROUND]** Create a GROUNDATTACK mission. Ground group(s) will go to a target object and attack at their own discretion.
+-- Unfortunately, the "Attack Group" and "Attack Unit" tasks do not work for ground and naval groups (only for aircraft).
+-- Therefore, we resort to this workaround, which guides the attacking group to the vicinity of the target. Then they start shooting on their own, once they detect the target.
 -- @param #AUFTRAG self
 -- @param Wrapper.Positionable#POSITIONABLE Target The target to attack. Can be a GROUP, UNIT or STATIC object.
 -- @param #number Speed Speed in knots. Default max.
--- @param #string Formation The attack formation, e.g. "Wedge", "Vee" etc. Default `ENUMS.Formation.Vehicle.Vee`.
+-- @param #string Formation The attack formation, e.g. "Wedge", "Vee" etc. Default `ENUMS.Formation.Vehicle.Vee`. Only working for ground, not naval!
 -- @return #AUFTRAG self
 function AUFTRAG:NewGROUNDATTACK(Target, Speed, Formation)
 
@@ -2362,6 +2419,38 @@ function AUFTRAG:NewGROUNDATTACK(Target, Speed, Formation)
   
   mission.DCStask.params.speed=mission.missionSpeed and UTILS.KmphToMps(mission.missionSpeed) or nil
   mission.DCStask.params.formation=Formation or ENUMS.Formation.Vehicle.Vee
+  
+  return mission
+end
+
+--- **[NAVAL]** Create a NAVALENGAGEMENT mission. Naval group(s) will go to a target object and attack at their own discretion.
+-- Unfortunately, the "Attack Group" and "Attack Unit" tasks do not work for ground and naval groups (only for aircraft).
+-- Therefore, we resort to this workaround, which guides the attacking group to the vicinity of the target. Then they start shooting on their own, once they detect the target.
+-- @param #AUFTRAG self
+-- @param Wrapper.Positionable#POSITIONABLE Target The target to attack. Can be a GROUP, UNIT or STATIC object.
+-- @param #number Speed Speed in knots. Default max.
+-- @param #number Depth The attack depth in meters. Only for submarines!
+-- @return #AUFTRAG self
+function AUFTRAG:NewNAVALENGAGEMENT(Target, Speed, Depth)
+
+  local mission=AUFTRAG:New(AUFTRAG.Type.NAVALENGAGEMENT)
+
+  mission:_TargetFromObject(Target)
+
+  mission.missionTask=mission:GetMissionTaskforMissionType(AUFTRAG.Type.NAVALENGAGEMENT)
+
+  -- Defaults.
+  mission.optionROE=ENUMS.ROE.OpenFire
+  mission.optionAlarm=ENUMS.AlarmState.Auto
+  mission.missionFraction=0.70
+  mission.missionSpeed=Speed and UTILS.KnotsToKmph(Speed) or nil
+  mission.missionAltitude=Depth or 0
+
+  mission.categories={AUFTRAG.Category.NAVAL}
+
+  mission.DCStask=mission:GetDCSMissionTask()
+  
+  mission.DCStask.params.speed=mission.missionSpeed and UTILS.KmphToMps(mission.missionSpeed) or nil
   
   return mission
 end
@@ -2658,33 +2747,35 @@ function AUFTRAG:NewFromTarget(Target, MissionType)
   local mission=nil --#AUFTRAG
 
   if MissionType==AUFTRAG.Type.ANTISHIP then
-    mission=self:NewANTISHIP(Target, Altitude)
+    mission=self:NewANTISHIP(Target)
   elseif MissionType==AUFTRAG.Type.ARTY then
-    mission=self:NewARTY(Target, Nshots, Radius)
+    mission=self:NewARTY(Target, 0.3) -- use 30% of the available ammo
   elseif MissionType==AUFTRAG.Type.BAI then
-    mission=self:NewBAI(Target, Altitude)
+    mission=self:NewBAI(Target)
   elseif MissionType==AUFTRAG.Type.BOMBCARPET then
-    mission=self:NewBOMBCARPET(Target, Altitude, CarpetLength)
+    mission=self:NewBOMBCARPET(Target)
   elseif MissionType==AUFTRAG.Type.BOMBING then
-    mission=self:NewBOMBING(Target, Altitude)
+    mission=self:NewBOMBING(Target)
   elseif MissionType==AUFTRAG.Type.BOMBRUNWAY then
-    mission=self:NewBOMBRUNWAY(Target, Altitude)
+    mission=self:NewBOMBRUNWAY(Target)
   elseif MissionType==AUFTRAG.Type.STRAFING then
-    mission=self:NewSTRAFING(Target, Altitude)    
+    mission=self:NewSTRAFING(Target)    
   elseif MissionType==AUFTRAG.Type.CAS then
-    mission=self:NewCAS(ZONE_RADIUS:New(Target:GetName(),Target:GetVec2(),1000), Altitude, Speed, Target:GetAverageCoordinate(), Heading, Leg, TargetTypes)
+    mission=self:NewCAS(ZONE_RADIUS:New(Target:GetName(),Target:GetVec2(),1000), nil, nil, Target:GetAverageCoordinate())
   elseif MissionType==AUFTRAG.Type.CASENHANCED then
-    mission=self:NewCASENHANCED(ZONE_RADIUS:New(Target:GetName(),Target:GetVec2(),1000), Altitude, Speed, RangeMax, NoEngageZoneSet, TargetTypes)
+    mission=self:NewCASENHANCED(ZONE_RADIUS:New(Target:GetName(),Target:GetVec2(),1000))
   elseif MissionType==AUFTRAG.Type.INTERCEPT then
     mission=self:NewINTERCEPT(Target)
   elseif MissionType==AUFTRAG.Type.SEAD then
-    mission=self:NewSEAD(Target, Altitude)
+    mission=self:NewSEAD(Target)
   elseif MissionType==AUFTRAG.Type.STRIKE then
-    mission=self:NewSTRIKE(Target, Altitude)
+    mission=self:NewSTRIKE(Target)
   elseif MissionType==AUFTRAG.Type.ARMORATTACK then
-    mission=self:NewARMORATTACK(Target, Speed)
+    mission=self:NewARMORATTACK(Target)
   elseif MissionType==AUFTRAG.Type.GROUNDATTACK then
-    mission=self:NewGROUNDATTACK(Target, Speed, Formation)
+    mission=self:NewGROUNDATTACK(Target)
+  elseif MissionType==AUFTRAG.Type.NAVALENGAGEMENT then
+    mission=self:NewNAVALENGAGEMENT(Target)
   else
     return nil
   end
@@ -2801,7 +2892,7 @@ function AUFTRAG:NewAUTO(EngageGroup)
   if auftrag==AUFTRAG.Type.ANTISHIP then
     mission=AUFTRAG:NewANTISHIP(Target)
   elseif auftrag==AUFTRAG.Type.ARTY then
-    mission=AUFTRAG:NewARTY(Target)
+    mission=AUFTRAG:NewARTY(Target, 0.2)
   elseif auftrag==AUFTRAG.Type.AWACS then
     mission=AUFTRAG:NewAWACS(Coordinate, Altitude,Speed,Heading,Leg)
   elseif auftrag==AUFTRAG.Type.BAI then
@@ -2963,6 +3054,16 @@ end
 -- @return #AUFTRAG self
 function AUFTRAG:SetRepeat(Nrepeat)
   self.Nrepeat=Nrepeat or 0
+  return self
+end
+
+
+--- **[LEGION, COMMANDER, CHIEF]** Set the repeat delay in seconds after a mission is successful/failed. Only valid if the mission is handled by a LEGION (AIRWING, BRIGADE, FLEET) or higher level.
+-- @param #AUFTRAG self
+-- @param #number RepeatDelay Repeat delay in seconds. Default 1.
+-- @return #AUFTRAG self
+function AUFTRAG:SetRepeatDelay(RepeatDelay)
+  self.repeatDelay = RepeatDelay
   return self
 end
 
@@ -3961,6 +4062,23 @@ function AUFTRAG:IsOver()
   return over
 end
 
+--- Check if mission is repeatable.
+-- @param #AUFTRAG self
+-- @return #boolean If true, mission is repeatable.
+function AUFTRAG:IsRepeatable()
+  local repeatmeS=self.repeatedSuccess<self.NrepeatSuccess or self.repeated<self.Nrepeat
+  local repeatmeF=self.repeatedFailure<self.NrepeatFailure or self.repeated<self.Nrepeat
+  if repeatmeS==true or repeatmeF==true then return true else return false end
+  return false
+end
+
+--- Check if mission is NOT repeatable.
+-- @param #AUFTRAG self
+-- @return #boolean If true, mission is NOT repeatable.
+function AUFTRAG:IsNotRepeatable()
+  return not self:IsRepeatable()
+end
+
 --- Check if mission is NOT over.
 -- @param #AUFTRAG self
 -- @return #boolean If true, mission is NOT over yet.
@@ -4325,7 +4443,7 @@ function AUFTRAG:onafterStatus(From, Event, To)
   -- Group info.
   if self.verbose>=3 then
     -- Data on assigned groups.
-    local text=string.format("Assets [N=%d,Nassigned=%s, Ndead=%s]:", self.Nassets or 0, self.Nassigned or 0, self.Ndead or 0)
+    local text=string.format("Assets [N=%d, Nassigned=%s, Ndead=%s]:", self.Nassets or 0, self.Nassigned or 0, self.Ndead or 0)
     for i,_asset in pairs(self.assets or {}) do
       local asset=_asset --Functional.Warehouse#WAREHOUSE.Assetitem
       text=text..string.format("\n[%d] %s: spawned=%s, requested=%s, reserved=%s", i, asset.spawngroupname, tostring(asset.spawned), tostring(asset.requested), tostring(asset.reserved))
@@ -4366,7 +4484,7 @@ function AUFTRAG:Evaluate()
   local owndamage=self.Ncasualties/self.Nelements*100
 
   -- Current number of mission targets.
-  local Ntargets=self:CountMissionTargets()
+  local Ntargets=self:CountMissionTargets(true)
   local Ntargets0=self:GetTargetInitialNumber()
 
   local Life=self:GetTargetLife()
@@ -4765,6 +4883,8 @@ end
 -- @return #boolean If `true`, all groups are done with the mission.
 function AUFTRAG:CheckGroupsDone()
 
+  local fsmState = self:GetState()
+
   -- Check status of all OPS groups.
   for groupname,data in pairs(self.groupdata) do
     local groupdata=data --#AUFTRAG.GroupData
@@ -4815,12 +4935,26 @@ function AUFTRAG:CheckGroupsDone()
     self:T2(self.lid..string.format("CheckGroupsDone: Mission is still in state %s [FSM=%s] and reinfoce=%d. Mission NOT DONE!", self.status, self:GetState(), self.reinforce))
     return false  
   end
+  
+  local NopsgroupsAlive=self:CountOpsGroups()
+  local NopsgroupsDone=self:CountOpsGroupsInStatus(AUFTRAG.GroupStatus.DONE)+self:CountOpsGroupsInStatus(AUFTRAG.GroupStatus.CANCELLED)
 
   -- It could be that all groups were destroyed on the way to the mission execution waypoint.
   -- TODO: would be better to check if everybody is dead by now.
-  if self:IsStarted() and self:CountOpsGroups()==0 then
+  if self:IsStarted() and NopsgroupsAlive==0 then
     self:T(self.lid..string.format("CheckGroupsDone: Mission is STARTED state %s [FSM=%s] but count of alive OPSGROUP is zero. Mission DONE!", self.status, self:GetState()))
     return true
+  end
+  
+  -- Every group alive is done or cancelled
+  if NopsgroupsAlive==NopsgroupsDone then
+    self:T(self.lid..string.format("CheckGroupsDone: Mission is in state %s [FSM=%s] but all groups [=%d] are done or cancelled. Mission DONE!", self.status, self:GetState(), NopsgroupsAlive))
+    return true
+  end
+  
+  if (self:IsStarted() or self:IsExecuting()) and (fsmState == AUFTRAG.Status.STARTED or fsmState == AUFTRAG.Status.EXECUTING) and NopsgroupsAlive>0 then
+    self:T(self.lid..string.format("CheckGroupsDone: Mission is in state %s [FSM=%s] and count of alive OPSGROUP > zero. Mission NOT DONE!", self.status, self:GetState()))
+    return false
   end
 
   return true
@@ -5160,7 +5294,7 @@ function AUFTRAG:onafterSuccess(From, Event, To)
 
     -- Repeat mission.
     self:T(self.lid..string.format("Mission SUCCESS! Repeating mission for the %d time (max %d times) ==> Repeat mission!", self.repeated+1, N))
-    self:Repeat()
+    self:__Repeat(self.repeatDelay)
 
   else
 
@@ -5202,7 +5336,7 @@ function AUFTRAG:onafterFailed(From, Event, To)
 
     -- Repeat mission.
     self:T(self.lid..string.format("Mission FAILED! Repeating mission for the %d time (max %d times) ==> Repeat mission!", self.repeated+1, N))
-    self:Repeat()
+    self:__Repeat(self.repeatDelay)
 
   else
 
@@ -5413,8 +5547,9 @@ end
 
 --- Count alive mission targets.
 -- @param #AUFTRAG self
+-- @param #boolean OnlyReallyAlive (Optional) If `true`, count only really alive targets (units, groups) but not coordinates or zones.
 -- @return #number Number of alive target units.
-function AUFTRAG:CountMissionTargets()
+function AUFTRAG:CountMissionTargets(OnlyReallyAlive)
 
   local N=0
 
@@ -5422,7 +5557,7 @@ function AUFTRAG:CountMissionTargets()
   local Coalitions=self.coalition and UTILS.GetCoalitionEnemy(self.coalition, true) or nil
 
   if self.engageTarget then
-    N=self.engageTarget:CountTargets(Coalitions)
+    N=self.engageTarget:CountTargets(Coalitions, OnlyReallyAlive)
   end
 
   return N
@@ -6108,10 +6243,13 @@ function AUFTRAG:GetDCSMissionTask()
     -- BOMBING Mission --
     ---------------------
 
-    local DCStask=CONTROLLABLE.TaskBombing(nil, self:GetTargetVec2(), self.engageAsGroup, self.engageWeaponExpend, self.engageQuantity, self.engageDirection, self.engageAltitude, self.engageWeaponType, Divebomb)
+    local coords = self.engageTarget:GetCoordinates()
+    for _, coord in pairs(coords) do
+        local DCStask = CONTROLLABLE.TaskBombing(nil, coord:GetVec2(), self.engageAsGroup, self.engageWeaponExpend, self.engageQuantity, self.engageDirection, self.engageAltitude, self.engageWeaponType, self.optionDivebomb)
 
-    table.insert(DCStasks, DCStask)
-    
+        table.insert(DCStasks, DCStask)
+    end
+
   elseif self.type==AUFTRAG.Type.STRAFING then
 
     ----------------------
@@ -6147,8 +6285,16 @@ function AUFTRAG:GetDCSMissionTask()
     -----------------
     -- CAP Mission --
     -----------------
-
-    local DCStask=CONTROLLABLE.EnRouteTaskEngageTargetsInZone(nil, self.engageZone:GetVec2(), self.engageZone:GetRadius(), self.engageTargetTypes, Priority)
+    
+    local Vec2 = self.engageZone:GetVec2()
+    local Radius
+    if self.engageZone:IsInstanceOf("COORDINATE") then
+      Radius = UTILS.NMToMeters(20)
+    else
+      Radius = self.engageZone:GetRadius()
+    end
+        
+    local DCStask=CONTROLLABLE.EnRouteTaskEngageTargetsInZone(nil, Vec2, Radius, self.engageTargetTypes, Priority)
 
     table.insert(self.enrouteTasks, DCStask)
 
@@ -6302,18 +6448,47 @@ function AUFTRAG:GetDCSMissionTask()
     -- Add enroute task SEAD. Disabled that here because the group enganges everything on its route.
     --local DCStask=CONTROLLABLE.EnRouteTaskSEAD(nil, self.TargetType)
     --table.insert(self.enrouteTasks, DCStask)
-
-    self:_GetDCSAttackTask(self.engageTarget, DCStasks)
-
+    
+    if self.engageZone then
+    
+      --local DCStask=CONTROLLABLE.EnRouteTaskSEAD(nil, self.engageTargetTypes)
+      --table.insert(self.enrouteTasks, DCStask)
+      self.engageZone:Scan({Object.Category.UNIT},{Unit.Category.GROUND_UNIT})
+      local ScanUnitSet = self.engageZone:GetScannedSetUnit()
+      local SeadUnitSet = SET_UNIT:New()
+      for _,_unit in pairs (ScanUnitSet.Set) do
+        local unit = _unit -- Wrapper.Unit#UNTI
+        if unit and unit:IsAlive() and unit:HasSEAD() then
+          self:T("Adding UNIT for SEAD: "..unit:GetName())
+          local task = CONTROLLABLE.TaskAttackUnit(nil,unit,GroupAttack,AI.Task.WeaponExpend.ALL,1,Direction,self.engageAltitude,2956984318)
+          table.insert(DCStasks, task)
+          SeadUnitSet:AddUnit(unit)
+        end
+      end
+      self.engageTarget = TARGET:New(SeadUnitSet)
+      --local OrbitTask = CONTROLLABLE.TaskOrbitCircle(nil,self.engageAltitude,self.missionSpeed,self.engageZone:GetCoordinate())
+      --local Point = self.engageZone:GetVec2()
+      --local OrbitTask = CONTROLLABLE.TaskOrbitCircleAtVec2(nil,Point,self.engageAltitude,self.missionSpeed)
+      --table.insert(DCStasks, OrbitTask)
+     
+    else
+    
+      self:_GetDCSAttackTask(self.engageTarget, DCStasks)
+    
+    end
+    
   elseif self.type==AUFTRAG.Type.STRIKE then
 
     --------------------
     -- STRIKE Mission --
     --------------------
 
-    local DCStask=CONTROLLABLE.TaskAttackMapObject(nil, self:GetTargetVec2(), self.engageAsGroup, self.engageWeaponExpend, self.engageQuantity, self.engageDirection, self.engageAltitude, self.engageWeaponType)
+    local coords = self.engageTarget:GetCoordinates()
+    for _, coord in pairs(coords) do
+        local DCStask=CONTROLLABLE.TaskAttackMapObject(nil, coord:GetVec2(), self.engageAsGroup, self.engageWeaponExpend, self.engageQuantity, self.engageDirection, self.engageAltitude, self.engageWeaponType)
 
-    table.insert(DCStasks, DCStask)
+        table.insert(DCStasks, DCStask)
+    end
 
   elseif self.type==AUFTRAG.Type.TANKER or self.type==AUFTRAG.Type.RECOVERYTANKER then
 
@@ -6516,6 +6691,26 @@ function AUFTRAG:GetDCSMissionTask()
     param.target=self:GetTargetData()
     param.action="Wedge"
     param.speed=self.missionSpeed and UTILS.KmphToMps(self.missionSpeed) or nil
+
+    DCStask.params=param
+
+    table.insert(DCStasks, DCStask)
+
+   elseif self.type==AUFTRAG.Type.NAVALENGAGEMENT then
+
+    ---------------------------
+    -- NAVAL ENGAGEMENT Mission --
+    ---------------------------
+
+    local DCStask={}
+
+    DCStask.id=AUFTRAG.SpecialTask.NAVALENGAGEMENT
+
+    -- We create a "fake" DCS task and pass the parameters to the NAVYGROUP.
+    local param={}
+    param.target=self:GetTargetData()
+    param.speed=self.missionSpeed and UTILS.KmphToMps(self.missionSpeed) or nil
+    param.altitude=self.missionAltitude or 0
 
     DCStask.params=param
 

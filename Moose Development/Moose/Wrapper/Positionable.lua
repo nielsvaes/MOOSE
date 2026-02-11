@@ -219,6 +219,25 @@ function POSITIONABLE:GetOrientationZ()
   end
 end
 
+--- Returns the vectors of the orientation of the object:
+-- X is the orientation parallel to the movement of the object, Z perpendicular and Y vertical orientation.
+-- @param #POSITIONABLE self
+-- @return Core.Vector#VECTOR X orientation, i.e. parallel to the direction of movement.
+-- @return Core.Vector#VECTOR Y orientation, i.e. vertical.
+-- @return Core.Vector#VECTOR Z orientation, i.e. perpendicular to the direction of movement.
+function POSITIONABLE:GetOrientationVectors()
+  local position = self:GetPosition()
+  if position then
+    local vecx=VECTOR:NewFromVec(position.x)
+    local vecy=VECTOR:NewFromVec(position.y)
+    local vecz=VECTOR:NewFromVec(position.z)
+    return vecx, vecy, vecz
+  else
+    BASE:E( { "Cannot GetOrientation", Positionable = self, Alive = self:IsAlive() } )
+    return nil, nil, nil
+  end
+end
+
 --- Returns the @{DCS#Position3} position vectors indicating the point and direction vectors in 3D of the POSITIONABLE within the mission.
 -- @param #POSITIONABLE self
 -- @return DCS#Position The 3D position vectors of the POSITIONABLE.
@@ -246,18 +265,20 @@ end
 function POSITIONABLE:GetVec3()
   local DCSPositionable = self:GetDCSObject()
   if DCSPositionable then
-    --local status, vec3 = pcall(
-      -- function()
-        --  local vec3 = DCSPositionable:getPoint()
-        --  return vec3
-       --end
-    --)
+
     local vec3 = DCSPositionable:getPoint()
-    --if status then
-      return vec3
-    --else
-      --self:E( { "Cannot get Vec3 from DCS Object", Positionable = self, Alive = self:IsAlive() } )
-    --end
+    
+    if not vec3 then 
+      local pos = DCSPositionable:getPosition()
+      if pos and pos.p then 
+       vec3 = pos.p
+      else
+        self:E( { "Cannot get the position from DCS Object for GetVec3", Positionable = self, Alive = self:IsAlive() } )
+      end
+    end
+
+    return vec3
+
   end
   -- ERROR!
   self:E( { "Cannot get the Positionable DCS Object for GetVec3", Positionable = self, Alive = self:IsAlive() } )
@@ -277,6 +298,27 @@ function POSITIONABLE:GetVec2()
     local Vec3 = DCSPositionable:getPoint() -- DCS#Vec3
 
     return { x = Vec3.x, y = Vec3.z }
+  end
+
+  self:E( { "Cannot GetVec2", Positionable = self, Alive = self:IsAlive() } )
+
+  return nil
+end
+
+--- Returns the @{Core.Vector#VECTOR} indicating the 3D position of the object on the map.
+-- @param #POSITIONABLE self
+-- @return Core.Vector#VECTOR The 3D vector.
+function POSITIONABLE:GetVector()
+
+  local DCSPositionable = self:GetDCSObject()
+
+  if DCSPositionable then
+
+    local Vec3 = DCSPositionable:getPoint() -- DCS#Vec3
+    
+    local vector=VECTOR:NewFromVec(Vec3)
+
+    return vector
   end
 
   self:E( { "Cannot GetVec2", Positionable = self, Alive = self:IsAlive() } )
@@ -359,15 +401,17 @@ function POSITIONABLE:GetCoord()
     -- Get the current position.
     local PositionableVec3 = self:GetVec3()
 
-    if self.coordinate then
-      -- Update COORDINATE from 3D vector.
-      self.coordinate:UpdateFromVec3( PositionableVec3 )
-    else
-      -- New COORDINATE.
-      self.coordinate = COORDINATE:NewFromVec3( PositionableVec3 )
-    end
+    if PositionableVec3 then
+        if self.coordinate then
+          -- Update COORDINATE from 3D vector.
+          self.coordinate:UpdateFromVec3( PositionableVec3 )
+        else
+          -- New COORDINATE.
+          self.coordinate = COORDINATE:NewFromVec3( PositionableVec3 )
+        end
 
-    return self.coordinate
+        return self.coordinate
+    end
   end
 
   -- Error message.
@@ -388,13 +432,13 @@ function POSITIONABLE:GetCoordinate()
 
     -- Get the current position.
     local PositionableVec3 = self:GetVec3()
-
-    local coord=COORDINATE:NewFromVec3(PositionableVec3)
-    local heading = self:GetHeading()
-    coord.Heading = heading
-    -- Return a new coordiante object.
-    return coord
-
+    if PositionableVec3 then
+      local coord=COORDINATE:NewFromVec3(PositionableVec3)
+      local heading = self:GetHeading()
+      coord.Heading = heading
+      -- Return a new coordiante object.
+      return coord
+    end
   end
 
   -- Error message.
@@ -685,16 +729,23 @@ end
 
 --- Returns the altitude above sea level of the POSITIONABLE.
 -- @param #POSITIONABLE self
+-- @param #boolean FromGround Measure from the ground or from sea level (ASL). Provide **true** for measuring from the ground (AGL). **false** or **nil** if you measure from sea level.
 -- @return DCS#Distance The altitude of the POSITIONABLE.
 -- @return #nil The POSITIONABLE is not existing or alive.
-function POSITIONABLE:GetAltitude()
+function POSITIONABLE:GetAltitude(FromGround)
   self:F2()
 
   local DCSPositionable = self:GetDCSObject()
 
   if DCSPositionable then
-    local PositionablePointVec3 = DCSPositionable:getPoint() -- DCS#Vec3
-    return PositionablePointVec3.y
+    local altitude = 0
+    local point = DCSPositionable:getPoint() --DCS#Vec3
+    altitude = point.y
+    if FromGround then
+        local land = land.getHeight({ x = point.x, y = point.z }) or 0
+        altitude = altitude - land
+    end
+    return altitude
   end
 
   BASE:E( { "Cannot GetAltitude", Positionable = self, Alive = self:IsAlive() } )
@@ -906,6 +957,24 @@ function POSITIONABLE:GetVelocityVec3()
   end
 
   BASE:E( { "Cannot GetVelocityVec3", Positionable = self, Alive = self:IsAlive() } )
+
+  return nil
+end
+
+--- Returns the velocity vector.
+-- @param #POSITIONABLE self
+-- @return Core.Vector#VECTOR The velocity vector or `nil` if the object does not exist.
+function POSITIONABLE:GetVelocityVector()
+
+  local DCSPositionable = self:GetDCSObject()
+
+  if DCSPositionable and DCSPositionable:isExist() then
+    local vec3 = DCSPositionable:getVelocity()
+    local vector=VECTOR:NewFromVec(vec3)
+    return vector
+  end
+
+  BASE:E( { "Cannot GetVelocityVector", Positionable = self, Alive = self:IsAlive() } )
 
   return nil
 end
@@ -1861,6 +1930,7 @@ do -- Cargo
       ["HL_DSHK"] = 6*POSITIONABLE.DefaultInfantryWeight,
       ["CCKW_353"] = 16*POSITIONABLE.DefaultInfantryWeight, --GMC CCKW 2½-ton 6×6 truck, estimating 16 soldiers,
       ["MaxxPro_MRAP"] = 7*POSITIONABLE.DefaultInfantryWeight,
+      ["Sd_Kfz_251"] = 10*POSITIONABLE.DefaultInfantryWeight,
     }
   }
 

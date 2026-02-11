@@ -3,8 +3,6 @@
 -- ## Features:
 --
 --   * Provides a COORDINATE class, which allows to manage points in 3D space and perform various operations on it.
---   * Provides a POINT\_VEC2 class, which is derived from COORDINATE, and allows to manage points in 3D space, but from a Lat/Lon and Altitude perspective.
---   * Provides a POINT\_VEC3 class, which is derived from COORDINATE, and allows to manage points in 3D space, but from a X, Z and Y vector perspective.
 --
 -- ===
 --
@@ -59,6 +57,10 @@ do -- COORDINATE
   --   * @{#COORDINATE.SmokeOrange}(): To smoke the point in orange.
   --   * @{#COORDINATE.SmokeWhite}(): To smoke the point in white.
   --   * @{#COORDINATE.SmokeGreen}(): To smoke the point in green.
+  --   * @{#COORDINATE.SetSmokeOffsetDirection}(): To set an offset point direction for smoke.
+  --   * @{#COORDINATE.SetSmokeOffsetDistance}(): To set an offset point distance for smoke.
+  --   * @{#COORDINATE.SwitchSmokeOffsetOn}(): To set an offset point for smoke to on.
+  --   * @{#COORDINATE.SwitchSmokeOffsetOff}(): To set an offset point for smoke to off.
   --
   -- ## 2.2) Flare
   --
@@ -773,7 +775,9 @@ do -- COORDINATE
   -- @return DCS#Vec2 Vec2
   function COORDINATE:GetRandomVec2InRadius( OuterRadius, InnerRadius )
     self:F2( { OuterRadius, InnerRadius } )
-
+    math.random()
+    math.random()
+    math.random()
     local Theta = 2 * math.pi * math.random()
     local Radials = math.random() + math.random()
     if Radials > 1 then
@@ -833,6 +837,26 @@ do -- COORDINATE
     return land.getHeight( Vec2 )
   end
 
+  --- Returns a table of DCS#Vec3 points representing the terrain profile between two points.
+  -- @param #COORDINATE self
+  -- @param Destination DCS#Vec3 Ending point of the profile.
+  -- @return #table DCS#Vec3 table of the profile
+  function COORDINATE:GetLandProfileVec3(Destination)
+    return land.profile(self:GetVec3(), Destination)
+  end
+
+  --- Returns a table of #COORDINATE representing the terrain profile between two points.
+  -- @param #COORDINATE self
+  -- @param Destination #COORDINATE Ending coordinate of the profile.
+  -- @return #table #COORDINATE table of the profile
+  function COORDINATE:GetLandProfileCoordinates(Destination)
+    local points = self:GetLandProfileVec3(Destination:GetVec3())
+    local coords = {}
+    for _, point in ipairs(points) do
+      table.insert(coords, COORDINATE:NewFromVec3(point))
+    end
+    return coords
+  end
 
   --- Set the heading of the coordinate, if applicable.
   -- @param #COORDINATE self
@@ -1611,6 +1635,7 @@ do -- COORDINATE
       if AirbaseCategory == Airbase.Category.SHIP or AirbaseCategory == Airbase.Category.HELIPAD then
         RoutePoint.linkUnit = AirbaseID
         RoutePoint.helipadId = AirbaseID
+        RoutePoint.airdromeId = airbase:IsAirdrome() and AirbaseID or nil
       elseif AirbaseCategory == Airbase.Category.AIRDROME then
         RoutePoint.airdromeId = AirbaseID
       else
@@ -2033,6 +2058,40 @@ do -- COORDINATE
 
     return Path, Way, GotPath
   end
+  
+  --- Returns a table of coordinates to a destination using only roads or railroads.
+  -- The first point is the closest point on road of the given coordinate.
+  -- By default, the last point is the closest point on road of the ToCoord. Hence, the coordinate itself and the final ToCoord are not necessarily included in the path.
+  -- @param #COORDINATE self
+  -- @param #COORDINATE ToCoord Coordinate of destination.
+  -- @param #boolean IncludeEndpoints (Optional) Include the coordinate itself and the ToCoordinate in the path.
+  -- @param #boolean Railroad (Optional) If true, path on railroad is returned. Default false.
+  -- @return Core.Pathline#PATHLINE Pathline containing the points on road. If no path on road can be found, nil is returned or just the endpoints.
+  function COORDINATE:GetPathlineOnRoad(ToCoord, IncludeEndpoints, Railroad)
+
+    -- Set road type.
+    local RoadType="roads"
+    if Railroad==true then
+      RoadType="railroads"
+    end
+
+    -- DCS API function returning a table of vec2.
+    local path = land.findPathOnRoads(RoadType, self.x, self.z, ToCoord.x, ToCoord.z)
+    
+    if IncludeEndpoints then
+      path=path or {}
+      table.insert(path, 1, self:GetVec2())
+      table.insert(path, ToCoord:GetVec2())
+    end    
+    
+    local pathline=nil
+    if path then
+      pathline=PATHLINE:NewFromVec2Array(RoadType, path)
+    end
+    
+    return pathline    
+  end
+  
 
   --- Gets the surface type at the coordinate.
   -- @param #COORDINATE self
@@ -2124,21 +2183,32 @@ do -- COORDINATE
   -- @param #number Duration (Optional) Duration of the smoke in seconds. DCS stopps the smoke automatically after 5 min.
   -- @param #number Delay (Optional) Delay before the smoke is started in seconds.
   -- @param #string Name (Optional) Name if you want to stop the smoke early (normal duration: 5mins)
+  -- @param #boolean Offset (Optional) If true, offset the smokle a bit.
+  -- @param #number Direction (Optional) If Offset is true this is the direction of the offset, 1-359 (degrees). Default random.
+  -- @param #number Distance (Optional) If Offset is true this is the distance of the offset in meters. Default random 10-20.
   -- @return #COORDINATE self
-  function COORDINATE:Smoke( SmokeColor, Duration, Delay, Name)
-    self:F2( { SmokeColor, Name, Duration, Delay } )
+  function COORDINATE:Smoke( SmokeColor, Duration, Delay, Name, Offset,Direction,Distance)
+    self:F2( { SmokeColor, Name, Duration, Delay, Offset } )
 
     SmokeColor=SmokeColor or SMOKECOLOR.Green
     
     if Delay and Delay>0 then
-      self:ScheduleOnce(Delay, COORDINATE.Smoke, self, SmokeColor, Duration, 0, Name)
+      self:ScheduleOnce(Delay, COORDINATE.Smoke, self, SmokeColor, Duration, 0, Name, Direction,Distance)
     else
     
       -- Create a name which is used to stop the smoke manually
       self.firename = Name or "Smoke-"..math.random(1,100000)
       
       -- Create smoke
-      trigger.action.smoke( self:GetVec3(), SmokeColor, self.firename )
+      if Offset or self.SmokeOffset then
+        local Angle = Direction or self:GetSmokeOffsetDirection()
+        local Distance = Distance or self:GetSmokeOffsetDistance()
+        local newpos = self:Translate(Distance,Angle,true,false)
+        local newvec3 = newpos:GetVec3()
+        trigger.action.smoke( newvec3, SmokeColor, self.firename )
+      else
+        trigger.action.smoke( self:GetVec3(), SmokeColor, self.firename )
+      end
       
       -- Stop smoke
       if Duration and Duration>0 then
@@ -2147,6 +2217,72 @@ do -- COORDINATE
     end
     
     return self
+  end
+  
+  --- Get the offset direction when using `COORDINATE:Smoke()`.
+  -- @param #COORDINATE self
+  -- @return #number Direction in degrees.
+  function COORDINATE:GetSmokeOffsetDirection()
+    local direction = self.SmokeOffsetDirection or math.random(1,359)
+    return direction
+  end
+  
+  --- Set the offset direction when using `COORDINATE:Smoke()`.
+  -- @param #COORDINATE self
+  -- @param #number Direction (Optional) This is the direction of the offset, 1-359 (degrees). Default random.
+  -- @return #COORDINATE self
+  function COORDINATE:SetSmokeOffsetDirection(Direction)
+    if self then
+      self.SmokeOffsetDirection = Direction or math.random(1,359)
+      return self
+    else
+      COORDINATE.SmokeOffsetDirection = Direction or math.random(1,359)
+    end
+  end
+  
+  --- Get the offset distance when using `COORDINATE:Smoke()`.
+  -- @param #COORDINATE self
+  -- @return #number Distance Distance in meters.
+  function COORDINATE:GetSmokeOffsetDistance()
+    local distance = self.SmokeOffsetDistance or math.random(10,20)
+    return distance
+  end
+  
+  --- Set the offset distance when using `COORDINATE:Smoke()`.
+  -- @param #COORDINATE self
+  -- @param #number Distance (Optional) This is the distance of the offset in meters. Default random 10-20.
+  -- @return #COORDINATE self
+  function COORDINATE:SetSmokeOffsetDistance(Distance)
+    if self then
+      self.SmokeOffsetDistance = Distance or math.random(10,20)
+      return self
+    else
+      COORDINATE.SmokeOffsetDistance = Distance or math.random(10,20)
+    end
+  end
+  
+  --- Set the offset on when using `COORDINATE:Smoke()`.
+  -- @param #COORDINATE self
+  -- @return #COORDINATE self
+  function COORDINATE:SwitchSmokeOffsetOn()
+    if self then
+      self.SmokeOffset = true
+      return self
+    else
+      COORDINATE.SmokeOffset = true
+    end
+  end
+  
+  --- Set the offset off when using `COORDINATE:Smoke()`.
+  -- @param #COORDINATE self
+  -- @return #COORDINATE self
+  function COORDINATE:SwitchSmokeOffsetOff()
+    if self then
+      self.SmokeOffset = false
+      return self
+    else
+      COORDINATE.SmokeOffset = false
+    end
   end
 
   --- Stops smoking the point in a color.
@@ -2992,8 +3128,10 @@ do -- COORDINATE
       local sunrise=UTILS.GetSunRiseAndSet(DayOfYear, Latitude, Longitude, true, Tdiff)
       local sunset=UTILS.GetSunRiseAndSet(DayOfYear, Latitude, Longitude, false, Tdiff)
       
-      if sunrise == "N/R" then return false end
-      if sunrise == "N/S" then return true end
+      if type(sunrise) == "string" or type(sunset) == "string" then
+        if sunrise == "N/R" then return false end
+        if sunset == "N/S" then return true end
+      end
       
       local time=UTILS.ClockToSeconds(clock)
 
@@ -3011,6 +3149,11 @@ do -- COORDINATE
 
       -- Todays sun set in sec.
       local sunset=self:GetSunset(true)
+      
+      if type(sunrise) == "string" or type(sunset) == "string" then
+        if sunrise == "N/R" then return false end
+        if sunset == "N/S" then return true end
+      end
 
       -- Seconds passed since midnight.
       local time=UTILS.SecondsOfToday()
@@ -3138,7 +3281,6 @@ do -- COORDINATE
     return delta/60
   end
 
-
   --- Return a BR string from a COORDINATE to the COORDINATE.
   -- @param #COORDINATE self
   -- @param #COORDINATE FromCoordinate The coordinate to measure the distance and the bearing from.
@@ -3151,6 +3293,20 @@ do -- COORDINATE
     local AngleRadians =  self:GetAngleRadians( DirectionVec3 )
     local Distance = self:Get2DDistance( FromCoordinate )
     return "BR, " .. self:GetBRText( AngleRadians, Distance, Settings, nil, MagVar, Precision )
+  end
+  
+  --- Return a Bearing string from a COORDINATE to the (self) COORDINATE.
+  -- @param #COORDINATE self
+  -- @param #COORDINATE FromCoordinate The coordinate to measure the distance and the bearing from.
+  -- @param Core.Settings#SETTINGS Settings (optional) The settings. Can be nil, and in this case the default settings are used. If you want to specify your own settings, use the _SETTINGS object.
+  -- @param #boolean MagVar If true, also get angle in MagVar for BR/BRA
+  -- @param #number Precision Rounding precision, currently full km as default (=0)
+  -- @return #string The BR text.
+  function COORDINATE:ToStringBearing( FromCoordinate, Settings, MagVar, Precision )
+    local DirectionVec3 = FromCoordinate:GetDirectionVec3( self )
+    local AngleRadians =  self:GetAngleRadians( DirectionVec3 )
+    --local Distance = self:Get2DDistance( FromCoordinate )
+    return self:GetBearingText(AngleRadians,Precision,Settings,MagVar)
   end
 
   --- Return a BRA string from a COORDINATE to the COORDINATE.
@@ -3569,25 +3725,6 @@ do -- COORDINATE
 
     local ModeA2A = nil
     
-    --[[
-    if Task then
-      if Task:IsInstanceOf( TASK_A2A ) then
-        ModeA2A = true
-      else
-        if Task:IsInstanceOf( TASK_A2G ) then
-          ModeA2A = false
-        else
-          if Task:IsInstanceOf( TASK_CARGO ) then
-            ModeA2A = false
-          end
-            if Task:IsInstanceOf( TASK_CAPTURE_ZONE ) then
-              ModeA2A = false
-            end
-        end
-      end
-    end
-    --]]
-
     if ModeA2A == nil then
       local IsAir = Controllable and ( Controllable:IsAirPlane() or Controllable:IsHelicopter() ) or false
       if IsAir  then
@@ -3709,173 +3846,24 @@ do -- COORDINATE
   function COORDINATE:GetRandomPointVec3InRadius( OuterRadius, InnerRadius )
     return COORDINATE:NewFromVec3( self:GetRandomVec3InRadius( OuterRadius, InnerRadius ) )
   end
-  
-end
-
-do 
-
-  --- The POINT_VEC3 class
-  -- @type POINT_VEC3
-  -- @field #number x The x coordinate in 3D space.
-  -- @field #number y The y coordinate in 3D space.
-  -- @field #number z The z COORDINATE in 3D space.
-  -- @field Utilities.Utils#SMOKECOLOR SmokeColor
-  -- @field Utilities.Utils#FLARECOLOR FlareColor
-  -- @field #POINT_VEC3.RoutePointAltType RoutePointAltType
-  -- @field #POINT_VEC3.RoutePointType RoutePointType
-  -- @field #POINT_VEC3.RoutePointAction RoutePointAction
-  -- @extends #COORDINATE
 
 
-  --- Defines a 3D point in the simulator and with its methods, you can use or manipulate the point in 3D space.
-  --
-  -- **DEPRECATED - PLEASE USE COORDINATE!**
-  --
-  -- **Important Note:** Most of the functions in this section were taken from MIST, and reworked to OO concepts.
-  -- In order to keep the credibility of the the author,
-  -- I want to emphasize that the formulas embedded in the MIST framework were created by Grimes or previous authors,
-  -- who you can find on the Eagle Dynamics Forums.
-  --
-  --
-  -- ## POINT_VEC3 constructor
-  --
-  -- A new POINT_VEC3 object can be created with:
-  --
-  --  * @{#POINT_VEC3.New}(): a 3D point.
-  --  * @{#POINT_VEC3.NewFromVec3}(): a 3D point created from a @{DCS#Vec3}.
-  --
-  --
-  -- ## Manupulate the X, Y, Z coordinates of the POINT_VEC3
-  --
-  -- A POINT_VEC3 class works in 3D space. It contains internally an X, Y, Z coordinate.
-  -- Methods exist to manupulate these coordinates.
-  --
-  -- The current X, Y, Z axis can be retrieved with the methods @{#POINT_VEC3.GetX}(), @{#POINT_VEC3.GetY}(), @{#POINT_VEC3.GetZ}() respectively.
-  -- The methods @{#POINT_VEC3.SetX}(), @{#POINT_VEC3.SetY}(), @{#POINT_VEC3.SetZ}() change the respective axis with a new value.
-  -- The current axis values can be changed by using the methods @{#POINT_VEC3.AddX}(), @{#POINT_VEC3.AddY}(), @{#POINT_VEC3.AddZ}()
-  -- to add or substract a value from the current respective axis value.
-  -- Note that the Set and Add methods return the current POINT_VEC3 object, so these manipulation methods can be chained... For example:
-  --
-  --      local Vec3 = PointVec3:AddX( 100 ):AddZ( 150 ):GetVec3()
-  --
-  --
-  -- ## 3D calculation methods
-  --
-  -- Various calculation methods exist to use or manipulate 3D space. Find below a short description of each method:
-  --
-  --
-  -- ## Point Randomization
-  --
-  -- Various methods exist to calculate random locations around a given 3D point.
-  --
-  --   * @{#POINT_VEC3.GetRandomPointVec3InRadius}(): Provides a random 3D point around the current 3D point, in the given inner to outer band.
-  --
-  --
-  -- @field #POINT_VEC3
-  POINT_VEC3 = {
-    ClassName = "POINT_VEC3",
-    Metric = true,
-    RoutePointAltType = {
-      BARO = "BARO",
-    },
-    RoutePointType = {
-      TakeOffParking = "TakeOffParking",
-      TurningPoint = "Turning Point",
-    },
-    RoutePointAction = {
-      FromParkingArea = "From Parking Area",
-      TurningPoint = "Turning Point",
-    },
-  }
-
-  --- RoutePoint AltTypes
-  -- @type POINT_VEC3.RoutePointAltType
-  -- @field BARO "BARO"
-
-  --- RoutePoint Types
-  -- @type POINT_VEC3.RoutePointType
-  -- @field TakeOffParking "TakeOffParking"
-  -- @field TurningPoint "Turning Point"
-
-  --- RoutePoint Actions
-  -- @type POINT_VEC3.RoutePointAction
-  -- @field FromParkingArea "From Parking Area"
-  -- @field TurningPoint "Turning Point"
-
-  -- Constructor.
-
-  --- Create a new POINT_VEC3 object.
-  -- @param #POINT_VEC3 self
-  -- @param DCS#Distance x The x coordinate of the Vec3 point, pointing to the North.
-  -- @param DCS#Distance y The y coordinate of the Vec3 point, pointing Upwards.
-  -- @param DCS#Distance z The z coordinate of the Vec3 point, pointing to the Right.
-  -- @return Core.Point#POINT_VEC3
-  function POINT_VEC3:New( x, y, z )
-
-    local self = BASE:Inherit( self, COORDINATE:New( x, y, z ) ) -- Core.Point#POINT_VEC3
-    self:F2( self )
-
-    return self
-  end
-
-end
-
-do
-
-  --- @type POINT_VEC2
-  -- @field DCS#Distance x The x coordinate in meters.
-  -- @field DCS#Distance y the y coordinate in meters.
-  -- @extends Core.Point#COORDINATE
-
-  --- Defines a 2D point in the simulator. The height coordinate (if needed) will be the land height + an optional added height specified.
-  --
-  --  **DEPRECATED - PLEASE USE COORDINATE!**
-  --
-  -- ## POINT_VEC2 constructor
-  --
-  -- A new POINT_VEC2 instance can be created with:
-  --
-  --  * @{Core.Point#POINT_VEC2.New}(): a 2D point, taking an additional height parameter.
-  --  * @{Core.Point#POINT_VEC2.NewFromVec2}(): a 2D point created from a @{DCS#Vec2}.
-  --
-  -- ## Manupulate the X, Altitude, Y coordinates of the 2D point
-  --
-  -- A POINT_VEC2 class works in 2D space, with an altitude setting. It contains internally an X, Altitude, Y coordinate.
-  -- Methods exist to manupulate these coordinates.
-  --
-  -- The current X, Altitude, Y axis can be retrieved with the methods @{#POINT_VEC2.GetX}(), @{#POINT_VEC2.GetAlt}(), @{#POINT_VEC2.GetY}() respectively.
-  -- The methods @{#POINT_VEC2.SetX}(), @{#POINT_VEC2.SetAlt}(), @{#POINT_VEC2.SetY}() change the respective axis with a new value.
-  -- The current Lat(itude), Alt(itude), Lon(gitude) values can also be retrieved with the methods @{#POINT_VEC2.GetLat}(), @{#POINT_VEC2.GetAlt}(), @{#POINT_VEC2.GetLon}() respectively.
-  -- The current axis values can be changed by using the methods @{#POINT_VEC2.AddX}(), @{#POINT_VEC2.AddAlt}(), @{#POINT_VEC2.AddY}()
-  -- to add or substract a value from the current respective axis value.
-  -- Note that the Set and Add methods return the current POINT_VEC2 object, so these manipulation methods can be chained... For example:
-  --
-  --      local Vec2 = PointVec2:AddX( 100 ):AddY( 2000 ):GetVec2()
-  --
-  -- @field #POINT_VEC2
-  POINT_VEC2 = {
-    ClassName = "POINT_VEC2",
-  }
-
-
-
-  --- POINT_VEC2 constructor.
-  -- @param #POINT_VEC2 self
-  -- @param DCS#Distance x The x coordinate of the Vec3 point, pointing to the North.
-  -- @param DCS#Distance y The y coordinate of the Vec3 point, pointing to the Right.
-  -- @param DCS#Distance LandHeightAdd (optional) The default height if required to be evaluated will be the land height of the x, y coordinate. You can specify an extra height to be added to the land height.
-  -- @return Core.Point#POINT_VEC2
-  function POINT_VEC2:New( x, y, LandHeightAdd )
-
-    local LandHeight = land.getHeight( { ["x"] = x, ["y"] = y } )
-
-    LandHeightAdd = LandHeightAdd or 0
-    LandHeight = LandHeight + LandHeightAdd
-
-    local self = BASE:Inherit( self, COORDINATE:New( x, LandHeight, y ) ) -- Core.Point#POINT_VEC2
-    self:F2( self )
-
-    return self
+--- Search for clear zones in a given area. A powerful and efficient function using Disposition to find clear areas for spawning ground units avoiding trees, water and map scenery.
+-- @param #number SearchRadius Radius of the search area.
+-- @param #number PosRadius Required clear radius around each position.
+-- @param #number NumPositions Number of positions to find.
+-- @return #table A table of Core.Point#COORDINATE that are clear of map objects within the given PosRadius. nil if no positions are found.
+  function COORDINATE:GetSimpleZones(SearchRadius, PosRadius, NumPositions)
+    local clearPositions = UTILS.GetSimpleZones(self:GetVec3(), SearchRadius, PosRadius, NumPositions)
+    if clearPositions and #clearPositions > 0 then
+        local coords = {}
+        for _, pos in pairs(clearPositions) do
+          local coord = COORDINATE:NewFromVec2(pos)
+          table.insert(coords, coord)
+        end
+        return coords
+    end
+    return nil
   end
 
 end

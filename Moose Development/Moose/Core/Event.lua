@@ -184,21 +184,20 @@ EVENT = {
   ClassName = "EVENT",
   ClassID = 0,
   MissionEnd = false,
+  CreateMarkCoordinateOnEvent = false,
 }
 
-world.event.S_EVENT_NEW_CARGO = world.event.S_EVENT_MAX + 1000
-world.event.S_EVENT_DELETE_CARGO = world.event.S_EVENT_MAX + 1001
-world.event.S_EVENT_NEW_ZONE = world.event.S_EVENT_MAX + 1002
-world.event.S_EVENT_DELETE_ZONE = world.event.S_EVENT_MAX + 1003
-world.event.S_EVENT_NEW_ZONE_GOAL = world.event.S_EVENT_MAX + 1004
-world.event.S_EVENT_DELETE_ZONE_GOAL = world.event.S_EVENT_MAX + 1005
-world.event.S_EVENT_REMOVE_UNIT = world.event.S_EVENT_MAX + 1006
-world.event.S_EVENT_PLAYER_ENTER_AIRCRAFT = world.event.S_EVENT_MAX + 1007
+world.event.S_EVENT_NEW_ZONE = world.event.S_EVENT_MAX + 1000
+world.event.S_EVENT_DELETE_ZONE = world.event.S_EVENT_MAX + 1001
+world.event.S_EVENT_NEW_ZONE_GOAL = world.event.S_EVENT_MAX + 1002
+world.event.S_EVENT_DELETE_ZONE_GOAL = world.event.S_EVENT_MAX + 1003
+world.event.S_EVENT_REMOVE_UNIT = world.event.S_EVENT_MAX + 1004
+world.event.S_EVENT_PLAYER_ENTER_AIRCRAFT = world.event.S_EVENT_MAX + 1005
 -- dynamic cargo
-world.event.S_EVENT_NEW_DYNAMIC_CARGO = world.event.S_EVENT_MAX + 1008
-world.event.S_EVENT_DYNAMIC_CARGO_LOADED = world.event.S_EVENT_MAX + 1009
-world.event.S_EVENT_DYNAMIC_CARGO_UNLOADED = world.event.S_EVENT_MAX + 1010
-world.event.S_EVENT_DYNAMIC_CARGO_REMOVED = world.event.S_EVENT_MAX + 1011
+world.event.S_EVENT_NEW_DYNAMIC_CARGO = world.event.S_EVENT_MAX + 1006
+world.event.S_EVENT_DYNAMIC_CARGO_LOADED = world.event.S_EVENT_MAX + 1007
+world.event.S_EVENT_DYNAMIC_CARGO_UNLOADED = world.event.S_EVENT_MAX + 1008
+world.event.S_EVENT_DYNAMIC_CARGO_REMOVED = world.event.S_EVENT_MAX + 1009
 
 
 --- The different types of events supported by MOOSE.
@@ -233,8 +232,6 @@ EVENTS = {
   MarkChange =        world.event.S_EVENT_MARK_CHANGE,
   MarkRemoved =       world.event.S_EVENT_MARK_REMOVED,
   -- Moose Events
-  NewCargo =          world.event.S_EVENT_NEW_CARGO,
-  DeleteCargo =       world.event.S_EVENT_DELETE_CARGO,
   NewZone =           world.event.S_EVENT_NEW_ZONE,
   DeleteZone =        world.event.S_EVENT_DELETE_ZONE,
   NewZoneGoal =       world.event.S_EVENT_NEW_ZONE_GOAL,
@@ -339,14 +336,18 @@ EVENTS = {
 -- @field #string WeaponName Name of the weapon.
 -- @field DCS#Unit WeaponTgtDCSUnit Target DCS unit of the weapon.
 --
--- @field Cargo.Cargo#CARGO Cargo The cargo object.
--- @field #string CargoName The name of the cargo object.
---
 -- @field Core.Zone#ZONE Zone The zone object.
 -- @field #string ZoneName The name of the zone.
 -- 
 -- @field Wrapper.DynamicCargo#DYNAMICCARGO IniDynamicCargo The dynamic cargo object.
 -- @field #string IniDynamicCargoName The dynamic cargo unit name.
+-- 
+-- @field #number MarkCoalition Coalition of a marker (if any)
+-- @field DCS#Vec3 MarkVec3 Position of a marker
+-- @field #string MarkText Text content of a marker, if any
+-- @field #number MarkID ID of the marker, for deletion
+-- @field #number MarkGroupID Group ID of the group that created the marker
+-- @field Core.Point#COORDINATE Coordinate object of the marker, only filled if EVENT.CreateMarkCoordinateOnEvent is set to true (off by default)
 
 
 
@@ -506,16 +507,6 @@ local _EVENTMETA = {
      Side = "I",
      Event = "OnEventMarkRemoved",
      Text = "S_EVENT_MARK_REMOVED"
-   },
-   [EVENTS.NewCargo] = {
-     Order = 1,
-     Event = "OnEventNewCargo",
-     Text = "S_EVENT_NEW_CARGO"
-   },
-   [EVENTS.DeleteCargo] = {
-     Order = 1,
-     Event = "OnEventDeleteCargo",
-     Text = "S_EVENT_DELETE_CARGO"
    },
    [EVENTS.NewZone] = {
      Order = 1,
@@ -1063,36 +1054,6 @@ end
 
 do -- Event Creation
 
-  --- Creation of a New Cargo Event.
-  -- @param #EVENT self
-  -- @param AI.AI_Cargo#AI_CARGO Cargo The Cargo created.
-  function EVENT:CreateEventNewCargo( Cargo )
-    self:F( { Cargo } )
-
-    local Event = {
-      id = EVENTS.NewCargo,
-      time = timer.getTime(),
-      cargo = Cargo,
-      }
-
-    world.onEvent( Event )
-  end
-
-  --- Creation of a Cargo Deletion Event.
-  -- @param #EVENT self
-  -- @param AI.AI_Cargo#AI_CARGO Cargo The Cargo created.
-  function EVENT:CreateEventDeleteCargo( Cargo )
-    self:F( { Cargo } )
-
-    local Event = {
-      id = EVENTS.DeleteCargo,
-      time = timer.getTime(),
-      cargo = Cargo,
-      }
-
-    world.onEvent( Event )
-  end
-
   --- Creation of a New Zone Event.
   -- @param #EVENT self
   -- @param Core.Zone#ZONE_BASE Zone The Zone created.
@@ -1361,7 +1322,7 @@ function EVENT:onEvent( Event )
             Event.IniDynamicCargoName = Event.IniUnitName
             Event.IniPlayerName = string.match(Event.IniUnitName,"^(.+)|%d%d:%d%d|PKG%d+")
           else
-            Event.IniUnit = CARGO:FindByName( Event.IniDCSUnitName )
+            Event.IniUnit = STATIC:FindByName( Event.IniDCSUnitName, false )
           end
           Event.IniCoalition = Event.IniDCSUnit:getCoalition()
           Event.IniCategory = Event.IniDCSUnit:getDesc().category
@@ -1374,7 +1335,9 @@ function EVENT:onEvent( Event )
           Event.IniDCSUnit = Event.initiator
           Event.IniDCSUnitName = ( Event.IniDCSUnit and Event.IniDCSUnit.getName ) and Event.IniDCSUnit:getName() or "Scenery no name "..math.random(1,20000)
           Event.IniUnitName = Event.IniDCSUnitName
-          Event.IniUnit = SCENERY:Register( Event.IniDCSUnitName, Event.initiator )
+          local ID = (Event.IniDCSUnit and Event.IniDCSUnit.getID) and Event.IniDCSUnit:getID() or Event.IniDCSUnitName
+          Event.IniUnit = (_SCENERY ~= nil) and _SCENERY[ID] or nil
+          --Event.IniUnit = SCENERY:Register( Event.IniDCSUnitName, Event.initiator )
           Event.IniCategory =  (Event.IniDCSUnit and Event.IniDCSUnit.getDesc ) and Event.IniDCSUnit:getDesc().category
           Event.IniTypeName = (Event.initiator and Event.initiator.isExist          
           and Event.initiator:isExist() and Event.IniDCSUnit and Event.IniDCSUnit.getTypeName) and Event.IniDCSUnit:getTypeName() or "SCENERY"
@@ -1475,10 +1438,12 @@ function EVENT:onEvent( Event )
           -- SCENERY
           ---
           Event.TgtDCSUnit = Event.target
-          Event.TgtDCSUnitName = Event.TgtDCSUnit.getName and Event.TgtDCSUnit.getName() or nil
+          Event.TgtDCSUnitName = Event.TgtDCSUnit.getName and Event.TgtDCSUnit:getName() or nil
           if Event.TgtDCSUnitName~=nil then
             Event.TgtUnitName = Event.TgtDCSUnitName
-            Event.TgtUnit = SCENERY:Register( Event.TgtDCSUnitName, Event.target )
+            local ID = (Event.TgtDCSUnit and Event.TgtDCSUnit.getID) and Event.TgtDCSUnit:getID() or Event.TgtDCSUnitName
+            --Event.TgtUnit = SCENERY:Register( Event.TgtDCSUnitName, Event.target )
+            Event.TgtUnit = (_SCENERY ~= nil) and _SCENERY[ID] or nil
             Event.TgtCategory = Event.TgtDCSUnit:getDesc().category
             Event.TgtTypeName = Event.TgtDCSUnit:getTypeName()
           end
@@ -1508,7 +1473,9 @@ function EVENT:onEvent( Event )
         else  
           if Event.place:isExist() and Object.getCategory(Event.place) ~= Object.Category.SCENERY then
             Event.Place=AIRBASE:Find(Event.place)
-            Event.PlaceName=Event.Place:GetName()
+            if Event.Place then
+              Event.PlaceName=Event.Place:GetName()
+            end
           end
         end
       end
@@ -1517,19 +1484,15 @@ function EVENT:onEvent( Event )
       if Event.idx then
         Event.MarkID=Event.idx
         Event.MarkVec3=Event.pos
-        Event.MarkCoordinate=COORDINATE:NewFromVec3(Event.pos)
+        if self.CreateMarkCoordinateOnEvent == true then
+          Event.MarkCoordinate=COORDINATE:NewFromVec3(Event.pos)
+        end
         Event.MarkText=Event.text
         Event.MarkCoalition=Event.coalition
         Event.IniCoalition=Event.coalition
         Event.MarkGroupID = Event.groupID
       end
 
-      -- Cargo object.
-      if Event.cargo then
-        Event.Cargo = Event.cargo
-        Event.CargoName = Event.cargo.Name
-      end
-      
       -- Dynamic cargo Object
       if Event.dynamiccargo then
         Event.IniDynamicCargo = Event.dynamiccargo
@@ -1691,15 +1654,6 @@ function EVENT:onEvent( Event )
         end
       end
 
-      -- When cargo was deleted, it may probably be because of an S_EVENT_DEAD.
-      -- However, in the loading logic, an S_EVENT_DEAD is also generated after a Destroy() call.
-      -- And this is a problem because it will remove all entries from the SET_CARGOs.
-      -- To prevent this from happening, the Cargo object has a flag NoDestroy.
-      -- When true, the SET_CARGO won't Remove the Cargo object from the set.
-      -- But we need to switch that flag off after the event handlers have been called.
-      if Event.id == EVENTS.DeleteCargo then
-        Event.Cargo.NoDestroy = nil
-      end
     else
       self:T( { EventMeta.Text, Event } )
     end

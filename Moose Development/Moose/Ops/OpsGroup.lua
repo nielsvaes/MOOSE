@@ -405,7 +405,9 @@ OPSGROUP.TaskType={
 --- Ammo data.
 -- @type OPSGROUP.Ammo
 -- @field #number Total Total amount of ammo.
--- @field #number Guns Amount of gun shells.
+-- @field #number Shells Amount of shells (guns + cannons).
+-- @field #number Guns Amount of gun shells (caliber < 25).
+-- @field #number Cannons Amount of cannon shells (caliber >= 25).
 -- @field #number Bombs Amount of bombs.
 -- @field #number Rockets Amount of rockets.
 -- @field #number Torpedos Amount of torpedos.
@@ -512,7 +514,7 @@ OPSGROUP.CargoStatus={
 
 --- OpsGroup version.
 -- @field #string version
-OPSGROUP.version="1.0.4"
+OPSGROUP.version="1.0.5"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- TODO list
@@ -1189,8 +1191,8 @@ function OPSGROUP:GetDCSObject()
   return self.dcsgroup
 end
 
---- Set detection on or off.
--- If detection is on, detected targets of the group will be evaluated and FSM events triggered.
+--- Make a target (unit, group, opsgroup) known to this group.
+-- This is useing the DCS function `controller.knowTarget`. 
 -- @param #OPSGROUP self
 -- @param Wrapper.Positionable#POSITIONABLE TargetObject The target object.
 -- @param #boolean KnowType Make type known.
@@ -2739,6 +2741,15 @@ function OPSGROUP:IsOutOfTorpedos()
   return self.outofTorpedos
 end
 
+--- Check if the group is out of A2G Ammo
+-- @param #OPSGROUP self
+-- @return #boolean If `true`, group is out of torpedos.
+function OPSGROUP:IsOutOfA2GAmmo()
+  if (self.outofMissilesAG and self.outofBombs and self.outofGuns) or self.outofAmmo then
+    return true
+  end
+  return false
+end
 
 --- Check if the group has currently switched a LASER on.
 -- @param #OPSGROUP self
@@ -4300,7 +4311,27 @@ function OPSGROUP:_UpdateTask(Task, Mission)
   Mission=Mission or self:GetMissionByTaskID(self.taskcurrent)
 
   if Task.dcstask.id==AUFTRAG.SpecialTask.FORMATION then
-
+      
+    if Mission.type == AUFTRAG.Type.RESCUEHELO then
+      self:T("**********")
+      self:T("** RESCUEHELO USED")
+      self:T("**********")
+      local param=Task.dcstask.params
+      local followUnit=UNIT:FindByName(param.unitname)
+      local helogroupname = self:GetGroup():GetName()
+      Task.formation = RESCUEHELO:New(followUnit,helogroupname)
+      Task.formation:SetRespawnOnOff(false)
+      Task.formation.respawninair=false
+      Task.formation:SetTakeoffCold()
+      Task.formation:SetHomeBase(followUnit)
+      Task.formation.helo = self:GetGroup() 
+      -- Start formation FSM.
+      Task.formation:Start()
+      if self:IsFlightgroup() then
+        self:SetDespawnAfterLanding()
+      end
+    else  
+      
     -- Set of group(s) to follow Mother.
     local followSet=SET_GROUP:New():AddGroup(self.group)
 
@@ -4309,7 +4340,7 @@ function OPSGROUP:_UpdateTask(Task, Mission)
     local followUnit=UNIT:FindByName(param.unitname)
 
     -- Define AI Formation object.
-    Task.formation=AI_FORMATION:New(followUnit, followSet, AUFTRAG.SpecialTask.FORMATION, "Follow X at given parameters.")
+    Task.formation=FORMATION:New(followUnit, followSet, AUFTRAG.SpecialTask.FORMATION)
 
     -- Formation parameters.
     Task.formation:FormationCenterWing(-param.offsetX, 50, math.abs(param.altitude), 50, param.offsetZ, 50)
@@ -4318,11 +4349,13 @@ function OPSGROUP:_UpdateTask(Task, Mission)
     Task.formation:SetFollowTimeInterval(param.dtFollow)
 
     -- Formation mode.
-    Task.formation:SetFlightModeFormation(self.group)
+    --Task.formation:SetFlightModeFormation(self.group)
 
     -- Start formation FSM.
     Task.formation:Start()
-
+    
+    end
+    
   elseif Task.dcstask.id==AUFTRAG.SpecialTask.PATROLZONE then
 
     ---
@@ -4513,6 +4546,25 @@ function OPSGROUP:_UpdateTask(Task, Mission)
     if target then
       self:EngageTarget(target, speed, Task.dcstask.params.formation)
     end
+
+  elseif Task.dcstask.id==AUFTRAG.SpecialTask.NAVALENGAGEMENT then
+
+    ---
+    -- Task "Naval Engagement" Mission.
+    ---
+    
+    -- Engage target.
+    local target=Task.dcstask.params.target --Ops.Target#TARGET
+    
+    -- Set speed. Default max.
+    local speed=self.speedMax and UTILS.KmphToKnots(self.speedMax) or nil
+    if Task.dcstask.params.speed then
+      speed=UTILS.MpsToKnots(Task.dcstask.params.speed)
+    end
+    
+    if target then
+      self:EngageTarget(target, speed, Task.dcstask.params.altitude)
+    end
   
   elseif Task.dcstask.id==AUFTRAG.SpecialTask.PATROLRACETRACK then
   
@@ -4631,7 +4683,12 @@ function OPSGROUP:_UpdateTask(Task, Mission)
           self:T(self.lid..string.format("Zone %s captured ==> Task DONE!", zoneCurr:GetName()))
           
           -- Task done.
-          self:TaskDone(Task)
+          if Task.StayInZoneTime then
+            local stay = Task.StayInZoneTime
+            self:__TaskDone(stay,Task)
+          else
+            self:TaskDone(Task)
+          end
           
         else        
           -- Current zone NOT captured yet ==> Find Target
@@ -4734,7 +4791,7 @@ function OPSGROUP:_UpdateTask(Task, Mission)
         elseif weaponType==ENUMS.WeaponFlag.AnyRocket then
           nAmmo=ammo.Rockets
         elseif weaponType==ENUMS.WeaponFlag.Cannons then
-          nAmmo=ammo.Guns
+          nAmmo=ammo.Cannons
         end
         
         --TODO: Update target location while we're at it anyway.
@@ -4881,7 +4938,7 @@ function OPSGROUP:onafterTaskCancel(From, Event, To, Task)
         done=true
       elseif Task.dcstask.id==AUFTRAG.SpecialTask.ONGUARD or Task.dcstask.id==AUFTRAG.SpecialTask.ARMOREDGUARD then
         done=true
-      elseif Task.dcstask.id==AUFTRAG.SpecialTask.GROUNDATTACK or Task.dcstask.id==AUFTRAG.SpecialTask.ARMORATTACK then
+      elseif Task.dcstask.id==AUFTRAG.SpecialTask.GROUNDATTACK or Task.dcstask.id==AUFTRAG.SpecialTask.ARMORATTACK or Task.dcstask.id==AUFTRAG.SpecialTask.NAVALENGAGEMENT then
         done=true
       elseif Task.dcstask.id==AUFTRAG.SpecialTask.NOTHING then
         done=true        
@@ -5043,7 +5100,7 @@ function OPSGROUP:onafterTaskDone(From, Event, To, Task)
     
     if Task.description=="Task_Land_At" then
       self:T(self.lid.."Taske DONE Task_Land_At ==> Wait")
-      self:Cruise()
+      -- After the land task, we set the helo to wait. This is because of an issue that the passing waypoint function is triggered immidiately if we do not do this!
       self:Wait(20, 100)
     else
       self:T(self.lid.."Task Done but NO mission found ==> _CheckGroupDone in 1 sec")
@@ -5589,10 +5646,13 @@ function OPSGROUP:onafterUnpauseMission(From, Event, To)
     -- Debug info.
     self:T(self.lid..string.format("Unpausing mission %s [%s]", mission:GetName(), mission:GetType()))
     
+    -- Set state of mission, e.g. for not teleporting again
+    mission.unpaused=true
+    
     -- Start mission.
     self:MissionStart(mission)
     
-    -- Remove mission from 
+    -- Remove mission from pausedmissions queue
     for i,mid in pairs(self.pausedmissions) do
       --self:T(self.lid..string.format("Checking paused mission", mid))
       if mid==mission.auftragsnummer then
@@ -5710,7 +5770,7 @@ end
 function OPSGROUP:onafterMissionDone(From, Event, To, Mission)
 
   -- Debug info.
-  local text=string.format("Mission %s DONE!", Mission.name)
+  local text=string.format("Mission DONE %s!", Mission.name)
   self:T(self.lid..text)
 
   -- Set group status.
@@ -5727,7 +5787,7 @@ function OPSGROUP:onafterMissionDone(From, Event, To, Mission)
   -- Decrease patrol data.
   if Mission.patroldata then
     Mission.patroldata.noccupied=Mission.patroldata.noccupied-1
-    AIRWING.UpdatePatrolPointMarker(Mission.patroldata)
+    AIRWING.UpdatePatrolPointMarker(self,Mission.patroldata)
   end
 
   -- Switch auto engage detected off. This IGNORES that engage detected had been activated for the group!
@@ -6223,16 +6283,17 @@ function OPSGROUP:RouteToMission(mission, delay)
       self:T(self.lid.."Already in mission zone ==> TaskExecute()")
       self:TaskExecute(waypointtask)
       -- TODO: Calling PassingWaypoint here is probably better as it marks the mission waypoint as passed!
-      --self:PassingWaypoint(waypoint)
+      self:PassingWaypoint(waypoint)
       return
     elseif d<25 then
       self:T(self.lid.."Already within 25 meters of mission waypoint ==> TaskExecute()")
       self:TaskExecute(waypointtask)
+      self:PassingWaypoint(waypoint)
       return
     end
     
     -- Check if group is mobile. Note that some immobile units report a speed of 1 m/s = 3.6 km/h.
-    if self.speedMax<=3.6 or mission.teleport then
+    if (self.speedMax<=3.6 or mission.teleport) and not mission.unpaused then
 
       -- Teleport to waypoint coordinate. Mission will not be paused.
       self:Teleport(waypointcoord, nil, true)
@@ -7531,7 +7592,7 @@ end
 function OPSGROUP:onafterElementDead(From, Event, To, Element)
 
   -- Debug info.
-  self:I(self.lid..string.format("Element dead %s at t=%.3f", Element.name, timer.getTime()))
+  self:T(self.lid..string.format("Element dead %s at t=%.3f", Element.name, timer.getTime()))
 
   -- Set element status.
   self:_UpdateStatus(Element, OPSGROUP.ElementStatus.DEAD)
@@ -7842,10 +7903,15 @@ function OPSGROUP:_Spawn(Delay, Template)
     self:ScheduleOnce(Delay, OPSGROUP._Spawn, self, 0, Template)
   else
     -- Debug output.
-    self:T2({Template=Template})
+    --self:T2({Template=Template})
+
+    if self:IsArmygroup() and self.ValidateAndRepositionGroundUnits then
+        UTILS.ValidateAndRepositionGroundUnits(Template.units)
+    end
 
     -- Spawn new group.
     self.group=_DATABASE:Spawn(Template)
+    self.group:SetValidateAndRepositionGroundUnits(self.ValidateAndRepositionGroundUnits)
     --local countryID=self.group:GetCountry()
     --local categoryID=self.group:GetCategory()
     --local dcsgroup=coalition.addGroup(countryID, categoryID, Template)
@@ -7985,11 +8051,16 @@ function OPSGROUP:onafterDead(From, Event, To)
       -- Get asset.
       local asset=self.legion:GetAssetByName(self.groupname)
       
+      if asset then
+      
       -- Get request.
       local request=self.legion:GetRequestByID(asset.rid)
       
       -- Trigger asset dead event.
       self.legion:AssetDead(asset, request)
+      
+      end
+      
     end
   
     -- Stop in 5 sec to give possible respawn attempts a chance.  
@@ -8082,7 +8153,7 @@ function OPSGROUP:onafterStop(From, Event, To)
   _DATABASE.FLIGHTGROUPS[self.groupname]=nil
 
   -- Debug output.
-  self:I(self.lid.."STOPPED! Unhandled events, cleared scheduler and removed from _DATABASE")
+  self:T(self.lid.."STOPPED! Unhandled events, cleared scheduler and removed from _DATABASE")
 end
 
 --- On after "OutOfAmmo" event.
@@ -8260,7 +8331,8 @@ function OPSGROUP:_CheckCargoTransport()
       end
 
       -- Boarding finished ==> Transport cargo.
-      if gotcargo and self.cargoTransport:_CheckRequiredCargos(self.cargoTZC, self) and not boarding then
+	  local required=self.cargoTransport:_CheckRequiredCargos(self.cargoTZC, self)
+      if gotcargo and required and not boarding then
         self:T(self.lid.."Boarding/loading finished ==> Loaded")
         self.Tloading=nil
         self:LoadingDone()
@@ -9896,6 +9968,10 @@ function OPSGROUP:onafterTransport(From, Event, To)
           self:T(self.lid.."ERROR: No current task but landed at?!")
         end
       end
+	  
+      if self:IsWaiting() then
+        self:__Cruise(-10)
+      end	  
 
     elseif self:IsArmygroup() then
 
@@ -11177,11 +11253,11 @@ function OPSGROUP:_CheckAmmoStatus()
       self:OutOfAmmo()
     end
 
-    -- Guns.
-    if self.outofGuns and ammo.Guns>0 then
+    -- Guns (changed to shells)
+    if self.outofGuns and ammo.Shells>0 then
       self.outofGuns=false
     end
-    if ammo.Guns==0 and self.ammo.Guns>0 and not self.outofGuns then
+    if ammo.Shells==0 and self.ammo.Shells>0 and not self.outofGuns then
       self.outofGuns=true
       self:OutOfGuns()
     end
@@ -12682,7 +12758,7 @@ end
 -- @return #OPSGROUP self
 function OPSGROUP:SetDefaultCallsign(CallsignName, CallsignNumber)
 
-  self:T(self.lid..string.format("Setting Default callsing %s-%s", tostring(CallsignName), tostring(CallsignNumber)))
+  self:T(self.lid..string.format("Setting Default callsign %s-%s", tostring(CallsignName), tostring(CallsignNumber)))
 
   self.callsignDefault={} --#OPSGROUP.Callsign
   self.callsignDefault.NumberSquad=CallsignName
@@ -13357,7 +13433,9 @@ function OPSGROUP:GetAmmoTot()
 
   local Ammo={} --#OPSGROUP.Ammo
   Ammo.Total=0
+  Ammo.Shells=0
   Ammo.Guns=0
+  Ammo.Cannons=0
   Ammo.Rockets=0
   Ammo.Bombs=0
   Ammo.Torpedos=0
@@ -13378,7 +13456,9 @@ function OPSGROUP:GetAmmoTot()
 
       -- Add up total.
       Ammo.Total=Ammo.Total+ammo.Total
+      Ammo.Shells=Ammo.Shells+ammo.Shells
       Ammo.Guns=Ammo.Guns+ammo.Guns
+      Ammo.Cannons=Ammo.Cannons+ammo.Cannons
       Ammo.Rockets=Ammo.Rockets+ammo.Rockets
       Ammo.Bombs=Ammo.Bombs+ammo.Bombs
       Ammo.Torpedos=Ammo.Torpedos+ammo.Torpedos
@@ -13411,6 +13491,8 @@ function OPSGROUP:GetAmmoUnit(unit, display)
   -- Init counter.
   local nammo=0
   local nshells=0
+  local nguns=0
+  local ncannons=0
   local nrockets=0
   local nmissiles=0
   local nmissilesAA=0
@@ -13433,10 +13515,10 @@ function OPSGROUP:GetAmmoUnit(unit, display)
     local ammotable=unit:GetAmmo()
 
     if ammotable then
-
       local weapons=#ammotable
     
-    --self:I(ammotable)
+      --self:I(ammotable)
+      --UTILS.PrintTableToLog(ammotable)
 
       -- Loop over all weapons.
       for w=1,weapons do
@@ -13444,9 +13526,9 @@ function OPSGROUP:GetAmmoUnit(unit, display)
         -- Number of current weapon.
         local Nammo=ammotable[w]["count"]
       
-      -- Range in meters. Seems only to exist for missiles (not shells).
-      local rmin=ammotable[w]["desc"]["rangeMin"] or 0
-      local rmax=ammotable[w]["desc"]["rangeMaxAltMin"] or 0
+        -- Range in meters. Seems only to exist for missiles (not shells).
+        local rmin=ammotable[w]["desc"]["rangeMin"] or 0
+        local rmax=ammotable[w]["desc"]["rangeMaxAltMin"] or 0
 
         -- Type name of current weapon.
         local Tammo=ammotable[w]["desc"]["typeName"]
@@ -13468,6 +13550,16 @@ function OPSGROUP:GetAmmoUnit(unit, display)
 
           -- Add up all shells.
           nshells=nshells+Nammo
+      
+          -- Add small and large caliber shells for guns and cannons
+          if ammotable[w]["desc"]["warhead"] and ammotable[w]["desc"]["warhead"]["caliber"] then
+            local caliber=ammotable[w]["desc"]["warhead"]["caliber"]
+            if caliber<25 then
+              nguns=nguns+Nammo
+            else
+              ncannons=ncannons+Nammo
+            end
+          end
 
           -- Debug info.
           text=text..string.format("- %d shells of type %s, range=%d - %d meters\n", Nammo, _weaponName, rmin, rmax)
@@ -13546,7 +13638,9 @@ function OPSGROUP:GetAmmoUnit(unit, display)
 
   local ammo={} --#OPSGROUP.Ammo
   ammo.Total=nammo
-  ammo.Guns=nshells
+  ammo.Shells=nshells
+  ammo.Guns=nguns
+  ammo.Cannons=ncannons
   ammo.Rockets=nrockets
   ammo.Bombs=nbombs
   ammo.Torpedos=ntorps
@@ -13952,6 +14046,15 @@ function OPSGROUP:_GetDetectedTarget()
   return targetgroup, targetdist
 end
 
+--- This function uses Disposition and other fallback logic to find better ground positions for ground units.
+--- NOTE: This is not a spawn randomizer.
+--- It will try to find clear ground locations avoiding trees, water, roads, runways, map scenery, statics and other units in the area and modifies the provided positions table.
+--- Maintains the original layout and unit positions as close as possible by searching for the next closest valid position to each unit.
+--- Uses UTILS.ValidateAndRepositionGroundUnits.
+-- @param #boolean Enabled Enable/disable the feature.
+function OPSGROUP:SetValidateAndRepositionGroundUnits(Enabled)
+    self.ValidateAndRepositionGroundUnits = Enabled
+end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

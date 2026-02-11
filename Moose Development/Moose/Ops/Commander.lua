@@ -136,6 +136,7 @@ COMMANDER = {
   awacsZones      =    {},
   tankerZones     =    {},
   limitMission    =    {},
+  maxMissionsAssignPerCycle = 1,
 }
 
 --- COMMANDER class version.
@@ -1535,6 +1536,8 @@ function COMMANDER:CheckMissionQueue()
     end
   end
 
+  local missionsAssigned = 0
+
   -- Loop over missions in queue.
   for _,_mission in pairs(self.missionqueue) do
     local mission=_mission --Ops.Auftrag#AUFTRAG
@@ -1594,9 +1597,12 @@ function COMMANDER:CheckMissionQueue()
           -- Recruited assets but no requested escort available. Unrecruit assets!
           LEGION.UnRecruitAssets(assets, mission)
         end        
-    
-        -- Only ONE mission is assigned.
-        return        
+
+        missionsAssigned = missionsAssigned + 1
+        if missionsAssigned >= (self.maxMissionsAssignPerCycle or 1) then
+            return
+        end
+
       end
       
     else
@@ -1609,6 +1615,16 @@ function COMMANDER:CheckMissionQueue()
   
   end
   
+end
+
+--- Set how many missions can be assigned in a single status iteration. (eg. This is useful for persistent missions where you need to load all AUFTRAGs on mission start and then change it back to default)
+--- Warning: Increasing this value will increase the number of missions started per iteration and thus may lead to performance issues if too many missions are started at once.
+-- @param #COMMANDER self
+-- @param #number Number of missions assigned per status iteration. Default is 1.
+-- @return #COMMANDER self.
+function COMMANDER:SetMaxMissionsAssignPerCycle(MaxMissionsAssignPerCycle)
+  self.maxMissionsAssignPerCycle = MaxMissionsAssignPerCycle or 1
+  return self
 end
 
 --- Get cohorts.
@@ -1670,9 +1686,12 @@ function COMMANDER:_GetCohorts(Legions, Cohorts, Operation)
     for _,_legion in pairs(Legions or {}) do
       local legion=_legion --Ops.Legion#LEGION
   
-      -- Check that runway is operational.    
-      local Runway=legion:IsAirwing() and legion:IsRunwayOperational() or true
-      
+      -- Check that runway is operational.
+      local Runway=true
+      if legion:IsAirwing() then
+        Runway=legion:IsRunwayOperational() and legion.airbase and legion.airbase:GetCoalition() == legion:GetCoalition()
+      end
+
       -- Legion has to be running.
       if legion:IsRunning() and Runway then
       
@@ -1703,9 +1722,12 @@ function COMMANDER:_GetCohorts(Legions, Cohorts, Operation)
     for _,_legion in pairs(self.legions) do
       local legion=_legion --Ops.Legion#LEGION
       
-      -- Check that runway is operational.    
-      local Runway=legion:IsAirwing() and legion:IsRunwayOperational() or true
-      
+      -- Check that runway is operational.
+      local Runway=true
+      if legion:IsAirwing() then
+        Runway=legion:IsRunwayOperational() and legion.airbase and legion.airbase:GetCoalition() == legion:GetCoalition()
+      end
+
       -- Legion has to be running.
       if legion:IsRunning() and Runway then
       
@@ -1724,6 +1746,70 @@ function COMMANDER:_GetCohorts(Legions, Cohorts, Operation)
   end
 
   return cohorts
+end
+
+--- Checks whether or not any of the legions con run a mission.
+-- @param #COMMANDER self
+-- @param Ops.Auftrag#AUFTRAG Mission The mission.
+-- @return #boolean If `true`, one of the cohorts can run the mission.
+function COMMANDER:CanMission(Mission)
+    local commander = self
+
+    -- Target position.
+    local TargetVec2 = Mission:GetTargetVec2()
+
+    local MaxWeight = nil
+
+    if Mission.NcarriersMin then
+
+        local legions = commander.legions
+        local cohorts = nil
+        if Mission.transportLegions or Mission.transportCohorts then
+            legions = Mission.transportLegions
+            cohorts = Mission.transportCohorts
+        end
+
+        -- Get transport cohorts.
+        local Cohorts = LEGION._GetCohorts(legions, cohorts)
+
+        -- Filter cohorts that can actually perform transport missions.
+        local transportcohorts = {}
+        for _, _cohort in pairs(Cohorts) do
+            local cohort = _cohort --Ops.Cohort#COHORT
+
+            -- Check if cohort can perform transport to target.
+            local can = LEGION._CohortCan(cohort, AUFTRAG.Type.OPSTRANSPORT, Mission.carrierCategories, Mission.carrierAttributes, Mission.carrierProperties, nil, TargetVec2)
+
+            -- MaxWeight of cargo assets is limited by the largets available cargo bay. We don't want to select, e.g., tanks that cannot be transported by APCs or helos.
+            if can and (MaxWeight == nil or cohort.cargobayLimit > MaxWeight) then
+                MaxWeight = cohort.cargobayLimit
+            end
+        end
+
+    end
+
+    local legions = commander.legions
+    local cohorts = nil
+    if Mission.specialLegions or Mission.specialCohorts then
+        legions = Mission.specialLegions
+        cohorts = Mission.specialCohorts
+    end
+
+    -- Get cohorts.
+    local Cohorts = LEGION._GetCohorts(legions, cohorts, Mission.operation, commander.opsqueue)
+
+    for _, _cohort in pairs(Cohorts) do
+        local cohort = _cohort --Ops.Cohort#COHORT
+
+        -- Check if cohort can do the mission.
+        local can = LEGION._CohortCan(cohort, Mission.type, nil, Mission.attributes, Mission.properties, { Mission.engageWeaponType }, TargetVec2, Mission.engageRange, Mission.refuelSystem, nil, MaxWeight)
+        if can then
+            return true
+        end
+
+    end
+
+    return false
 end
 
 --- Recruit assets for a given mission.

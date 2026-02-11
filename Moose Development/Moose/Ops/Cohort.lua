@@ -88,7 +88,7 @@ COHORT = {
 
 --- COHORT class version.
 -- @field #string version
-COHORT.version="0.3.6"
+COHORT.version="0.3.7"
 
 --- Global variable to store the unique(!) cohort names
 _COHORTNAMES={}
@@ -100,6 +100,7 @@ _COHORTNAMES={}
 -- DONE: Create FLOTILLA class.
 -- DONE: Added check for properties.
 -- DONE: Make general so that PLATOON and SQUADRON can inherit this class.
+-- DONE: Better setting of call signs.
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Constructor
@@ -515,10 +516,12 @@ end
 -- @param #COHORT self
 -- @param #number Callsign Callsign from CALLSIGN.Aircraft, e.g. "Chevy" for CALLSIGN.Aircraft.CHEVY.
 -- @param #number Index Callsign index, Chevy-**1**.
+-- @param #string CallsignString (optional) Set this for tasks like TANKER, AWACS or KIOWA and the like, which have special names. E.g. "Darkstar" or "Roughneck".
 -- @return #COHORT self
-function COHORT:SetCallsign(Callsign, Index)
+function COHORT:SetCallsign(Callsign, Index, CallsignString)
   self.callsignName=Callsign
   self.callsignIndex=Index
+  self.callsignClearName=CallsignString
   self.callsign={}
   self.callsign.NumberSquad=Callsign
   self.callsign.NumberGroup=Index
@@ -626,32 +629,42 @@ end
 --- Remove assets from pool. Not that assets must not be spawned or already reserved or requested.
 -- @param #COHORT self
 -- @param #number N Number of assets to be removed. Default 1.
+-- @param #number Delay Delay in seconds before assets are removed.
 -- @return #COHORT self
-function COHORT:RemoveAssets(N)
+function COHORT:RemoveAssets(N, Delay)
   self:T2(self.lid..string.format("Remove %d assets of Cohort", N))
-
-  N=N or 1
   
-  local n=0
-  for i=#self.assets,1,-1 do
-    local asset=self.assets[i] --Functional.Warehouse#WAREHOUSE.Assetitem
+  if Delay and Delay>0 then
+    -- Delayed call
+    self:ScheduleOnce(Delay, COHORT.RemoveAssets, self, N, 0)
+  else
   
-    self:T2(self.lid..string.format("Checking removing asset %s", asset.spawngroupname))
-    if not (asset.requested or asset.spawned or asset.isReserved) then
-      self:T2(self.lid..string.format("Removing asset %s", asset.spawngroupname))
-      table.remove(self.assets, i)
-      n=n+1
-    else
-      self:T2(self.lid..string.format("Could NOT Remove asset %s", asset.spawngroupname))
+    N=N or 1
+    
+    local n=0
+    for i=#self.assets,1,-1 do
+      local asset=self.assets[i] --Functional.Warehouse#WAREHOUSE.Assetitem
+    
+      self:T2(self.lid..string.format("Checking removing asset %s", asset.spawngroupname))
+      if not (asset.requested or asset.spawned or asset.isReserved) then
+        self:T2(self.lid..string.format("Removing asset %s", asset.spawngroupname))
+        -- Remove from warehouse and warehouse DB
+        asset.legion:_DeleteStockItem(asset)
+        table.remove(self.assets, i)
+        n=n+1
+      else
+        self:T2(self.lid..string.format("Could NOT Remove asset %s", asset.spawngroupname))
+      end
+      
+      if n>=N then
+        break
+      end
+    
     end
     
-    if n>=N then
-      break
-    end
+    self:T(self.lid..string.format("Removed %d/%d assets. New asset count=%d", n, N, #self.assets))
   
   end
-  
-  self:T(self.lid..string.format("Removed %d/%d assets. New asset count=%d", n, N, #self.assets))
 
   return self
 end
@@ -679,7 +692,16 @@ end
 function COHORT:GetCallsign(Asset)
 
   if self.callsignName then
-  
+    --[[
+                    ["callsign"] = 
+                    {
+                      [2] = 1,
+                      ["name"] = "Darkstar11",
+                      [3] = 1,
+                      [1] = 5,
+                      [4] = "Darkstar11",
+                    }, -- end of ["callsign"]
+    ]]
     Asset.callsign={}
   
     for i=1,Asset.nunits do
@@ -695,12 +717,16 @@ function COHORT:GetCallsign(Asset)
       else
         self.callsigncounter=self.callsigncounter+1
       end
+      callsign["name"] = self.callsignClearName or UTILS.GetCallsignName(self.callsignName) or "None"
+      callsign["name"] = string.format("%s%d%d",callsign["name"],callsign[2],callsign[3])
+      callsign[4] = callsign["name"] 
     
       Asset.callsign[i]=callsign
       
       self:T3({callsign=callsign})
     
-      --TODO: there is also a table entry .name, which is a string.
+      --DONE: there is also a table entry .name, which is a string.
+      --UTILS.PrintTableToLog(callsign)
     end
   
   

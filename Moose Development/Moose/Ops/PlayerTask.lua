@@ -21,7 +21,7 @@
 -- ===
 -- @module Ops.PlayerTask
 -- @image OPS_PlayerTask.jpg
--- @date Last Update April 2025
+-- @date Last Update Dec 2025
 
 
 do
@@ -59,6 +59,9 @@ do
 -- @field #string FinalState
 -- @field #string TypeName
 -- @field #number PreviousCount
+-- @field #boolean CanSmoke
+-- @field #boolean ShowThreatDetails
+-- @field #boolean PersistMe 
 -- @extends Core.Fsm#FSM
 
 
@@ -94,11 +97,14 @@ PLAYERTASK = {
   NextTaskFailure    =   {},
   FinalState         =   "none",
   PreviousCount      =   0,
+  CanSmoke           =   true,
+  ShowThreatDetails  =   true,
+  PersistMe          =   false,
   }
 
 --- PLAYERTASK class version.
 -- @field #string version
-PLAYERTASK.version="0.1.26"
+PLAYERTASK.version="0.1.31"
 
 --- Generic task condition.
 -- @type PLAYERTASK.Condition
@@ -231,6 +237,7 @@ function PLAYERTASK:New(Type, Target, Repeat, Times, TTSType)
   -- @param #string From From state.
   -- @param #string Event Event.
   -- @param #string To To state.
+  -- @param #boolean Silent If true, suppress message output on cancel.
 
   --- On After "Planned" event. Task has been planned.
   -- @function [parent=#PLAYERTASK] OnAfterPilotPlanned
@@ -387,9 +394,26 @@ function PLAYERTASK:_CheckCaptureOpsZoneSuccess(OpsZone, CaptureSquadGroupNamePr
     return OpsZone:GetOwner() == Coalition and isClientInZone and isCaptureGroupInZone
 end
 
+--- [User] Override this function in order to implement custom logic if a player can join a task or not.
+-- @param #PLAYERTASK self
+-- @param Wrapper.Group#GROUP Group
+-- @param Wrapper.Client#CLIENT Client
+-- @return #boolean Outcome True if player can join the task, false if not
+function PLAYERTASK:CanJoinTask(Group, Client)
+    return true
+end
+
+--- [User] Set this task for persistance, if persistance is enabled on the PLAYERTASKCONTROLLER instance.
+-- @param #PLAYERTASK self
+-- @return #PLAYERTASK self 
+function PLAYERTASK:EnablePersistance()
+  self.PersistMe = true
+  return self
+end
 
 --- [Internal] Add a PLAYERTASKCONTROLLER for this task
 -- @param #PLAYERTASK self
+-- 
 -- @param Ops.PlayerTask#PLAYERTASKCONTROLLER Controller
 -- @return #PLAYERTASK self
 function PLAYERTASK:_SetController(Controller)
@@ -457,6 +481,26 @@ end
 function PLAYERTASK:SetSubType(Type)
   self:T(self.lid.."AddSubType")
   self.TaskSubType = Type
+  return self
+end
+
+--- [USER] Set if a task can have a smoke marker.
+-- @param #PLAYERTASK self
+-- @param #boolean OnOff If true (default) it can be smoke, false if not.
+-- @return #PLAYERTASK self
+function PLAYERTASK:SetCanSmoke(OnOff)
+  self:T(self.lid.."AddSSetCanSmokeubType")
+  self.CanSmoke = OnOff
+  return self
+end
+
+--- [USER] Set if a task can show threat details.
+-- @param #PLAYERTASK self
+-- @param #boolean OnOff If true (default) it can be shown, false if not.
+-- @return #PLAYERTASK self
+function PLAYERTASK:SetShowThreatDetails(OnOff)
+  self:T(self.lid.."SetShowThreatDetails")
+  self.ShowThreatDetails = OnOff
   return self
 end
 
@@ -1055,7 +1099,6 @@ function PLAYERTASK:onafterStatus(From, Event, To)
   return self
 end
 
-
 --- [Internal] On after progress call
 -- @param #PLAYERTASK self
 -- @param #string From
@@ -1165,11 +1208,12 @@ end
 -- @param #string From
 -- @param #string Event
 -- @param #string To
+-- @param #boolean Silent
 -- @return #PLAYERTASK self
-function PLAYERTASK:onafterCancel(From, Event, To)
+function PLAYERTASK:onafterCancel(From, Event, To, Silent)
   self:T({From, Event, To})
   if self.TaskController then
-    self.TaskController:__TaskCancelled(-1,self)
+    self.TaskController:__TaskCancelled(-1,self, Silent)
   end
   self.timestamp = timer.getAbsTime()
   self.FinalState = "Cancelled"
@@ -1227,7 +1271,10 @@ function PLAYERTASK:onafterFailed(From, Event, To)
       self.TargetMarker:Remove()
     end
     self.FinalState = "Failed"
-    self:__Done(-1)
+    if self.TaskController then
+      self.TaskController:__TaskFailed(-1,self)
+    end
+    self:__Done(-1.5)
   end
   if self.TaskController.Scoring then
     local clients,count = self:GetClientObjects()
@@ -1326,6 +1373,12 @@ do
 -- @field Core.ClientMenu#CLIENTMENU MenuNoTask
 -- @field #boolean InformationMenu Show Radio Info Menu
 -- @field #number TaskInfoDuration How long to show the briefing info on the screen
+-- @field #table TaskPersistance Table for persistance data
+-- @field #boolean TaskPersistanceSwitch Switch for persisting tasks
+-- @field #string TaskPersistancePath File path for persisting tasks
+-- @field #string TaskPersistanceFilename File name for persisting tasks
+-- @field #table TasksPersistable List of persistable tasks
+-- @field #number SceneryExplosivesAmount Kgs of TNT to explode scenery on task persistance loading
 -- @extends Core.Fsm#FSM
 
 ---
@@ -1440,9 +1493,9 @@ do
 --            taskmanager:AddRejectZone(ZONE:FindByName("RejectZone"))
 --            
 --            -- Set up using SRS for messaging
---            local hereSRSPath = "C:\\Program Files\\DCS-SimpleRadio-Standalone"
+--            local hereSRSPath = "C:\\Program Files\\DCS-SimpleRadio-Standalone\\ExternalAudio"
 --            local hereSRSPort = 5002
---            -- local hereSRSGoogle = "C:\\Program Files\\DCS-SimpleRadio-Standalone\\yourkey.json"
+--            -- local hereSRSGoogle = "C:\\Program Files\\DCS-SimpleRadio-Standalone\\ExternalAudio\\yourkey.json"
 --            taskmanager:SetSRS({130,255},{radio.modulation.AM,radio.modulation.AM},hereSRSPath,"female","en-GB",hereSRSPort,"Microsoft Hazel Desktop",0.7,hereSRSGoogle)
 --            
 --            -- Controller will announce itself under these broadcast frequencies, handy to use cold-start frequencies here of your aircraft
@@ -1546,6 +1599,7 @@ do
 --                ELEVATION = "\nTarget Elevation: %s %s",
 --                METER = "meter",
 --                FEET = "feet",
+--                INTERCEPTCOURSE = "Intercept course",
 --              },
 -- 
 -- e.g.
@@ -1595,7 +1649,7 @@ do
 --      
 -- The event is triggered when a task was cancelled manually. Use @{#PLAYERTASKCONTROLLER.OnAfterTaskCancelled}()` to link into this event:
 --      
---              function taskmanager:OnAfterTaskCancelled(From, Event, To, Task)
+--              function taskmanager:OnAfterTaskCancelled(From, Event, To, Task, Silent)
 --                ... your code here ...
 --              end
 --          
@@ -1632,8 +1686,28 @@ do
 --            
 -- Set a marker on the map and add the following text to create targets from it: "TARGET". This is effectively the same as adding a COORDINATE object as target.
 -- The marker can be deleted any time.
---         
--- ## 9 Discussion
+-- 
+-- ## 9 Single Task Persistence for mission designer added tasks
+-- 
+-- The class can persist the state of single tasks of type BOMBING, PRECISIONBOMBING, ARTY and SEAD, i.e. tasks which have a GROUND(!) GROUP, UNIT, STATIC or SCENERY as target.
+-- This requires the task to have a unique(!) menu name set, a TARGET which already exists on the map at mission start(!), and a flag that this task is actually to be persisted.
+-- Also, you need to desanitize the mission scripting environment, i.e. "lfs" and "io" must be available so we can write to disk.
+-- 
+--            -- First, we need to enable on the PLAYERTASKCONTROLLER itself
+--            taskmanager:EnableTaskPersistance([[C:\Users\myname\Saved Games\DCS\Missions\MyMisionFolder\]],"Mission Tasks.csv") -- Path and Filename
+--            
+--            -- Then, we can design a task marking mission progress that we want to persist
+--            local RussianRadios = SET_STATIC:New():FilterPrefixes("Comms Tower Russia"):FilterOnce()
+--            
+--            local RadioTask = PLAYERTASK:New(AUFTRAG.Type.BOMBING,RussianRadios,true,5,"Bombing")
+--            RadioTask:SetMenuName("Neutralize Comms Towers") -- UNIQUE menu name so we can find the task later!
+--            RadioTask:AddFreetext("Find and neutralize the two communication towers near NB70 East of Fulda on Streufelsberg!")
+--            RadioTask:AddFreetextTTS("Find and neutralize the two communication towers naer N;B;7;zero; East of Fulda on Streufelsberg!")
+--            RadioTask:EnablePersistance() -- Enable persistence for this task
+--            
+--            taskmanager:AddPlayerTaskToQueue(RadioTask,true,false)
+--                       
+-- ## 10 Discussion
 --
 -- If you have questions or suggestions, please visit the [MOOSE Discord](https://discord.gg/AeYAkHP) #ops-playertask channel.  
 -- 
@@ -1683,6 +1757,12 @@ PLAYERTASKCONTROLLER = {
   MenuNoTask         = nil,
   InformationMenu    = false,
   TaskInfoDuration   = 30,
+  TaskPersistance    = {},
+  TaskPersistanceSwitch = false,
+  TaskPersistancePath = nil,
+  TaskPersistanceFilename = nil,
+  TasksPersistable = {},
+  SceneryExplosivesAmount = 300,
   }
 
 ---
@@ -1703,6 +1783,7 @@ AUFTRAG.Type.PRECISIONBOMBING = "Precision Bombing"
 AUFTRAG.Type.CTLD = "Combat Transport"
 AUFTRAG.Type.CSAR = "Combat Rescue"
 AUFTRAG.Type.CONQUER = "Conquer"
+
 ---
 -- @type Scores
 PLAYERTASKCONTROLLER.Scores = {
@@ -1722,6 +1803,24 @@ PLAYERTASKCONTROLLER.Scores = {
   [AUFTRAG.Type.CAP] = 100,
   [AUFTRAG.Type.CAPTUREZONE] = 100,
 }
+
+---
+-- @type TasksPersistable
+PLAYERTASKCONTROLLER.TasksPersistable = {
+  [AUFTRAG.Type.PRECISIONBOMBING] = true,
+  [AUFTRAG.Type.BOMBING] = true,
+  [AUFTRAG.Type.ARTY] = true,
+  [AUFTRAG.Type.SEAD] = true,
+}
+
+---
+-- @type PersistenceData
+-- @field #number ID
+-- @field #string Name
+-- @field #string Type
+-- @field #number InitialTargets
+-- @field #number Targetsleft
+-- @field #boolean updated
  
 --- 
 -- @type SeadAttributes
@@ -1759,12 +1858,15 @@ PLAYERTASKCONTROLLER.Messages = {
     THREATMEDIUM = "medium",
     THREATLOW = "low",
     THREATTEXT = "%s\nThreat: %s\nTargets left: %d\nCoord: %s",
+    NOTHREATTEXT = "%s\nNo target information available.",
     ELEVATION = "\nTarget Elevation: %s %s",
     METER = "meter",
     FEET = "feet",
     THREATTEXTTTS = "%s, %s. Target information for %s. Threat level %s. Targets left %d. Target location %s.",
+    NOTHREATTEXTTTS = "%s, %s. No target information available.",
     MARKTASK = "%s, %s, copy, task %03d location marked on map!",
     SMOKETASK = "%s, %s, copy, task %03d location smoked!",
+    NOSMOKETASK = "%s, %s, negative, task %03d location cannot be smoked!",
     FLARETASK = "%s, %s, copy, task %03d location illuminated!",
     ABORTTASK = "All stations, %s, %s has aborted %s task %03d!",
     UNKNOWN = "Unknown",
@@ -1820,6 +1922,7 @@ PLAYERTASKCONTROLLER.Messages = {
     DESTROYER = "Destroyer",
     CARRIER = "Aircraft Carrier",
     RADIOS = "Radios",
+    INTERCEPTCOURSE = "Intercept course",
   },
   DE = {
     TASKABORT = "Auftrag abgebrochen!",
@@ -1843,12 +1946,15 @@ PLAYERTASKCONTROLLER.Messages = {
     THREATMEDIUM = "mittel",
     THREATLOW = "niedrig",
     THREATTEXT = "%s\nGefahrstufe: %s\nZiele: %d\nKoord: %s",
+    NOTHREATTEXT = "%s\nKeine Zielinformation verfügbar.",
     ELEVATION = "\nZiel Höhe: %s %s",
     METER = "Meter",
     FEET = "Fuss",
     THREATTEXTTTS = "%s, %s. Zielinformation zu %s. Gefahrstufe %s. Ziele %d. Zielposition %s.",
+    NOTHREATTEXTTTS = "%s, %s. Keine Zielinformation verfügbar.",
     MARKTASK = "%s, %s, verstanden, Zielposition %03d auf der Karte markiert!",
     SMOKETASK = "%s, %s, verstanden, Zielposition %03d mit Rauch markiert!",
+    NOSMOKETASK = "%s, %s, negativ, Zielposition %03d kann nicht markiert werden!",
     FLARETASK = "%s, %s, verstanden, Zielposition %03d beleuchtet!",
     ABORTTASK = "%s, an alle, %s hat Auftrag %s %03d abgebrochen!",
     UNKNOWN = "Unbekannt",
@@ -1904,12 +2010,13 @@ PLAYERTASKCONTROLLER.Messages = {
     DESTROYER = "Zerstörer",
     CARRIER = "Flugzeugträger",
     RADIOS = "Frequenzen",
+    INTERCEPTCOURSE = "Abfangkurs",
   },
 }
   
 --- PLAYERTASK class version.
 -- @field #string version
-PLAYERTASKCONTROLLER.version="0.1.70"
+PLAYERTASKCONTROLLER.version="0.1.73"
 
 --- Create and run a new TASKCONTROLLER instance.
 -- @param #PLAYERTASKCONTROLLER self
@@ -1951,7 +2058,7 @@ function PLAYERTASKCONTROLLER:New(Name, Coalition, Type, ClientFilter)
   self.taskinfomenu = false
   self.activehasinfomenu = false
   self.MenuName = nil
-  self.menuitemlimit = 5
+  self.menuitemlimit = 6
   self.holdmenutime = 30
   
   self.MarkerReadOnly = false
@@ -2016,7 +2123,7 @@ function PLAYERTASKCONTROLLER:New(Name, Coalition, Type, ClientFilter)
   self:AddTransition("*",            "Stop",                  "Stopped")
   
   self:__Start(2)
-  local starttime = math.random(5,10)
+  local starttime = math.random(10,15)
   self:__Status(starttime)
   
   self:I(self.lid..self.version.." Started.")
@@ -2050,6 +2157,7 @@ function PLAYERTASKCONTROLLER:New(Name, Coalition, Type, ClientFilter)
   -- @param #string Event Event.
   -- @param #string To To state.
   -- @param Ops.PlayerTask#PLAYERTASK Task
+  -- @param #boolean Silent If true suppress message output.
    
   --- On After "TaskFailed" event. Task has failed.
   -- @function [parent=#PLAYERTASKCONTROLLER] OnAfterTaskFailed
@@ -2128,6 +2236,30 @@ function PLAYERTASKCONTROLLER:New(Name, Coalition, Type, ClientFilter)
   -- @param Wrapper.Client#CLIENT Client The player client object
   -- @param Ops.PlayerTask#PLAYERTASK Task
   
+end
+
+--- [User] Enable Task persistance (for specific gound target tasks)
+-- @param #PLAYERTASKCONTROLLER self
+-- @param #string Path Path where to save the task data
+-- @param #string Filename File name under which to save the task data
+-- @param #number KgsOfTNT (Optional) Explosives kgs used to remove scenery for persistence, defaults to 300
+-- @return #PLAYERTASKCONTROLLER self
+function PLAYERTASKCONTROLLER:EnableTaskPersistance(Path,Filename,KgsOfTNT)
+  self.TaskPersistanceSwitch = true
+  self.TaskPersistancePath = Path
+  self.TaskPersistanceFilename = Filename
+  self.SceneryExplosivesAmount = KgsOfTNT or 300
+  return self
+end
+
+--- [User] Disable Task persistance (for specific gound target tasks)
+-- @param #PLAYERTASKCONTROLLER self
+-- @return #PLAYERTASKCONTROLLER self
+function PLAYERTASKCONTROLLER:DisableTaskPersistance()
+  self.TaskPersistanceSwitch = false
+  self.TaskPersistancePath = nil
+  self.TaskPersistanceFilename = nil
+  return self
 end
 
 --- [User] Set or create a SCORING object for this taskcontroller
@@ -2581,7 +2713,7 @@ function PLAYERTASKCONTROLLER:SetMenuOptions(InfoMenu,ItemLimit,HoldTime)
   if self.activehasinfomenu then
     self:EnableTaskInfoMenu()
   end
-  self.menuitemlimit = ItemLimit or 5
+  self.menuitemlimit = ItemLimit+1 or 6
   self.holdmenutime = HoldTime or 30
   return self
 end
@@ -2730,11 +2862,12 @@ end
 
 --- [User] Manually cancel a specific task
 -- @param #PLAYERTASKCONTROLLER self
--- @param Ops.PlayerTask#PLAYERTASK Task The task to be cancelled
+-- @param Ops.PlayerTask#PLAYERTASK Task The task to be cancelled.
+-- @param #boolean Silent If true suppress message output.
 -- @return #PLAYERTASKCONTROLLER self
-function PLAYERTASKCONTROLLER:CancelTask(Task)
+function PLAYERTASKCONTROLLER:CancelTask(Task,Silent)
   self:T(self.lid.."CancelTask")
-  Task:__Cancel(-1)
+  Task:__Cancel(-1,Silent)
   return self
 end
 
@@ -2815,15 +2948,6 @@ function PLAYERTASKCONTROLLER:_GetTasksPerType()
       table.insert(tasktypes[type],task)
     end
   end
-  
-  --[[
-  for _type,_data in pairs(tasktypes) do
-    self:I("Task Type: ".._type)
-    for _id,_task in pairs(_data) do
-      self:I("Task Name: ".._task.Target:GetName())
-    end
-  end
-  --]]
   
   return tasktypes
 end
@@ -3486,7 +3610,7 @@ end
 -- @param #PLAYERTASKCONTROLLER self
 -- @param Ops.PlayerTask#PLAYERTASK PlayerTask
 -- @param #boolean Silent If true, make no "has new task" announcement
--- @param #boolen TaskFilter If true, apply the white/black-list task filters here, also
+-- @param #boolean TaskFilter If true, apply the white/black-list task filters here, also
 -- @return #PLAYERTASKCONTROLLER self
 -- @usage
 -- Example to create a PLAYERTASK of type CTLD and give Players 10 minutes to complete:
@@ -3521,13 +3645,23 @@ function PLAYERTASKCONTROLLER:AddPlayerTaskToQueue(PlayerTask,Silent,TaskFilter)
     PlayerTask:_SetController(self)
     PlayerTask:SetCoalition(self.Coalition)
     self.TaskQueue:Push(PlayerTask)
-    if not Silent then
-      self:__TaskAdded(10,PlayerTask)
-    end
+    --if not Silent then
+      self:__TaskAdded(10,PlayerTask,Silent)
+    --end
   else
     self:E(self.lid.."***** NO valid PAYERTASK object sent!")
   end
   return self
+end
+
+--- [User] Override this function in order to implement custom logic if a player can join a task or not.
+-- @param #PLAYERTASKCONTROLLER self
+-- @param Ops.PlayerTask#PLAYERTASK Task
+-- @param Wrapper.Group#GROUP Group
+-- @param Wrapper.Client#CLIENT Client
+-- @return #boolean Outcome True if player can join the task, false if not
+function PLAYERTASKCONTROLLER:CanJoinTask(Task, Group, Client)
+    return true
 end
 
 --- [Internal] Join a player to a task
@@ -3540,6 +3674,15 @@ end
 function PLAYERTASKCONTROLLER:_JoinTask(Task, Force, Group, Client)
   self:T({Force, Group, Client})
   self:T(self.lid.."_JoinTask")
+
+  if not self:CanJoinTask(Task, Group, Client) then
+    return self
+  end
+
+  if not Task:CanJoinTask(Group, Client) then
+    return self
+  end
+
   local force = false
   if type(Force) == "boolean" then
     force = Force
@@ -3636,6 +3779,41 @@ function PLAYERTASKCONTROLLER:_ShowRadioInfo(Group, Client)
   return self
 end
 
+--- Calculate group future position after given seconds.
+-- @param #PLAYERTASKCONTROLLER self
+-- @param Wrapper.Group#GROUP group The group to calculate for.
+-- @param #number seconds Time interval in seconds. Default is `self.prediction`.
+-- @return Core.Point#COORDINATE Calculated future position of the cluster.
+function PLAYERTASKCONTROLLER:_CalcGroupFuturePosition(group, seconds)
+
+  -- Get current position of the cluster.
+  local p=group:GetCoordinate()
+
+  -- Velocity vector in m/s.
+  local v=group:GetVelocityVec3()
+
+  -- Time in seconds.
+  local t=seconds or self.prediction
+
+  -- Extrapolated vec3.
+  local Vec3={x=p.x+v.x*t, y=p.y+v.y*t, z=p.z+v.z*t}
+
+  -- Future position.
+  local futureposition=COORDINATE:NewFromVec3(Vec3)
+
+  -- Create an arrow pointing in the direction of the movement.
+  if self.verbose == true then
+    local markerID = group:GetProperty("PLAYERTASK_ARROW")
+    if markerID then
+      COORDINATE:RemoveMark(markerID)
+    end
+    markerID = p:ArrowToAll(futureposition, self.coalition, {1,0,0}, 1, {1,1,0}, 0.5, 2, true, "Position Calc")
+    group:SetProperty("PLAYERTASK_ARROW",markerID)
+  end
+
+  return futureposition
+end
+
 --- [Internal] Flashing directional info for a client
 -- @param #PLAYERTASKCONTROLLER self
 -- @return #PLAYERTASKCONTROLLER self
@@ -3645,16 +3823,34 @@ function PLAYERTASKCONTROLLER:_FlashInfo()
     if _client and _client:IsAlive() then
       if self.TasksPerPlayer:HasUniqueID(_playername) then
         local task = self.TasksPerPlayer:ReadByID(_playername) -- Ops.PlayerTask#PLAYERTASK
-        local Coordinate = task.Target:GetCoordinate()
+        local Coordinate = task.Target:GetCoordinate() -- Core.Point#COORDINATE
         local CoordText = ""
-        if self.Type ~= PLAYERTASKCONTROLLER.Type.A2A then
+        if self.Type ~= PLAYERTASKCONTROLLER.Type.A2A and task.Type~=AUFTRAG.Type.INTERCEPT then
           CoordText = Coordinate:ToStringA2G(_client, nil, self.ShowMagnetic)
+          local targettxt = self.gettext:GetEntry("TARGET",self.locale)
+          local text = targettxt..": "..CoordText
+          local m = MESSAGE:New(text,10,"Tasking"):ToClient(_client)
         else
           CoordText = Coordinate:ToStringA2A(_client, nil, self.ShowMagnetic)
+          local targettxt = self.gettext:GetEntry("TARGET",self.locale)
+          local text = targettxt..": "..CoordText
+          -- calc intercept position
+          local name=task.Target:GetName()
+          local group = GROUP:FindByName(name)
+          local clientcoord = _client:GetCoordinate()
+          if group and clientcoord and group:IsAlive() and task.Type==AUFTRAG.Type.INTERCEPT then
+            local speed = math.max(UTILS.KnotsToMps(350) or _client:GetVelocityMPS())
+            local dist = Coordinate:Get3DDistance(clientcoord)
+            local iTime = math.floor(dist/speed)+5
+            if iTime < 10 then iTime = 10 
+            elseif iTime > 600 then iTime = 600 end 
+            local npos = self:_CalcGroupFuturePosition(group,iTime)
+            local BR = npos:ToStringBearing(clientcoord,nil,self.ShowMagnetic,0 )
+            local Intercepttext = self.gettext:GetEntry("INTERCEPTCOURSE",self.locale)
+            text = text .. "\n"..Intercepttext.." "..BR
+          end
+          local m = MESSAGE:New(text,10,"Tasking"):ToClient(_client)
         end
-        local targettxt = self.gettext:GetEntry("TARGET",self.locale)
-        local text = "Target: "..CoordText
-        local m = MESSAGE:New(text,10,"Tasking"):ToClient(_client)
       end
     end
   end
@@ -3704,8 +3900,9 @@ function PLAYERTASKCONTROLLER:_ActiveTaskInfo(Task, Group, Client)
     local Elevation = Coordinate:GetLandHeight() or 0 -- meters
     local CoordText = ""
     local CoordTextLLDM = nil
+    local ShowThreatInfo = task.ShowThreatDetails
     local LasingDrone = self:_FindLasingDroneForTaskID(task.PlayerTaskNr)
-    if self.Type ~= PLAYERTASKCONTROLLER.Type.A2A then
+    if self.Type ~= PLAYERTASKCONTROLLER.Type.A2A and task.Type~=AUFTRAG.Type.INTERCEPT then
       CoordText = Coordinate:ToStringA2G(Client,nil,self.ShowMagnetic)
     else
       CoordText = Coordinate:ToStringA2A(Client,nil,self.ShowMagnetic)
@@ -3727,7 +3924,12 @@ function PLAYERTASKCONTROLLER:_ActiveTaskInfo(Task, Group, Client)
     local clientlist, clientcount = task:GetClients()
     local ThreatGraph = "[" .. string.rep(  "■", ThreatLevel ) .. string.rep(  "□", 10 - ThreatLevel ) .. "]: "..ThreatLevel
     local ThreatLocaleText = self.gettext:GetEntry("THREATTEXT",self.locale)
-    text = string.format(ThreatLocaleText, taskname, ThreatGraph, targets, CoordText)
+    if ShowThreatInfo == true then
+      text = string.format(ThreatLocaleText, taskname, ThreatGraph, targets, CoordText)
+    else
+      ThreatLocaleText = self.gettext:GetEntry("NOTHREATTEXT",self.locale)
+      text = string.format(ThreatLocaleText, taskname)
+    end
     local settings = _DATABASE:GetPlayerSettings(playername) or _SETTINGS -- Core.Settings#SETTINGS
     local elevationmeasure = self.gettext:GetEntry("FEET",self.locale)
     if settings:IsMetric() then
@@ -3737,8 +3939,10 @@ function PLAYERTASKCONTROLLER:_ActiveTaskInfo(Task, Group, Client)
       Elevation = math.floor(UTILS.MetersToFeet(Elevation))
     end
     -- ELEVATION = "\nTarget Elevation: %s %s",
-    local elev = self.gettext:GetEntry("ELEVATION",self.locale)
-    text = text .. string.format(elev,tostring(math.floor(Elevation)),elevationmeasure)
+    if task.Type ~= AUFTRAG.Type.INTERCEPT then
+      local elev = self.gettext:GetEntry("ELEVATION",self.locale)
+      text = text .. string.format(elev,tostring(math.floor(Elevation)),elevationmeasure)
+    end
     -- Prec bombing
     if task.Type == AUFTRAG.Type.PRECISIONBOMBING and self.precisionbombing then
       if LasingDrone and LasingDrone.playertask then
@@ -3850,9 +4054,19 @@ function PLAYERTASKCONTROLLER:_ActiveTaskInfo(Task, Group, Client)
         end
         --self:I(self.lid.." | ".. CoordText)
       end
+      local ttstext
       local ThreatLocaleTextTTS = self.gettext:GetEntry("THREATTEXTTTS",self.locale)
-      local ttstext = string.format(ThreatLocaleTextTTS,ttsplayername,self.MenuName or self.Name,ttstaskname,ThreatLevelText, targets, CoordText)
+      --                THREATTEXT = "%s\nThreat: %s\nTargets left: %d\nCoord: %s",
+      --                THREATTEXTTTS = "%s, %s. Target information for %s. Threat level %s. Targets left %d. Target location %s.",
+      if ShowThreatInfo == true then
+        ttstext = string.format(ThreatLocaleTextTTS,ttsplayername,self.MenuName or self.Name,ttstaskname,ThreatLevelText, targets, CoordText)
+      else
+       ThreatLocaleTextTTS = self.gettext:GetEntry("NOTHREATTEXTTTS",self.locale)
+       ttstext = string.format(ThreatLocaleTextTTS,ttsplayername,self.MenuName or self.Name)
+      end
+      
       -- POINTERTARGETLASINGTTS = ". Pointer over target and lasing."
+      
       if task.Type == AUFTRAG.Type.PRECISIONBOMBING and self.precisionbombing then
         if LasingDrone and  LasingDrone.playertask.inreach and LasingDrone:IsLasing() then
           local lasingtext = self.gettext:GetEntry("POINTERTARGETLASINGTTS",self.locale)
@@ -3921,15 +4135,25 @@ function PLAYERTASKCONTROLLER:_SmokeTask(Group, Client)
   local text = ""
   if self.TasksPerPlayer:HasUniqueID(playername) then
     local task = self.TasksPerPlayer:ReadByID(playername) -- Ops.PlayerTask#PLAYERTASK
-    task:SmokeTarget()
-    local textmark = self.gettext:GetEntry("SMOKETASK",self.locale)
-    text = string.format(textmark, ttsplayername, self.MenuName or self.Name, task.PlayerTaskNr)
-    self:T(self.lid..text)
-    --local m=MESSAGE:New(text,"10","Tasking"):ToAll()
-    if self.UseSRS then
-      self.SRSQueue:NewTransmission(text,nil,self.SRS,nil,2)
+    if task.CanSmoke == true then
+      task:SmokeTarget()
+      local textmark = self.gettext:GetEntry("SMOKETASK",self.locale)
+      text = string.format(textmark, ttsplayername, self.MenuName or self.Name, task.PlayerTaskNr)
+      self:T(self.lid..text)
+      --local m=MESSAGE:New(text,"10","Tasking"):ToAll()
+      if self.UseSRS then
+        self.SRSQueue:NewTransmission(text,nil,self.SRS,nil,2)
+      end
+      self:__TaskTargetSmoked(5,task)
+    else
+      local textmark = self.gettext:GetEntry("NOSMOKETASK",self.locale)
+      text = string.format(textmark, ttsplayername, self.MenuName or self.Name, task.PlayerTaskNr)
+      self:T(self.lid..text)
+      --local m=MESSAGE:New(text,"10","Tasking"):ToAll()
+      if self.UseSRS then
+        self.SRSQueue:NewTransmission(text,nil,self.SRS,nil,2)
+      end
     end
-    self:__TaskTargetSmoked(5,task)
   else
     text = self.gettext:GetEntry("NOACTIVETASK",self.locale)
   end
@@ -4494,6 +4718,76 @@ function PLAYERTASKCONTROLLER:RemoveConflictZone(ConflictZone)
   return self
 end
 
+--- [User] Add an corridor zone to INTEL detection. You need to set up detection with @{#PLAYERTASKCONTROLLER.SetupIntel}() **before** using this.
+-- @param #PLAYERTASKCONTROLLER self
+-- @param Core.Zone#ZONE CorridorZone Add a zone to the corridor zone set.
+-- @return #PLAYERTASKCONTROLLER self
+function PLAYERTASKCONTROLLER:AddCorridorZone(CorridorZone)
+  self:T(self.lid.."AddCorridorZone")
+  if self.Intel then
+    self.Intel:AddCorridorZone(CorridorZone)
+  else
+    self:E(self.lid.."*****NO detection has been set up (yet)!")
+  end
+  return self
+end
+
+--- [User] Add an corridor SET_ZONE to INTEL detection. You need to set up detection with @{#PLAYERTASKCONTROLLER.SetupIntel}() **before** using this.
+-- @param #PLAYERTASKCONTROLLER self
+-- @param Core.Set#SET_ZONE CorridorZoneSet Add a SET_ZONE to the corridor zone set.
+-- @return #PLAYERTASKCONTROLLER self
+function PLAYERTASKCONTROLLER:AddCorridorZoneSet(CorridorZoneSet)
+  self:T(self.lid.."AddCorridorZoneSet")
+  if self.Intel then
+    self.Intel.corridorzoneset:AddSet(CorridorZoneSet)
+  else
+    self:E(self.lid.."*****NO detection has been set up (yet)!")
+  end
+  return self
+end
+
+--- [User] Remove an corridor zone from INTEL detection. You need to set up detection with @{#PLAYERTASKCONTROLLER.SetupIntel}() **before** using this.
+-- @param #PLAYERTASKCONTROLLER self
+-- @param Core.Zone#ZONE CorridorZone Remove this zone from the corridor zone set.
+-- @return #PLAYERTASKCONTROLLER self
+function PLAYERTASKCONTROLLER:RemoveCorridorZone(CorridorZone)
+  self:T(self.lid.."RemoveCorridorZone")
+  if self.Intel then
+    self.Intel:RemoveCorridorZone(CorridorZone)
+  else
+    self:E(self.lid.."*****NO detection has been set up (yet)!")
+  end
+  return self
+end
+
+--- Function to set corridor zone floor and ceiling in FEET.
+-- @param #PLAYERTASKCONTROLLER self
+-- @param #number Floor Floor altitude ASL in feet.
+-- @param #number Ceiling Ceiling altitude ASL in feet.
+-- @return #PLAYERTASKCONTROLLER self
+function PLAYERTASKCONTROLLER:SetCorridorZoneFloorAndCeiling(Floor,Ceiling)
+  if self.Intel then
+    self.Intel:SetCorridorLimitsFeet(Floor,Ceiling)
+  else
+    self:E(self.lid.."*****NO detection has been set up (yet)!")
+  end
+  return self
+end
+
+--- Function to set corridor zone floor and ceiling in METERS.
+-- @param #PLAYERTASKCONTROLLER self
+-- @param #number Floor Floor altitude ASL in meters.
+-- @param #number Ceiling Ceiling altitude ASL in meters.
+-- @return #PLAYERTASKCONTROLLER self
+function PLAYERTASKCONTROLLER:SetCorridorZoneFloorAndCeilingMeters(Floor,Ceiling)
+  if self.Intel then
+    self.Intel:SetCorridorLimits(Floor,Ceiling)
+  else
+    self:E(self.lid.."*****NO detection has been set up (yet)!")
+  end
+  return self
+end
+
 --- [User] Set the top menu name to a custom string.
 -- @param #PLAYERTASKCONTROLLER self
 -- @param #string Name The name to use as the top menu designation.
@@ -4606,7 +4900,7 @@ end
 -- @param #PLAYERTASKCONTROLLER self
 -- @param #number Frequency Frequency to be used. Can also be given as a table of multiple frequencies, e.g. 271 or {127,251}. There needs to be exactly the same number of modulations!
 -- @param #number Modulation Modulation to be used. Can also be given as a table of multiple modulations, e.g. radio.modulation.AM or {radio.modulation.FM,radio.modulation.AM}. There needs to be exactly the same number of frequencies!
--- @param #string PathToSRS Defaults to "C:\\Program Files\\DCS-SimpleRadio-Standalone"
+-- @param #string PathToSRS Defaults to "C:\\Program Files\\DCS-SimpleRadio-Standalone\\ExternalAudio"
 -- @param #string Gender (Optional) Defaults to "male"
 -- @param #string Culture (Optional) Defaults to "en-US"
 -- @param #number Port (Optional) Defaults to 5002
@@ -4620,7 +4914,7 @@ end
 -- @return #PLAYERTASKCONTROLLER self
 function PLAYERTASKCONTROLLER:SetSRS(Frequency,Modulation,PathToSRS,Gender,Culture,Port,Voice,Volume,PathToGoogleKey,AccessKey,Coordinate,Backend)
   self:T(self.lid.."SetSRS")
-  self.PathToSRS = PathToSRS or MSRS.path or "C:\\Program Files\\DCS-SimpleRadio-Standalone" --
+  self.PathToSRS = PathToSRS or MSRS.path or "C:\\Program Files\\DCS-SimpleRadio-Standalone\\ExternalAudio" --
   self.Gender = Gender or MSRS.gender or "male" --
   self.Culture = Culture or MSRS.culture or "en-US" --
   self.Port = Port or MSRS.port or 5002 --
@@ -4675,6 +4969,128 @@ function PLAYERTASKCONTROLLER:SetSRSBroadcast(Frequency,Modulation)
   return self
 end
 
+
+---
+-- @param #PLAYERTASKCONTROLLER self
+-- @param Ops.PlayerTask#PLASERTASK Task
+-- @param #number TargetsLeft
+function PLAYERTASKCONTROLLER:_UpdateTargetsAlive(Task,TargetsLeft)
+  self:T(self.lid.."_UpdateTargetsAlive")
+  local delta = Task.Target:CountTargets() - TargetsLeft
+  if delta > 0 then
+    self:T("Delta targets to be removed: "..delta)
+    local count = 0
+    local targets = Task.Target:GetObjects()
+    for _,_object in pairs(targets or {}) do
+      if _object and _object.ClassName and (_object:IsInstanceOf("GROUP") or _object:IsInstanceOf("UNIT") or _object:IsInstanceOf("STATIC") or _object:IsInstanceOf("SCENERY")) then
+        if count < delta then
+          count = count + 1
+          if not _object:IsInstanceOf("SCENERY") then
+            _object:Destroy(true)
+          else
+            _object:Explode(self.SceneryExplosivesAmount)
+          end
+        end
+      end
+    end
+  end
+  return self
+end
+
+---
+-- @param #PLAYERTASKCONTROLLER self
+function PLAYERTASKCONTROLLER:_LoadTasksPersisted()
+  self:T(self.lid.."_LoadTasksPersisted")
+  
+  local function MatchTask(Type,Name)
+    local foundtask
+    self.TaskQueue:ForEach(
+      function(_task)
+        local task = _task -- #PLAYERTASK
+        if task.Type == Type and task.Target.name and task.Target.name  == Name then
+          foundtask = task
+        end
+      end
+    )
+    return foundtask
+  end
+  
+  if lfs and io then
+    local ok,data = UTILS.LoadFromFile(self.TaskPersistancePath,self.TaskPersistanceFilename)
+    if ok == true then
+      table.remove(data, 1)
+      for _,_entry in pairs(data) do
+        -- "--ID;;Name;;InitialTargets;;Targetsleft;;Type\n"
+        local dataset = UTILS.Split(_entry,";;")
+        local Taskdata = {} -- #PersistenceData
+        Taskdata.ID = tonumber(dataset[1])
+        Taskdata.Name = tostring(dataset[2])
+        Taskdata.InitialTargets = tonumber(dataset[3])
+        Taskdata.Targetsleft = tonumber(dataset[4])
+        Taskdata.Type = tostring(dataset[5])
+        Taskdata.Task = MatchTask(Taskdata.Type,Taskdata.Name)
+        if Taskdata.Task == nil then
+          self:E(self.lid.."No actual task found for "..Taskdata.Name)
+        else
+          self:T(self.lid.."Task loaded and match found for "..Taskdata.Name)
+        end
+        Taskdata.updated = Taskdata.InitialTargets == Taskdata.Targetsleft and true or false
+        if Taskdata.Task and Taskdata.updated == false then
+          self:_UpdateTargetsAlive(Taskdata.Task,Taskdata.Targetsleft)
+          Taskdata.updated = true
+        end
+        self.TaskPersistance[Taskdata.ID] = Taskdata
+      end
+    end
+  end
+  return self
+end
+
+--- [User] Clear persisted data on disk.
+-- @param #PLAYERTASKCONTROLLER self
+function PLAYERTASKCONTROLLER:ClearPersistedData()
+  if lfs and io then
+    local text = "-- Data Cleared\n"
+    UTILS.SaveToFile(self.TaskPersistancePath,self.TaskPersistanceFilename,text)
+  end
+  return self
+end
+
+---
+-- @param #PLAYERTASKCONTROLLER self
+function PLAYERTASKCONTROLLER:_SaveTasksPersisted()
+  if lfs and io then
+    local text = "--ID;;Name;;InitialTargets;;Targetsleft;;Type\n"
+    for _,_data in pairs(self.TaskPersistance) do
+      local data = _data -- #PersistenceData
+      data.Targetsleft = data.Task.Target:CountTargets() -- recount
+      if data.Task and data.Task:IsDone() then data.Targetsleft = 0 end
+      local tasktext = string.format("%d;;%s;;%d;;%d;;%s\n",data.ID,data.Name,data.InitialTargets,data.Targetsleft,data.Type)
+      text = text..tasktext
+    end
+    UTILS.SaveToFile(self.TaskPersistancePath,self.TaskPersistanceFilename,text)
+  end
+  return self
+end
+
+---
+-- @param #PLAYERTASKCONTROLLER self
+-- @param #PLAYERTASK Task
+function PLAYERTASKCONTROLLER:_AddPersistenceData(Task)
+  local Taskdata = {} -- #PersistenceData
+  if not self.TaskPersistance[Task.PlayerTaskNr] then
+    Taskdata.ID = Task.PlayerTaskNr
+    Taskdata.Name = Task.Target.name or "none"
+    Taskdata.InitialTargets = Task.Target:CountTargets()
+    Taskdata.Targetsleft = Taskdata.InitialTargets
+    Taskdata.Type = Task.Type
+    Taskdata.updated = true
+    Taskdata.Task = Task
+    self.TaskPersistance[Task.PlayerTaskNr] = Taskdata
+  end
+  return self
+end
+
 -------------------------------------------------------------------------------------------------------------------
 -- FSM Functions PLAYERTASKCONTROLLER
 -- TODO: FSM Functions PLAYERTASKCONTROLLER
@@ -4698,7 +5114,12 @@ function PLAYERTASKCONTROLLER:onafterStart(From, Event, To)
   self:HandleEvent(EVENTS.PilotDead, self._EventHandler)
   self:HandleEvent(EVENTS.PlayerEnterAircraft, self._EventHandler)
   self:HandleEvent(EVENTS.UnitLost, self._EventHandler)
-  self:SetEventPriority(5)          
+  self:SetEventPriority(5)   
+  -- Persistence
+  if self.TaskPersistanceSwitch == true then
+    self:ScheduleOnce(5,self._LoadTasksPersisted,self)
+    --self:_LoadTasksPersisted()
+  end       
   return self
 end
 
@@ -4738,6 +5159,11 @@ function PLAYERTASKCONTROLLER:onafterStatus(From, Event, To)
     self:I(text)
   end
   
+    -- Persistence
+  if self.TaskPersistanceSwitch == true then
+    self:_SaveTasksPersisted()
+  end 
+  
   if self:GetState() ~= "Stopped" then
     self:__Status(-30)
   end
@@ -4763,22 +5189,27 @@ end
 -- @param #string Event
 -- @param #string To
 -- @param Ops.PlayerTask#PLAYERTASK Task
+-- @param #boolean Silent If true, suppress message output on cancel.
 -- @return #PLAYERTASKCONTROLLER self
-function PLAYERTASKCONTROLLER:onafterTaskCancelled(From, Event, To, Task)
+function PLAYERTASKCONTROLLER:onafterTaskCancelled(From, Event, To, Task, Silent)
   self:T({From, Event, To})
   self:T(self.lid.."TaskCancelled")
-  local canceltxt = self.gettext:GetEntry("TASKCANCELLED",self.locale)
-  local canceltxttts = self.gettext:GetEntry("TASKCANCELLEDTTS",self.locale)
-  local taskname = string.format(canceltxt, Task.PlayerTaskNr, tostring(Task.Type))
-  if not self.NoScreenOutput then
-    self:_SendMessageToClients(taskname,15)
-    --local m = MESSAGE:New(taskname,15,"Tasking"):ToCoalition(self.Coalition)
+  if Silent ~= true then
+    local canceltxt = self.gettext:GetEntry("TASKCANCELLED",self.locale)
+    local canceltxttts = self.gettext:GetEntry("TASKCANCELLEDTTS",self.locale)
+    local taskname = string.format(canceltxt, Task.PlayerTaskNr, tostring(Task.Type))
+
+    if self.NoScreenOutput ~= true then
+      self:_SendMessageToClients(taskname,15)
+      --local m = MESSAGE:New(taskname,15,"Tasking"):ToCoalition(self.Coalition)
+    end
+    
+    if self.UseSRS then
+      taskname = string.format(canceltxttts, self.MenuName or self.Name, Task.PlayerTaskNr, tostring(Task.TTSType))
+      self.SRSQueue:NewTransmission(taskname,nil,self.SRS,nil,2)
+    end
+    
   end
-  if self.UseSRS then
-    taskname = string.format(canceltxttts, self.MenuName or self.Name, Task.PlayerTaskNr, tostring(Task.TTSType))
-    self.SRSQueue:NewTransmission(taskname,nil,self.SRS,nil,2)
-  end
-  
   local clients=Task:GetClientObjects()
   for _,client in pairs(clients) do
     self:_RemoveMenuEntriesForTask(Task,client)
@@ -4888,19 +5319,26 @@ end
 -- @param #string Event
 -- @param #string To
 -- @param Ops.PlayerTask#PLAYERTASK Task
+-- @param #boolean Silent
 -- @return #PLAYERTASKCONTROLLER self
-function PLAYERTASKCONTROLLER:onafterTaskAdded(From, Event, To, Task)
+function PLAYERTASKCONTROLLER:onafterTaskAdded(From, Event, To, Task, Silent)
   self:T({From, Event, To})
   self:T(self.lid.."TaskAdded")
   local addtxt = self.gettext:GetEntry("TASKADDED",self.locale)
   local taskname = string.format(addtxt, self.MenuName or self.Name, tostring(Task.Type))
-  if not self.NoScreenOutput then
-    self:_SendMessageToClients(taskname,15)
-    --local m = MESSAGE:New(taskname,15,"Tasking"):ToCoalition(self.Coalition)
+  if not Silent then
+    if not self.NoScreenOutput then
+      self:_SendMessageToClients(taskname,15)
+      --local m = MESSAGE:New(taskname,15,"Tasking"):ToCoalition(self.Coalition)
+    end
+    if self.UseSRS then
+      taskname = string.format(addtxt, self.MenuName or self.Name, tostring(Task.TTSType))
+      self.SRSQueue:NewTransmission(taskname,nil,self.SRS,nil,2)
+    end
   end
-  if self.UseSRS then
-    taskname = string.format(addtxt, self.MenuName or self.Name, tostring(Task.TTSType))
-    self.SRSQueue:NewTransmission(taskname,nil,self.SRS,nil,2)
+  self:T(self.lid..string.format("Pers = %s | Type = %s | TypePers = %s | TaskFlag = %s",tostring(self.TaskPersistanceSwitch),tostring(Task.Type),tostring(self.TasksPersistable[Task.Type]),tostring(Task.PersistMe)))
+  if self.TaskPersistanceSwitch == true and self.TasksPersistable[Task.Type] == true and Task.PersistMe == true then
+    self:_AddPersistenceData(Task)
   end
   return self
 end

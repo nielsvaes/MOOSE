@@ -70,6 +70,7 @@
 -- @field #table Table of any trigger zone properties from the ME. The key is the Name of the property, and the value is the property's Value.
 -- @field #number Surface Type of surface. Only determined at the center of the zone!
 -- @field #number Checktime Check every Checktime seconds, used for ZONE:Trigger()
+-- @field #boolean PartlyInside When called, a GROUP is considered inside as soon as any of its units enters the zone even if they are far apart.
 -- @extends Core.Fsm#FSM
 
 
@@ -534,6 +535,19 @@ function ZONE_BASE:GetZoneProbability()
   return self.ZoneProbability
 end
 
+--- Get the coordinate on the radius of the zone nearest to Outsidecoordinate. Useto e.g. find an ingress point.
+-- @param #ZONE_BASE self
+-- @param Core.Point#COORDINATE Outsidecoordinate The coordinate outside of the zone from where to look.
+-- @return Core.Point#COORDINATE CoordinateOnRadius
+function ZONE_BASE:FindNearestCoordinateOnRadius(Outsidecoordinate)
+  local Vec1 = self:GetVec2()
+  local Radius = self:GetRadius()
+  local Vec2 = Outsidecoordinate:GetVec2()
+  local Point = UTILS.FindNearestPointOnCircle(Vec1,Radius,Vec2)
+  local rc = COORDINATE:NewFromVec2(Point)
+  return rc
+end
+
 --- Get the zone taking into account the randomization probability of a zone to be selected.
 -- @param #ZONE_BASE self
 -- @return #ZONE_BASE The zone is selected taking into account the randomization probability factor.
@@ -599,6 +613,8 @@ end
 --
 --            -- Stop watching the zone after 1 hour
 --           triggerzone:__TriggerStop(3600)
+--            -- Call :SetPartlyInside() if you use SET_GROUP to count as inside when any of their units enters even when they are far apart.
+--            -- Make sure to call :SetPartlyInside() before :Trigger()!
 function ZONE_BASE:Trigger(Objects)
   --self:I("Added Zone Trigger")
   self:SetStartState("TriggerStopped")
@@ -667,6 +683,16 @@ function ZONE_BASE:Trigger(Objects)
   
 end
 
+  --- Toggle “partly-inside” handling for this zone. To be used before :Trigger().
+  -- * Default:* flag is **false** until you call the method.  
+  -- * Call with no argument or with **true** → enable.  
+  -- * Call with **false** → disable again (handy if it was enabled before).
+  -- @param #ZONE_BASE self
+  -- @return #ZONE_BASE self
+  function ZONE_BASE:SetPartlyInside(state)
+  self.PartlyInside = state or not ( state == false )
+  return self
+  end
 --- (Internal) Check the assigned objects for being in/out of the zone
 -- @param #ZONE_BASE self
 -- @param #boolean fromstart If true, do the init of the objects
@@ -705,7 +731,12 @@ function ZONE_BASE:_TriggerCheck(fromstart)
           obj.TriggerInZone[self.ZoneName] = false
         end
         -- is obj in zone?
-        local inzone = self:IsCoordinateInZone(obj:GetCoordinate())
+        local inzone
+        if self.PartlyInside and obj.ClassName == "GROUP" then
+            inzone = obj:IsAnyInZone(self)                     -- TRUE if any unit is inside
+        else
+            inzone = self:IsCoordinateInZone(obj:GetCoordinate()) -- original barycentre test
+        end
         --self:I("Object "..obj:GetName().." is in zone: "..tostring(inzone))
         if inzone and obj.TriggerInZone[self.ZoneName] then
           -- just count
@@ -752,7 +783,7 @@ end
 -- @param #ZONE_BASE self
 -- @param #string From
 -- @param #string Event
--- @param #string to
+-- @param #string To
 -- @return #ZONE_BASE self
 function ZONE_BASE:onafterTriggerRunCheck(From,Event,To)
   if self:GetState() ~= "TriggerStopped" then
@@ -1127,17 +1158,17 @@ end
 --    myzone:Scan({Object.Category.UNIT},{Unit.Category.GROUND_UNIT})
 --    local IsAttacked = myzone:IsSomeInZoneOfCoalition( self.Coalition )
 function ZONE_RADIUS:Scan( ObjectCategories, UnitCategories )
-
+  
   self.ScanData = {}
   self.ScanData.Coalitions = {}
   self.ScanData.Scenery = {}
   self.ScanData.SceneryTable = {}
   self.ScanData.Units = {}
 
-  local ZoneCoord = self:GetCoordinate()
+  local ZoneCoord = self:GetCoordinate():SetAlt()
   local ZoneRadius = self:GetRadius()
 
-  --self:F({ZoneCoord = ZoneCoord, ZoneRadius = ZoneRadius, ZoneCoordLL = ZoneCoord:ToStringLLDMS()})
+  --self:I({x = ZoneCoord.x, y=ZoneCoord.y, z=ZoneCoord.z, ZoneRadius = ZoneRadius})
 
   local SphereSearch = {
     id = world.VolumeType.SPHERE,
@@ -1149,14 +1180,13 @@ function ZONE_RADIUS:Scan( ObjectCategories, UnitCategories )
 
   local function EvaluateZone( ZoneObject )
     --if ZoneObject:isExist() then --FF: isExist always returns false for SCENERY objects since DCS 2.2 and still in DCS 2.5
-    if ZoneObject then
+
+    if ZoneObject and self:IsVec3InZone(ZoneObject:getPoint()) then
 
       -- Get object category.
       local ObjectCategory = Object.getCategory(ZoneObject)
 
       if ( ObjectCategory == Object.Category.UNIT and ZoneObject:isExist() and ZoneObject:isActive() ) or (ObjectCategory == Object.Category.STATIC and ZoneObject:isExist()) then
-
-        local CoalitionDCSUnit = ZoneObject:getCoalition()
 
         local Include = false
         if not UnitCategories then
@@ -1236,38 +1266,48 @@ end
 
 --- Get a set of scanned units.
 -- @param #ZONE_RADIUS self
+-- @param #number Coalition (optional) Filter for this coalition only.
 -- @return Core.Set#SET_UNIT Set of units and statics inside the zone.
-function ZONE_RADIUS:GetScannedSetUnit()
+function ZONE_RADIUS:GetScannedSetUnit(Coalition)
 
-  local SetUnit = SET_UNIT:New()
-
+  self.SetUnit = self.SetUnit or SET_UNIT:New()
+  self.SetUnit:Clear(false)
+  self.SetUnit.Set={}
+  
   if self.ScanData then
     for ObjectID, UnitObject in pairs( self.ScanData.Units ) do
       local UnitObject = UnitObject -- DCS#Unit
       if UnitObject:isExist() then
         local FoundUnit = UNIT:FindByName( UnitObject:getName() )
-        if FoundUnit then
-          SetUnit:AddUnit( FoundUnit )
+        local FoundCoalition = FoundUnit and FoundUnit:GetCoalition() or nil
+        local includeoncoalition = true
+        if Coalition ~= nil and FoundCoalition==Coalition then includeoncoalition = true else includeoncoalition = false end
+        if Coalition == nil then includeoncoalition = true end
+        --self:I(string.format("Unit name %s coalition %s filter coalition = %s include = %s",FoundUnit:GetName(),tostring(FoundCoalition),tostring(Coalition),tostring(includeoncoalition)))
+        if FoundUnit and includeoncoalition then
+          self.SetUnit:AddUnit( FoundUnit )
         else
           local FoundStatic = STATIC:FindByName( UnitObject:getName(), false )
           if FoundStatic then
-            SetUnit:AddUnit( FoundStatic )
+            self.SetUnit:AddUnit( FoundStatic )
           end
         end
       end
     end
   end
 
-  return SetUnit
+  return self.SetUnit
 end
 
 --- Get a set of scanned groups.
 -- @param #ZONE_RADIUS self
+-- @param #number Coalition (optional) Filter for this coalition only.
 -- @return Core.Set#SET_GROUP Set of groups.
-function ZONE_RADIUS:GetScannedSetGroup()
+function ZONE_RADIUS:GetScannedSetGroup(Coalition)
 
   self.ScanSetGroup=self.ScanSetGroup or SET_GROUP:New() --Core.Set#SET_GROUP
-
+  
+  self.ScanSetGroup:Clear(false)
   self.ScanSetGroup.Set={}
 
   if self.ScanData then
@@ -1276,7 +1316,12 @@ function ZONE_RADIUS:GetScannedSetGroup()
       if UnitObject:isExist() then
 
         local FoundUnit=UNIT:FindByName(UnitObject:getName())
-        if FoundUnit then
+        local FoundCoalition = FoundUnit and FoundUnit:GetCoalition() or nil
+        local includeoncoalition = true
+        if Coalition ~= nil and FoundCoalition==Coalition then includeoncoalition = true else includeoncoalition = false end
+        if Coalition == nil then includeoncoalition = true end
+        --self:I(string.format("Unit name %s coalition %s filter coalition = %s include = %s",FoundUnit:GetName(),tostring(FoundCoalition),tostring(Coalition),tostring(includeoncoalition)))
+        if FoundUnit and includeoncoalition then
           local group=FoundUnit:GetGroup()
           self.ScanSetGroup:AddGroup(group)
         end
@@ -1509,6 +1554,26 @@ function ZONE_RADIUS:IsVec3InZone( Vec3 )
   return InZone
 end
 
+--- Search for clear ground spawn zones within this zone. A powerful and efficient function using Disposition to find clear areas for spawning ground units avoiding trees, water and map scenery.
+-- @param #ZONE_RADIUS self
+-- @param #number PosRadius Required clear radius around each position.
+-- @param #number NumPositions Number of positions to find.
+-- @return #table A table of DCS#Vec2 positions that are clear of map objects within the given PosRadius. nil if no clear positions are found.
+function ZONE_RADIUS:GetClearZonePositions(PosRadius, NumPositions)
+    return UTILS.GetClearZonePositions(self, PosRadius, NumPositions)
+end
+
+
+--- Search for a random clear ground spawn coordinate within this zone. A powerful and efficient function using Disposition to find clear areas for spawning ground units avoiding trees, water and map scenery.
+-- @param #ZONE_RADIUS self
+-- @param #number PosRadius (Optional) Required clear radius around each position. (Default is math.min(Radius/10, 200))
+-- @param #number NumPositions (Optional) Number of positions to find. (Default 50)
+-- @return Core.Point#COORDINATE A random coordinate for a clear zone. nil if no clear positions are found.
+-- @return #number Assigned radius for the found zones. nil if no clear positions are found.
+function ZONE_RADIUS:GetRandomClearZoneCoordinate(PosRadius, NumPositions)
+    return UTILS.GetRandomClearZoneCoordinate(self, PosRadius, NumPositions)
+end
+
 --- Returns a random Vec2 location within the zone.
 -- @param #ZONE_RADIUS self
 -- @param #number inner (Optional) Minimal distance from the center of the zone. Default is 0.
@@ -1520,6 +1585,10 @@ function ZONE_RADIUS:GetRandomVec2(inner, outer, surfacetypes)
   local Vec2 = self:GetVec2()
   local _inner = inner or 0
   local _outer = outer or self:GetRadius()
+  
+  math.random()
+  math.random()
+  math.random()
 
   if surfacetypes and type(surfacetypes)~="table" then
     surfacetypes={surfacetypes}
@@ -1881,6 +1950,21 @@ function ZONE_UNIT:New( ZoneName, ZoneUNIT, Radius, Offset)
   return self
 end
 
+--- Updates the current location from a @{Wrapper.Group}.
+-- @param #ZONE_UNIT self
+-- @param Wrapper.Group#GROUP Group (optional) Update from this Unit, if nil, update from the UNIT this zone is based on.
+-- @return self
+function ZONE_UNIT:UpdateFromUnit(Unit)
+  if Unit and Unit:IsAlive() then
+    local vec2 = Unit:GetVec2()
+    self.LastVec2 = vec2
+  elseif self.ZoneUNIT and self.ZoneUNIT:IsAlive() then
+    local ZoneVec2 = self.ZoneUNIT:GetVec2()
+    self.LastVec2 = ZoneVec2
+  end
+  return self
+end
+
 
 --- Returns the current location of the @{Wrapper.Unit#UNIT}.
 -- @param #ZONE_UNIT self
@@ -2016,6 +2100,22 @@ function ZONE_GROUP:GetVec2()
   --self:T( { ZoneVec2 } )
 
   return ZoneVec2
+end
+
+--- Updates the current location from a @{Wrapper.Group}.
+-- @param #ZONE_GROUP self
+-- @param Wrapper.Group#GROUP Group (optional) Update from this Group, if nil, update from the GROUP this zone is based on.
+-- @return self
+function ZONE_GROUP:UpdateFromGroup(Group)
+  if Group and Group:IsAlive() then
+    local vec2 = Group:GetVec2()
+    self.Vec2 = vec2
+  elseif self._.ZoneGROUP and self._.ZoneGROUP:IsAlive() then
+    local ZoneVec2 = self._.ZoneGROUP:GetVec2()
+    self.Vec2 = ZoneVec2
+    self._.ZoneVec2Cache = ZoneVec2
+  end
+  return self
 end
 
 --- Returns a random location within the zone of the @{Wrapper.Group}.
@@ -2487,6 +2587,26 @@ function ZONE_POLYGON_BASE:Flush()
   return self
 end
 
+--- Search for clear ground spawn zones within this zone. A powerful and efficient function using Disposition to find clear areas for spawning ground units avoiding trees, water and map scenery.
+-- @param #ZONE_POLYGON_BASE self
+-- @param #number PosRadius Required clear radius around each position.
+-- @param #number NumPositions Number of positions to find.
+-- @return #table A table of DCS#Vec2 positions that are clear of map objects within the given PosRadius. nil if no clear positions are found.
+function ZONE_POLYGON_BASE:GetClearZonePositions(PosRadius, NumPositions)
+    return UTILS.GetClearZonePositions(self, PosRadius, NumPositions)
+end
+
+
+--- Search for a random clear ground spawn coordinate within this zone. A powerful and efficient function using Disposition to find clear areas for spawning ground units avoiding trees, water and map scenery.
+-- @param #ZONE_POLYGON_BASE self
+-- @param #number PosRadius (Optional) Required clear radius around each position. (Default is math.min(Radius/10, 200))
+-- @param #number NumPositions (Optional) Number of positions to find. (Default 50)
+-- @return Core.Point#COORDINATE A random coordinate for a clear zone. nil if no clear positions are found.
+-- @return #number Assigned radius for the found zones. nil if no clear positions are found.
+function ZONE_POLYGON_BASE:GetRandomClearZoneCoordinate(PosRadius, NumPositions)
+    return UTILS.GetRandomClearZoneCoordinate(self, PosRadius, NumPositions)
+end
+
 --- Smokes the zone boundaries in a color.
 -- @param #ZONE_POLYGON_BASE self
 -- @param #boolean UnBound If true, the tyres will be destroyed.
@@ -2865,6 +2985,11 @@ end
 function ZONE_POLYGON_BASE:GetRandomVec2()
     -- make sure we assign weights to the triangles based on their surface area, otherwise
     -- we'll be more likely to generate random points in smaller triangles
+    
+    math.random()
+    math.random()
+    math.random()
+    
     local weights = {}
     for _, triangle in pairs(self._Triangles) do
         weights[triangle] = triangle.SurfaceArea / self.SurfaceArea
@@ -3204,12 +3329,7 @@ function ZONE_POLYGON:Scan( ObjectCategories, UnitCategories )
 
   local vectors = self:GetBoundingSquare()
 
-  local minVec3 = {x=vectors.x1, y=0, z=vectors.y1}
-  local maxVec3 = {x=vectors.x2, y=0, z=vectors.y2}
-
-  local minmarkcoord = COORDINATE:NewFromVec3(minVec3)
-  local maxmarkcoord = COORDINATE:NewFromVec3(maxVec3)
-  local ZoneRadius = minmarkcoord:Get2DDistance(maxmarkcoord)/2
+  local ZoneRadius = UTILS.VecDist2D({x=vectors.x1, y=vectors.y1}, {x=vectors.x2, y=vectors.y2})/2
 --  self:I("Scan Radius:" ..ZoneRadius)
   local CenterVec3 = self:GetCoordinate():GetVec3()
 
@@ -3233,13 +3353,11 @@ function ZONE_POLYGON:Scan( ObjectCategories, UnitCategories )
 
   local function EvaluateZone( ZoneObject )
 
-    if ZoneObject then
+    if ZoneObject and self:IsVec3InZone(ZoneObject:getPoint()) then
 
       local ObjectCategory = Object.getCategory(ZoneObject)
 
       if ( ObjectCategory == Object.Category.UNIT and ZoneObject:isExist() and ZoneObject:isActive() ) or (ObjectCategory == Object.Category.STATIC and ZoneObject:isExist()) then
-
-        local CoalitionDCSUnit = ZoneObject:getCoalition()
 
         local Include = false
         if not UnitCategories then
@@ -3272,13 +3390,13 @@ function ZONE_POLYGON:Scan( ObjectCategories, UnitCategories )
       end
 
       -- trying with box search
-      if ObjectCategory == Object.Category.SCENERY and self:IsVec3InZone(ZoneObject:getPoint()) then
+      if ObjectCategory == Object.Category.SCENERY then
         local SceneryType = ZoneObject:getTypeName()
         local SceneryName = ZoneObject:getName()
         self.ScanData.Scenery[SceneryType] = self.ScanData.Scenery[SceneryType] or {}
         self.ScanData.Scenery[SceneryType][SceneryName] = SCENERY:Register( SceneryName, ZoneObject )
         table.insert(self.ScanData.SceneryTable,self.ScanData.Scenery[SceneryType][SceneryName])
-        --self:T( { SCENERY =  self.ScanData.Scenery[SceneryType][SceneryName] } )
+        --self:I( { SCENERY =  self.ScanData.Scenery[SceneryType][SceneryName] } )
       end
 
     end
