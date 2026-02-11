@@ -30,6 +30,8 @@ do -- TASK_A2A_DISPATCHER
   -- @extends Tasking.DetectionManager#DETECTION_MANAGER
 
   --- Orchestrates the dynamic dispatching of tasks upon groups of detected units determined a @{Core.Set} of EWR installation groups.
+  -- 
+  -- ![Banner Image](..\Images\deprecated.png)
   --
   -- ![Banner Image](..\Presentations\TASK_A2A_DISPATCHER\Dia3.JPG)
   --
@@ -148,7 +150,7 @@ do -- TASK_A2A_DISPATCHER
   --
   --      TaskDispatcher = TASK_A2A_DISPATCHER:New( ... )
   --
-  --      --- @param #TaskDispatcher self
+  --      -- @param #TaskDispatcher self
   --      -- @param #string From Contains the name of the state from where the Event was triggered.
   --      -- @param #string Event Contains the name of the event that was triggered. In this case Assign.
   --      -- @param #string To Contains the name of the state that will be transitioned to.

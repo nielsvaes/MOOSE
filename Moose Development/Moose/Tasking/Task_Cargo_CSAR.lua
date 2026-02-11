@@ -44,6 +44,8 @@
 --
 -- ===
 -- 
+-- ![Banner Image](..\Images\deprecated.png)
+-- 
 -- Please read through the @{Tasking.Task_CARGO} process to understand the mechanisms of tasking and cargo tasking and handling.
 -- 
 -- The cargo will be a downed pilot, which is located somwhere on the battlefield. Use the menus system and facilities to 
@@ -72,8 +74,8 @@
 
 do -- TASK_CARGO_CSAR
 
-  --- @type TASK_CARGO_CSAR
-  -- @extends Tasking.Task_CARGO#TASK_CARGO
+  -- @type TASK_CARGO_CSAR
+  -- @extends Tasking.Task_Cargo#TASK_CARGO
   
   --- Orchestrates the task for players to execute CSAR for downed pilots.
   -- 

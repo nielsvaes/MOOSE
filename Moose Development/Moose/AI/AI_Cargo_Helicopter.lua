@@ -9,11 +9,13 @@
 -- @module AI.AI_Cargo_Helicopter
 -- @image AI_Cargo_Dispatching_For_Helicopters.JPG
 
---- @type AI_CARGO_HELICOPTER
+-- @type AI_CARGO_HELICOPTER
 -- @extends Core.Fsm#FSM_CONTROLLABLE
 
 
 --- Brings a dynamic cargo handling capability for an AI helicopter group.
+--  
+--  ![Banner Image](..\Images\deprecated.png)
 --  
 -- Helicopter carriers can be mobilized to intelligently transport infantry and other cargo within the simulation.
 -- 
@@ -287,7 +289,7 @@ function AI_CARGO_HELICOPTER:SetLandingSpeedAndHeight(speed, height)
   return self
 end
 
---- @param #AI_CARGO_HELICOPTER self
+-- @param #AI_CARGO_HELICOPTER self
 -- @param Wrapper.Group#GROUP Helicopter
 -- @param From
 -- @param Event
@@ -326,7 +328,7 @@ function AI_CARGO_HELICOPTER:onafterLanded( Helicopter, From, Event, To )
   
 end
 
---- @param #AI_CARGO_HELICOPTER self
+-- @param #AI_CARGO_HELICOPTER self
 -- @param Wrapper.Group#GROUP Helicopter
 -- @param From
 -- @param Event
@@ -367,8 +369,8 @@ function AI_CARGO_HELICOPTER:onafterQueue( Helicopter, From, Event, To, Coordina
 --          local CoordinateFrom = Helicopter:GetCoordinate()
 --          local WaypointFrom = CoordinateFrom:WaypointAir( 
 --            "RADIO", 
---            POINT_VEC3.RoutePointType.TurningPoint, 
---            POINT_VEC3.RoutePointAction.TurningPoint, 
+--            COORDINATE.WaypointType.TurningPoint, 
+--            COORDINATE.WaypointAction.TurningPoint, 
 --            Speed, 
 --            true 
 --          )
@@ -380,8 +382,8 @@ function AI_CARGO_HELICOPTER:onafterQueue( Helicopter, From, Event, To, Coordina
     
         local WaypointTo = CoordinateTo:WaypointAir( 
           "RADIO", 
-          POINT_VEC3.RoutePointType.TurningPoint, 
-          POINT_VEC3.RoutePointAction.TurningPoint, 
+          COORDINATE.WaypointType.TurningPoint, 
+          COORDINATE.WaypointAction.TurningPoint, 
           50, 
           true 
         )
@@ -409,7 +411,7 @@ function AI_CARGO_HELICOPTER:onafterQueue( Helicopter, From, Event, To, Coordina
 end
 
 
---- @param #AI_CARGO_HELICOPTER self
+-- @param #AI_CARGO_HELICOPTER self
 -- @param Wrapper.Group#GROUP Helicopter
 -- @param From
 -- @param Event
@@ -427,7 +429,7 @@ function AI_CARGO_HELICOPTER:onafterOrbit( Helicopter, From, Event, To, Coordina
     local landheight = CoordinateTo:GetLandHeight() -- get target height
     CoordinateTo.y = landheight + 50 -- flight height should be 50m above ground
     
-    local WaypointTo = CoordinateTo:WaypointAir("RADIO", POINT_VEC3.RoutePointType.TurningPoint, POINT_VEC3.RoutePointAction.TurningPoint, 50, true)
+    local WaypointTo = CoordinateTo:WaypointAir("RADIO", COORDINATE.WaypointType.TurningPoint, COORDINATE.WaypointAction.TurningPoint, 50, true)
     Route[#Route+1] = WaypointTo
     
     local Tasks = {}
@@ -496,14 +498,14 @@ function AI_CARGO_HELICOPTER:onafterPickup( Helicopter, From, Event, To, Coordin
     local CoordinateFrom = Helicopter:GetCoordinate()
 
     --- Create a route point of type air.
-    local WaypointFrom = CoordinateFrom:WaypointAir("RADIO", POINT_VEC3.RoutePointType.TurningPoint, POINT_VEC3.RoutePointAction.TurningPoint, _speed, true)
+    local WaypointFrom = CoordinateFrom:WaypointAir("RADIO", COORDINATE.WaypointType.TurningPoint, COORDINATE.WaypointAction.TurningPoint, _speed, true)
 
     --- Create a route point of type air.
     local CoordinateTo = Coordinate
     local landheight = CoordinateTo:GetLandHeight() -- get target height
     CoordinateTo.y = landheight + 50 -- flight height should be 50m above ground
     
-    local WaypointTo = CoordinateTo:WaypointAir("RADIO", POINT_VEC3.RoutePointType.TurningPoint, POINT_VEC3.RoutePointAction.TurningPoint,_speed, true)
+    local WaypointTo = CoordinateTo:WaypointAir("RADIO", COORDINATE.WaypointType.TurningPoint, COORDINATE.WaypointAction.TurningPoint,_speed, true)
 
     Route[#Route+1] = WaypointFrom
     Route[#Route+1] = WaypointTo
@@ -563,7 +565,7 @@ function AI_CARGO_HELICOPTER:onafterDeploy( Helicopter, From, Event, To, Coordin
 
     --- Create a route point of type air.
     local CoordinateFrom = Helicopter:GetCoordinate()
-    local WaypointFrom = CoordinateFrom:WaypointAir("RADIO", POINT_VEC3.RoutePointType.TurningPoint, POINT_VEC3.RoutePointAction.TurningPoint, _speed, true)
+    local WaypointFrom = CoordinateFrom:WaypointAir("RADIO", COORDINATE.WaypointType.TurningPoint, COORDINATE.WaypointAction.TurningPoint, _speed, true)
     Route[#Route+1] = WaypointFrom
     Route[#Route+1] = WaypointFrom
 
@@ -573,7 +575,7 @@ function AI_CARGO_HELICOPTER:onafterDeploy( Helicopter, From, Event, To, Coordin
     local landheight = CoordinateTo:GetLandHeight() -- get target height
     CoordinateTo.y = landheight + 50 -- flight height should be 50m above ground
     
-    local WaypointTo = CoordinateTo:WaypointAir("RADIO", POINT_VEC3.RoutePointType.TurningPoint, POINT_VEC3.RoutePointAction.TurningPoint, _speed, true)
+    local WaypointTo = CoordinateTo:WaypointAir("RADIO", COORDINATE.WaypointType.TurningPoint, COORDINATE.WaypointAction.TurningPoint, _speed, true)
 
     Route[#Route+1] = WaypointTo
     Route[#Route+1] = WaypointTo
@@ -631,7 +633,7 @@ function AI_CARGO_HELICOPTER:onafterHome( Helicopter, From, Event, To, Coordinat
     --- Create a route point of type air.
     local CoordinateFrom = Helicopter:GetCoordinate()
     
-    local WaypointFrom = CoordinateFrom:WaypointAir("RADIO", POINT_VEC3.RoutePointType.TurningPoint, POINT_VEC3.RoutePointAction.TurningPoint, Speed, true)
+    local WaypointFrom = CoordinateFrom:WaypointAir("RADIO", COORDINATE.WaypointType.TurningPoint, COORDINATE.WaypointAction.TurningPoint, Speed, true)
     Route[#Route+1] = WaypointFrom
 
     --- Create a route point of type air.
@@ -639,7 +641,7 @@ function AI_CARGO_HELICOPTER:onafterHome( Helicopter, From, Event, To, Coordinat
     local landheight = CoordinateTo:GetLandHeight() -- get target height
     CoordinateTo.y = landheight + Height -- flight height should be 50m above ground
     
-    local WaypointTo = CoordinateTo:WaypointAir("RADIO", POINT_VEC3.RoutePointType.TurningPoint, POINT_VEC3.RoutePointAction.TurningPoint, Speed, true)
+    local WaypointTo = CoordinateTo:WaypointAir("RADIO", COORDINATE.WaypointType.TurningPoint, COORDINATE.WaypointAction.TurningPoint, Speed, true)
 
     Route[#Route+1] = WaypointTo
     

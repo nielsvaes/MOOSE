@@ -1,5 +1,7 @@
 --- **Tasking** - Models tasks for players to transport cargo.
 -- 
+-- ![Banner Image](..\Images\deprecated.png)
+-- 
 -- **Specific features:**
 -- 
 --   * Creates a task to transport #Cargo.Cargo to and between deployment zones.
@@ -285,7 +287,7 @@ do -- TASK_CARGO_TRANSPORT
     local CargoReport = REPORT:New( "Transport Cargo. The following cargo needs to be transported including initial positions:")
     
     SetCargo:ForEachCargo(
-      --- @param Core.Cargo#CARGO Cargo
+      -- @param Core.Cargo#CARGO Cargo
       function( Cargo )
         local CargoType = Cargo:GetType()
         local CargoName = Cargo:GetName()
@@ -348,7 +350,7 @@ do -- TASK_CARGO_TRANSPORT
     return CargoDeployed
   end
   
-  --- @param #TASK_CARGO_TRANSPORT self
+  -- @param #TASK_CARGO_TRANSPORT self
   function TASK_CARGO_TRANSPORT:onafterGoal( TaskUnit, From, Event, To )
     local CargoSet = self.CargoSet
     

@@ -5,6 +5,8 @@
 -- The @{#DETECTION_MANAGER} class defines the core functions to report detected objects to groups.
 -- Reportings can be done in several manners, and it is up to the derived classes if DETECTION_MANAGER to model the reporting behaviour.
 -- 
+-- ![Banner Image](..\Images\deprecated.png)
+-- 
 -- 1.1) DETECTION_MANAGER constructor:
 -- -----------------------------------
 --   * @{#DETECTION_MANAGER.New}(): Create a new DETECTION_MANAGER instance.
@@ -48,7 +50,7 @@
 
 do -- DETECTION MANAGER
   
-  --- @type DETECTION_MANAGER
+  -- @type DETECTION_MANAGER
   -- @field Core.Set#SET_GROUP SetGroup The groups to which the FAC will report to.
   -- @field Functional.Detection#DETECTION_BASE Detection The DETECTION_BASE object that is used to report the detected objects.
   -- @field Tasking.CommandCenter#COMMANDCENTER CC The command center that is used to communicate with the players.
@@ -62,7 +64,7 @@ do -- DETECTION MANAGER
     Detection = nil,
   }
   
-  --- @field Tasking.CommandCenter#COMMANDCENTER
+  -- @field Tasking.CommandCenter#COMMANDCENTER
   DETECTION_MANAGER.CC = nil
   
   --- FAC constructor.

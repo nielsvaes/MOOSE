@@ -29,6 +29,8 @@
 
 
 --- Governs multiple missions, the tasking and the reporting.
+-- 
+-- ![Banner Image](..\Images\deprecated.png)
 --  
 -- Command centers govern missions, communicates the task assignments between human players of the coalition, and manages the menu flow.
 -- It can assign a random task to a player when requested.
@@ -181,7 +183,8 @@ COMMANDCENTER = {
 }
 
 
---- @type COMMANDCENTER.AutoAssignMethods
+---
+-- @type COMMANDCENTER.AutoAssignMethods
 COMMANDCENTER.AutoAssignMethods = {
   ["Random"] = 1,
   ["Distance"] = 2,
@@ -210,7 +213,7 @@ function COMMANDCENTER:New( CommandCenterPositionable, CommandCenterName )
   self:SetMessageDuration(10)
   
   self:HandleEvent( EVENTS.Birth,
-    --- @param #COMMANDCENTER self
+    -- @param #COMMANDCENTER self
     -- @param Core.Event#EVENTDATA EventData
     function( self, EventData )
       if EventData.IniObjectCategory == 1 then
@@ -241,7 +244,7 @@ function COMMANDCENTER:New( CommandCenterPositionable, CommandCenterName )
 --  -- - Assign the PlayerUnit to the Task if required.
 --  -- - Send a message to the other players in the group that this player has joined.
 --  self:HandleEvent( EVENTS.PlayerEnterUnit,
---    --- @param #COMMANDCENTER self
+--    -- @param #COMMANDCENTER self
 --    -- @param Core.Event#EVENTDATA EventData
 --    function( self, EventData )
 --      local PlayerUnit = EventData.IniUnit
@@ -258,7 +261,7 @@ function COMMANDCENTER:New( CommandCenterPositionable, CommandCenterName )
   -- The PlayerUnit will be UnAssigned from the Task.
   -- When there is no Unit left running the Task, the Task goes into Abort...
   self:HandleEvent( EVENTS.MissionEnd,
-    --- @param #TASK self
+    -- @param #TASK self
     -- @param Core.Event#EVENTDATA EventData
     function( self, EventData )
       local PlayerUnit = EventData.IniUnit
@@ -273,7 +276,7 @@ function COMMANDCENTER:New( CommandCenterPositionable, CommandCenterName )
   -- The PlayerUnit will be UnAssigned from the Task.
   -- When there is no Unit left running the Task, the Task goes into Abort...
   self:HandleEvent( EVENTS.PlayerLeaveUnit,
-    --- @param #TASK self
+    -- @param #TASK self
     -- @param Core.Event#EVENTDATA EventData
     function( self, EventData )
       local PlayerUnit = EventData.IniUnit
@@ -290,7 +293,7 @@ function COMMANDCENTER:New( CommandCenterPositionable, CommandCenterName )
   -- The PlayerUnit will be UnAssigned from the Task.
   -- When there is no Unit left running the Task, the Task goes into Abort...
   self:HandleEvent( EVENTS.Crash,
-    --- @param #TASK self
+    -- @param #TASK self
     -- @param Core.Event#EVENTDATA EventData
     function( self, EventData )
       local PlayerUnit = EventData.IniUnit

@@ -501,6 +501,7 @@ ATIS.Alphabet = {
 -- @field #number Kola +15° (East).
 -- @field #number Afghanistan +3° (East).
 -- @field #number Iraq +4.4° (East).
+-- @field #number GermanyCW +0.1° (East).
 ATIS.RunwayM2T = {
   Caucasus = 0,
   Nevada = 12,
@@ -513,7 +514,8 @@ ATIS.RunwayM2T = {
   SinaiMap = 5,
   Kola = 15,
   Afghanistan = 3,
-  Iraq=4.4
+  Iraq=4.4,
+  GermanyCW=0.1,
 }
 
 --- Whether ICAO phraseology is used for ATIS broadcasts.
@@ -530,6 +532,7 @@ ATIS.RunwayM2T = {
 -- @field #boolean Kola true.
 -- @field #boolean Afghanistan true.
 -- @field #boolean Iraq true.
+-- @field #boolean GermanyCW true.
 ATIS.ICAOPhraseology = {
   Caucasus = true,
   Nevada = false,
@@ -543,6 +546,7 @@ ATIS.ICAOPhraseology = {
   Kola = true,
   Afghanistan = true,
   Iraq = true,
+  GermanyCW = true,
 }
 
 --- Nav point data.
@@ -2794,7 +2798,7 @@ function ATIS:onafterBroadcast( From, Event, To )
 
     end
     _RUNACT = subtitle
-    alltext = alltext .. ";\n" .. subtitle
+    --alltext = alltext .. ";\n" .. subtitle
 
     -- Runway length.
     if self.rwylength then

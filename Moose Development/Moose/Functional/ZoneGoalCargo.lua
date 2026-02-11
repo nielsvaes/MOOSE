@@ -7,6 +7,8 @@
 --
 -- # Developer Note
 -- 
+-- ![Banner Image](..\Images\deprecated.png)
+-- 
 -- Note while this class still works, it is no longer supported as the original author stopped active development of MOOSE
 -- Therefore, this class is considered to be deprecated
 --
@@ -21,7 +23,7 @@
 
 do -- ZoneGoal
 
-  --- @type ZONE_GOAL_CARGO
+  -- @type ZONE_GOAL_CARGO
   -- @extends Functional.ZoneGoal#ZONE_GOAL
 
 
@@ -55,7 +57,7 @@ do -- ZoneGoal
     ClassName = "ZONE_GOAL_CARGO",
   }
   
-  --- @field #table ZONE_GOAL_CARGO.States
+  -- @field #table ZONE_GOAL_CARGO.States
   ZONE_GOAL_CARGO.States = {}
   
   --- ZONE_GOAL_CARGO Constructor.

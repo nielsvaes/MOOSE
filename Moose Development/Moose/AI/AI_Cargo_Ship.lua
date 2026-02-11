@@ -9,10 +9,12 @@
 -- @module AI.AI_Cargo_Ship
 -- @image AI_Cargo_Dispatcher.JPG
 
---- @type AI_CARGO_SHIP
+-- @type AI_CARGO_SHIP
 -- @extends AI.AI_Cargo#AI_CARGO
 
 --- Brings a dynamic cargo handling capability for an AI naval group.
+--
+-- ![Banner Image](..\Images\deprecated.png)
 --
 -- Naval ships can be utilized to transport cargo around the map following naval shipping lanes.
 -- The AI_CARGO_SHIP class uses the @{Cargo.Cargo} capabilities within the MOOSE framework. 

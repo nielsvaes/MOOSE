@@ -377,6 +377,10 @@ function UNIT:ReSpawnAt(Coordinate, Heading)
 
     --self:T( SpawnGroupTemplate )
 
+    if self.ValidateAndRepositionGroundUnits then
+        UTILS.ValidateAndRepositionGroundUnits(SpawnGroupTemplate.units)
+    end
+
     _DATABASE:Spawn(SpawnGroupTemplate)
 end
 
@@ -897,7 +901,7 @@ function UNIT:GetAmmunition()
                     nAPshells = nAPshells + Nammo
                 end
 
-                if ammotable[w].desc.typeName and string.find(ammotable[w].desc.typeName, "_HE", 1, true) then
+                if ammotable[w].desc.typeName and (string.find(ammotable[w].desc.typeName, "_HE", 1, true) or string.find(ammotable[w].desc.typeName, "HESH", 1, true)) then
                     nHEshells = nHEshells + Nammo
                 end
 
@@ -1107,7 +1111,6 @@ function UNIT:GetUnits()
 
     if DCSUnit then
         Units[1] = UNIT:Find(DCSUnit)
-        - self:T3(Units)
         return Units
     end
 
@@ -1349,9 +1352,7 @@ function UNIT:GetThreatLevel()
             end
 
             ThreatText = ThreatLevels[ThreatLevel + 1]
-        end
-
-        if self:IsAir() then
+        elseif self:IsAir() then
 
             local ThreatLevels = {
                 [1] = "Unarmed",
@@ -1394,9 +1395,7 @@ function UNIT:GetThreatLevel()
             end
 
             ThreatText = ThreatLevels[ThreatLevel + 1]
-        end
-
-        if self:IsShip() then
+        elseif self:IsShip() then
 
             --["Aircraft Carriers"] = {"Heavy armed ships",},
             --["Cruisers"] = {"Heavy armed ships",},
@@ -1924,4 +1923,52 @@ function UNIT:IsAAA()
         return true
     end
     return false
+end
+
+--- Set the relative life points of a UNIT object
+-- @param #UNIT self
+-- @param #number Percent Percent to set, can be 0..100.
+function UNIT:SetLife(Percent)
+    net.dostring_in("mission",string.format("a_unit_set_life_percentage(%d, %f)", self:GetID(), Percent))
+end
+
+--- Set the carrier illumination mode. -2: OFF, -1: AUTO, 0: NAVIGATION, 1: AC LAUNCH, 2: AC RECOVERY
+-- @param #UNIT self
+-- @param #number Mode Illumination mode, can be -2: OFF, -1: AUTO, 0: NAVIGATION, 1: AC LAUNCH, 2: AC RECOVERY
+function UNIT:SetCarrierIlluminationMode(Mode)
+    UTILS.SetCarrierIlluminationMode(self:GetID(), Mode)
+end
+
+--- This function uses Disposition and other fallback logic to find better ground positions for ground units.
+--- NOTE: This is not a spawn randomizer.
+--- It will try to find clear ground locations avoiding trees, water, roads, runways, map scenery, statics and other units in the area and modifies the provided positions table.
+--- Maintains the original layout and unit positions as close as possible by searching for the next closest valid position to each unit.
+--- Uses UTILS.ValidateAndRepositionGroundUnits.
+-- @param #UNIT self
+-- @param #boolean Enabled Enable/disable the feature.
+function UNIT:SetValidateAndRepositionGroundUnits(Enabled)
+    self.ValidateAndRepositionGroundUnits = Enabled
+end
+
+--- Get the max kgs of fuel this unit can hold in its *internal* tank(s) and overall (with external tanks) in kgs.
+-- @param #UNIT self
+-- @return #number InternalFuel Max internal fuel in kgs. Zero if it cannot be determined.
+-- @return #number Overall Fuel Overall max in case there are external tanks in kgs. Zero if it cannot be determined.
+function UNIT:GetFuelMassMax()
+  local Desc = self:GetDesc() or {}
+  local massFuelMax=Desc.fuelMassMax or 0
+  local relFuel=math.min(self:GetFuel() or 1.0, 1.0)  -- We take 1.0 as max in case of external fuel tanks.
+  local massFuel=massFuelMax*relFuel
+  return massFuel, massFuelMax
+end
+
+--- Get the current kgs of fuel this unit holds in all of its tanks.
+-- @param #UNIT self
+-- @param #number Filling Fuel in kgs.
+function UNIT:GetCurrentFuelKgs()
+  local fuel, maxfuel = self:GetFuelMassMax()
+  local relfuel = self:GetFuel()
+  local maxfilling = math.max(fuel,maxfuel)
+  local mass = maxfilling*relfuel
+  return mass
 end

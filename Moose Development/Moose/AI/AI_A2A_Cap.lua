@@ -11,13 +11,15 @@
 -- @module AI.AI_A2A_Cap
 -- @image AI_Combat_Air_Patrol.JPG
 
---- @type AI_A2A_CAP
+-- @type AI_A2A_CAP
 -- @extends AI.AI_Air_Patrol#AI_AIR_PATROL
 -- @extends AI.AI_Air_Engage#AI_AIR_ENGAGE
 
 --- The AI_A2A_CAP class implements the core functions to patrol a @{Core.Zone} by an AI @{Wrapper.Group} or @{Wrapper.Group}
 -- and automatically engage any airborne enemies that are within a certain range or within a certain zone.
---
+-- 
+-- ![Banner Image](..\Images\deprecated.png)
+-- 
 -- ![Process](..\Presentations\AI_CAP\Dia3.JPG)
 --
 -- The AI_A2A_CAP is assigned a @{Wrapper.Group} and this must be done before the AI_A2A_CAP process can be started using the **Start** event.

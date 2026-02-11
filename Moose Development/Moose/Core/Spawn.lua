@@ -1049,6 +1049,23 @@ function SPAWN:InitSetUnitAbsolutePositions(Positions)
   return self
 end
 
+
+--- Uses Disposition and other fallback logic to find better ground positions for ground units.
+--- NOTE: This is not a spawn randomizer.
+--- It will try to find clear ground locations avoiding trees, water, roads, runways, map scenery, statics and other units in the area.
+--- Maintains the original layout and unit positions as close as possible by searching for the next closest valid position to each unit.
+-- @param #SPAWN self
+-- @param #boolean OnOff Enable/disable the feature.
+-- @param #number MaxRadius (Optional) Max radius to search for valid ground locations in meters. Default is double the max radius of the units.
+-- @param #number Spacing (Optional) Minimum spacing between units in meters. Default is 5% of the search radius or 5 meters, whichever is larger.
+-- @return #SPAWN
+function SPAWN:InitValidateAndRepositionGroundUnits(OnOff, MaxRadius, Spacing)
+    self.SpawnValidateAndRepositionGroundUnits = OnOff
+    self.SpawnValidateAndRepositionGroundUnitsRadius = MaxRadius
+    self.SpawnValidateAndRepositionGroundUnitsSpacing = Spacing
+    return self
+end
+
 --- This method is rather complicated to understand. But I'll try to explain.
 -- This method becomes useful when you need to spawn groups with random templates of groups defined within the mission editor,
 -- but they will all follow the same Template route and have the same prefix name.
@@ -1631,7 +1648,7 @@ function SPAWN:SpawnWithIndex( SpawnIndex, NoBirth )
 
       if SpawnTemplate then
 
-        local PointVec3 = POINT_VEC3:New( SpawnTemplate.route.points[1].x, SpawnTemplate.route.points[1].alt, SpawnTemplate.route.points[1].y )
+        local PointVec3 = COORDINATE:New( SpawnTemplate.route.points[1].x, SpawnTemplate.route.points[1].alt, SpawnTemplate.route.points[1].y )
         --self:T2( { "Current point of ", self.SpawnTemplatePrefix, PointVec3 } )
 
         -- If RandomizePosition, then Randomize the formation in the zone band, keeping the template.
@@ -1650,6 +1667,9 @@ function SPAWN:SpawnWithIndex( SpawnIndex, NoBirth )
 
         -- If RandomizeUnits, then Randomize the formation at the start point.
         if self.SpawnRandomizeUnits then
+          if self.SpawnRandomizePosition then
+            PointVec3 = COORDINATE:New( SpawnTemplate.x, SpawnTemplate.route.points[1].alt, SpawnTemplate.y )
+          end
           for UnitID = 1, #SpawnTemplate.units do
             local RandomVec2 = PointVec3:GetRandomVec2InRadius( self.SpawnOuterRadius, self.SpawnInnerRadius )
             if (SpawnZone) then
@@ -1829,7 +1849,13 @@ function SPAWN:SpawnWithIndex( SpawnIndex, NoBirth )
         if self.SpawnHiddenOnMap then
           SpawnTemplate.hidden=self.SpawnHiddenOnMap
         end
-        
+
+        if self.SpawnValidateAndRepositionGroundUnits then
+            local units = SpawnTemplate.units
+            local gPos = { x = SpawnTemplate.x, y = SpawnTemplate.y }
+            UTILS.ValidateAndRepositionGroundUnits(units, gPos, self.SpawnValidateAndRepositionGroundUnitsRadius, self.SpawnValidateAndRepositionGroundUnitsSpacing)
+        end
+
         -- Set country, coalition and category.
         SpawnTemplate.CategoryID = self.SpawnInitCategory or SpawnTemplate.CategoryID
         SpawnTemplate.CountryID = self.SpawnInitCountry or SpawnTemplate.CountryID
@@ -2082,13 +2108,15 @@ function SPAWN:SpawnAtAirbase( SpawnAirbase, Takeoff, TakeoffAltitude, TerminalT
       --self:F( { AirbaseCategory = AirbaseCategory } )
 
       -- Set airdrome ID. For helipads and ships we need to add the helipad ID and linked unit.
-      SpawnPoint.airdromeId = AirbaseID
+      -- Note, it is important not to set the airdrome ID for at least ships, because spawn will happen at origin of the map
       if AirbaseCategory == Airbase.Category.SHIP then
         SpawnPoint.linkUnit = AirbaseID
         SpawnPoint.helipadId = AirbaseID
       elseif AirbaseCategory == Airbase.Category.HELIPAD then
         SpawnPoint.linkUnit = AirbaseID
         SpawnPoint.helipadId = AirbaseID
+      else
+        SpawnPoint.airdromeId = AirbaseID
       end
 
       -- Set waypoint type/action.
@@ -2828,7 +2856,7 @@ end
 function SPAWN:SpawnFromVec3( Vec3, SpawnIndex )
   --self:F( { self.SpawnTemplatePrefix, Vec3, SpawnIndex } )
 
-  local PointVec3 = POINT_VEC3:NewFromVec3( Vec3 )
+  local PointVec3 = COORDINATE:NewFromVec3( Vec3 )
   --self:T2( PointVec3 )
 
   if SpawnIndex then
@@ -2904,7 +2932,7 @@ end
 -- Note that each point in the route assigned to the spawning group is reset to the point of the spawn.
 -- You can use the returned group to further define the route to be followed.
 -- @param #SPAWN self
--- @param Core.Point#POINT_VEC3 PointVec3 The PointVec3 coordinates where to spawn the group.
+-- @param Core.Point#COORDINATE PointVec3 The COORDINATE coordinates where to spawn the group.
 -- @param #number SpawnIndex (optional) The index which group to spawn within the given zone.
 -- @return Wrapper.Group#GROUP that was spawned or #nil if nothing was spawned.
 -- @usage
@@ -2952,12 +2980,12 @@ function SPAWN:SpawnFromVec2( Vec2, MinHeight, MaxHeight, SpawnIndex )
   return self:SpawnFromVec3( { x = Vec2.x, y = Height, z = Vec2.y }, SpawnIndex ) -- y can be nil. In this case, spawn on the ground for vehicles, and in the template altitude for air.
 end
 
---- Will spawn a group from a POINT_VEC2 in 3D space.
+--- Will spawn a group from a COORDINATE in 3D space.
 -- This method is mostly advisable to be used if you want to simulate spawning groups on the ground from air units, like vehicles.
 -- Note that each point in the route assigned to the spawning group is reset to the point of the spawn.
 -- You can use the returned group to further define the route to be followed.
 -- @param #SPAWN self
--- @param Core.Point#POINT_VEC2 PointVec2 The PointVec2 coordinates where to spawn the group.
+-- @param Core.Point#COORDINATE PointVec2 The coordinates where to spawn the group.
 -- @param #number MinHeight (optional) The minimum height to spawn an airborne group into the zone.
 -- @param #number MaxHeight (optional) The maximum height to spawn an airborne group into the zone.
 -- @param #number SpawnIndex (optional) The index which group to spawn within the given zone.
@@ -3492,6 +3520,11 @@ function SPAWN:_Prepare( SpawnTemplatePrefix, SpawnIndex ) -- R2.2
         min = 9 
         max = 18 
         ctable = CALLSIGN.F15E
+      end
+      if SpawnTemplate.units[1].type == "A6E" then
+        min = 4
+        max = 18 
+        ctable = CALLSIGN.Intruder
       end
       local callsignnr = math.random(min,max)
       local callsignname = "Enfield"

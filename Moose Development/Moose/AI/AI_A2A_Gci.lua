@@ -13,11 +13,13 @@
 
 
 
---- @type AI_A2A_GCI
--- @extends AI.AI_Air_Engage#AI_AIR_ENGAGE
+-- @type AI_A2A_GCI
+-- @extends AI.AI_A2A#AI_A2A
 
 
 --- Implements the core functions to intercept intruders. Use the Engage trigger to intercept intruders.
+--
+-- ![Banner Image](..\Images\deprecated.png)
 --
 -- The AI_A2A_GCI is assigned a @{Wrapper.Group} and this must be done before the AI_A2A_GCI process can be started using the **Start** event.
 --
@@ -38,6 +40,8 @@
 --   * @{#AI_A2A_GCI.New}(): Creates a new AI_A2A_GCI object.
 --
 -- ## 2. AI_A2A_GCI is a FSM
+--
+-- ![Process](..\Presentations\AI_GCI\Dia2.JPG)
 --
 -- ### 2.1 AI_A2A_GCI States
 --

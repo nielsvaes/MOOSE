@@ -15,11 +15,13 @@
 -- @image MOOSE.JPG
 
 
---- @type AI_ESCORT_DISPATCHER_REQUEST
+-- @type AI_ESCORT_DISPATCHER_REQUEST
 -- @extends Core.Fsm#FSM
 
 
 --- Models the assignment of AI escorts to player flights upon request using the radio menu.
+--
+-- ![Banner Image](..\Images\deprecated.png)
 --
 -- # Developer Note
 -- 
@@ -33,7 +35,7 @@ AI_ESCORT_DISPATCHER_REQUEST = {
   ClassName = "AI_ESCORT_DISPATCHER_REQUEST",
 }
 
---- @field #list 
+-- @field #list 
 AI_ESCORT_DISPATCHER_REQUEST.AI_Escorts = {}
 
 
@@ -80,7 +82,7 @@ function AI_ESCORT_DISPATCHER_REQUEST:onafterStart( From, Event, To )
 
 end
 
---- @param #AI_ESCORT_DISPATCHER_REQUEST self
+-- @param #AI_ESCORT_DISPATCHER_REQUEST self
 -- @param Core.Event#EVENTDATA EventData
 function AI_ESCORT_DISPATCHER_REQUEST:OnEventExit( EventData )
 
@@ -97,7 +99,7 @@ function AI_ESCORT_DISPATCHER_REQUEST:OnEventExit( EventData )
       
 end
 
---- @param #AI_ESCORT_DISPATCHER_REQUEST self
+-- @param #AI_ESCORT_DISPATCHER_REQUEST self
 -- @param Core.Event#EVENTDATA EventData
 function AI_ESCORT_DISPATCHER_REQUEST:OnEventBirth( EventData )
 

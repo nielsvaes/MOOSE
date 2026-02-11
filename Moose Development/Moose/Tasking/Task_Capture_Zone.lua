@@ -20,6 +20,8 @@ do -- TASK_ZONE_GOAL
 
   --- # TASK_ZONE_GOAL class, extends @{Tasking.Task#TASK}
   -- 
+  -- ![Banner Image](..\Images\deprecated.png)
+  -- 
   -- The TASK_ZONE_GOAL class defines the task to protect or capture a protection zone. 
   -- The TASK_ZONE_GOAL is implemented using a @{Core.Fsm#FSM_TASK}, and has the following statuses:
   -- 
@@ -119,7 +121,7 @@ do -- TASK_ZONE_GOAL
  
   end
 
-  --- @param #TASK_ZONE_GOAL self
+  -- @param #TASK_ZONE_GOAL self
   -- @param Functional.ZoneGoal#ZONE_GOAL ZoneGoal The ZoneGoal Engine.
   function TASK_ZONE_GOAL:SetProtect( ZoneGoal )
   
@@ -128,13 +130,13 @@ do -- TASK_ZONE_GOAL
    
 
   
-  --- @param #TASK_ZONE_GOAL self
+  -- @param #TASK_ZONE_GOAL self
   function TASK_ZONE_GOAL:GetPlannedMenuText()
     return self:GetStateString() .. " - " .. self:GetTaskName() .. " ( " .. self.ZoneGoal:GetZoneName() .. " )"
   end
 
   
-  --- @param #TASK_ZONE_GOAL self
+  -- @param #TASK_ZONE_GOAL self
   -- @param Core.Zone#ZONE_BASE TargetZone The Zone object where the Target is located on the map.
   -- @param Wrapper.Unit#UNIT TaskUnit
   function TASK_ZONE_GOAL:SetTargetZone( TargetZone, TaskUnit )
@@ -146,7 +148,7 @@ do -- TASK_ZONE_GOAL
   end
    
 
-  --- @param #TASK_ZONE_GOAL self
+  -- @param #TASK_ZONE_GOAL self
   -- @param Wrapper.Unit#UNIT TaskUnit
   -- @return Core.Zone#ZONE_BASE The Zone object where the Target is located on the map.
   function TASK_ZONE_GOAL:GetTargetZone( TaskUnit )
@@ -286,7 +288,7 @@ do -- TASK_CAPTURE_ZONE
   end
   
   
-  --- @param #TASK_CAPTURE_ZONE self
+  -- @param #TASK_CAPTURE_ZONE self
   -- @param Wrapper.Unit#UNIT TaskUnit
   function TASK_CAPTURE_ZONE:OnAfterGoal( From, Event, To, PlayerUnit, PlayerName )
   

@@ -1,5 +1,6 @@
 --- (SP) (MP) (FSM) Route AI or players through waypoints or to zones.
 --
+-- ![Banner Image](..\Images\deprecated.png)
 -- ## ACT_ASSIST state machine:
 --
 -- This class is a state machine: it manages a process that is triggered by events causing state transitions to occur.
@@ -200,7 +201,7 @@ do -- ACT_ASSIST_SMOKE_TARGETS_ZONE
   function ACT_ASSIST_SMOKE_TARGETS_ZONE:onenterSmoking( ProcessUnit, From, Event, To )
 
     self.TargetSetUnit:ForEachUnit(
-      --- @param Wrapper.Unit#UNIT SmokeUnit
+      -- @param Wrapper.Unit#UNIT SmokeUnit
       function( SmokeUnit )
         if math.random( 1, ( 100 * self.TargetSetUnit:Count() ) / 4 ) <= 100 then
           SCHEDULER:New( self,

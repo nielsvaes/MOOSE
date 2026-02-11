@@ -9,11 +9,13 @@
 -- @module AI.AI_Cargo_APC
 -- @image AI_Cargo_Dispatching_For_APC.JPG
 
---- @type AI_CARGO_APC
+-- @type AI_CARGO_APC
 -- @extends AI.AI_Cargo#AI_CARGO
 
 
 --- Brings a dynamic cargo handling capability for an AI vehicle group.
+-- 
+-- ![Banner Image](..\Images\deprecated.png)
 -- 
 -- Armoured Personnel Carriers (APC), Trucks, Jeeps and other ground based carrier equipment can be mobilized to intelligently transport infantry and other cargo within the simulation.
 -- 

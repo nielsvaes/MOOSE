@@ -11,11 +11,14 @@
 -- @module Tasking.TaskInfo
 -- @image MOOSE.JPG
 
---- @type TASKINFO
+---
+-- @type TASKINFO
 -- @extends Core.Base#BASE
 
 --- 
 -- # TASKINFO class, extends @{Core.Base#BASE}
+-- 
+-- ![Banner Image](..\Images\deprecated.png)
 -- 
 -- ## The TASKINFO class implements the methods to contain information and display information of a task. 
 --
@@ -29,7 +32,8 @@ TASKINFO = {
   ClassName = "TASKINFO",
 }
 
---- @type TASKINFO.Detail #string A string that flags to document which level of detail needs to be shown in the report.
+---
+-- @type TASKINFO.Detail #string A string that flags to document which level of detail needs to be shown in the report.
 -- 
 --   - "M" for Markings on the Map (F10).
 --   - "S" for Summary Reports.
@@ -279,7 +283,7 @@ function TASKINFO:AddCargoSet( SetCargo, Order, Detail, Keep )
   local CargoReport = REPORT:New()
   CargoReport:Add( "" )
   SetCargo:ForEachCargo(
-    --- @param Cargo.Cargo#CARGO Cargo
+    -- @param Cargo.Cargo#CARGO Cargo
     function( Cargo )
       CargoReport:Add( string.format( ' - %s (%s) %s - status %s ', Cargo:GetName(), Cargo:GetType(), Cargo:GetTransportationMethod(), Cargo:GetCurrentState() ) )
     end

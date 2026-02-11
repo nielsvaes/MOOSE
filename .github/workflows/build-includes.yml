@@ -105,12 +105,12 @@ jobs:
         if: ${{ vars.SKIP_LUACHECK != true }}
         continue-on-error: true
         run: |
-          luacheck --std=lua51c --config=.luacheckrc -gurasqq "Moose Development/Moose"
+          luacheck --std=lua51c --config=.luacheckrc -guras "Moose Development/Moose"
 
       - name: Run LuaSrcDiet
         run: |
           luasrcdiet --basic --opt-emptylines ./build/result/Moose_Include_Static/Moose.lua -o ./build/result/Moose_Include_Static/Moose_.lua
-      
+
       #########################################################################
       # Push to MOOSE_INCLUDE
       #########################################################################

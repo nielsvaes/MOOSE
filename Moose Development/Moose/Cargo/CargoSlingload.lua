@@ -32,6 +32,8 @@ do -- CARGO_SLINGLOAD
   --
   -- # Developer Note
   -- 
+  -- ![Banner Image](..\Images\deprecated.png)
+  -- 
   -- Note while this class still works, it is no longer supported as the original author stopped active development of MOOSE
   -- Therefore, this class is considered to be deprecated
   --
@@ -72,7 +74,7 @@ do -- CARGO_SLINGLOAD
   end
 
 
-  --- @param #CARGO_SLINGLOAD self
+  -- @param #CARGO_SLINGLOAD self
   -- @param Core.Event#EVENTDATA EventData 
   function CARGO_SLINGLOAD:OnEventCargoDead( EventData )
 
