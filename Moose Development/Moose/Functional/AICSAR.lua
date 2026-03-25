@@ -308,7 +308,7 @@ AICSAR.RadioLength = {
 -- @param #string Helotemplate Helicopter template name.
 -- @param Wrapper.Airbase#AIRBASE FARP FARP object or Airbase from where to start.
 -- @param Core.Zone#ZONE MASHZone Zone where to drop pilots after rescue.
--- @param #number Helonumber Max number of alive Ai Helos at the same time. Defaults to three.
+-- @param #number Helonumber (Optional) Max number of alive Ai Helos at the same time. Defaults to 3.
 -- @return #AICSAR self
 function AICSAR:New(Alias,Coalition,Pilottemplate,Helotemplate,FARP,MASHZone,Helonumber)
   -- Inherit everything from FSM class.
@@ -543,10 +543,10 @@ end
 -- @param #AICSAR self
 -- @param #boolean OnOff Switch on (true) or off (false).
 -- @param #string Path Path to your SRS Server External Audio Component, e.g. "C:\\\\Program Files\\\\DCS-SimpleRadio-Standalone\\\\ExternalAudio"
--- @param #number Frequency Defaults to 243 (guard)
--- @param #number Modulation Radio modulation. Defaults to radio.modulation.AM
--- @param #string SoundPath Where to find the audio files. Defaults to nil, i.e. add messages via "Sound to..." in the Mission Editor.
--- @param #number Port Port of the SRS, defaults to 5002.
+-- @param #number Frequency (Optional) Defaults to 243 (guard)
+-- @param #number Modulation (Optional) Radio modulation. Defaults to radio.modulation.AM
+-- @param #string SoundPath (Optional) Where to find the audio files. Defaults to nil, i.e. add messages via "Sound to..." in the Mission Editor.
+-- @param #number Port (Optional) Port of the SRS, defaults to 5002.
 -- @return #AICSAR self
 function AICSAR:SetSRSRadio(OnOff,Path,Frequency,Modulation,SoundPath,Port)
   self:T(self.lid .. "SetSRSRadio")
@@ -579,8 +579,10 @@ end
 -- @param #string Culture (Optional) The culture to be used, defaults to "en-GB"
 -- @param #string Gender (Optional)  The gender to be used, defaults to "male"
 -- @param #string GoogleCredentials (Optional) Path to google credentials
+-- @param #string Provider (Optional) TTS Provider to be used.
+-- @param #string Speaker (Optional) Use a specific speaker for a voice if Piper is used as provider (only Hound-TTS backend).
 -- @return #AICSAR self
-function AICSAR:SetSRSTTSRadio(OnOff,Path,Frequency,Modulation,Port,Voice,Culture,Gender,GoogleCredentials)
+function AICSAR:SetSRSTTSRadio(OnOff,Path,Frequency,Modulation,Port,Voice,Culture,Gender,GoogleCredentials,Provider,Speaker)
   self:T(self.lid .. "SetSRSTTSRadio")
   self.SRSTTSRadio = OnOff and true
   self.SRSRadio = false
@@ -594,12 +596,18 @@ function AICSAR:SetSRSTTSRadio(OnOff,Path,Frequency,Modulation,Port,Voice,Cultur
     self.SRS:SetCoalition(self.coalition)
     self.SRS:SetLabel("ACSR")
     self.SRS:SetVoice(Voice)
+    if Speaker then
+      self.SRS:SetSpeakerPiper(Speaker)
+    end
     self.SRS:SetCulture(Culture)
     self.SRS:SetGender(Gender)
-    if GoogleCredentials then
+    if GoogleCredentials and not Provider then
       self.SRS:SetProviderOptionsGoogle(GoogleCredentials,GoogleCredentials)
       self.SRS:SetProvider(MSRS.Provider.GOOGLE)
       self.SRSGoogle = true
+    end
+    if Provider then
+      self.SRS:SetProvider(Provider)
     end
     self.SRSQ = MSRSQUEUE:New(self.alias)
   end
@@ -612,13 +620,17 @@ end
 -- Specific voices override culture and gender!
 -- @param #string Culture (Optional) The culture to be used, defaults to "en-US"
 -- @param #string Gender (Optional)  The gender to be used, defaults to "male"
+-- @param #string Speaker (Optional) Use a specific speaker for a voice if Piper is used as provider (only Hound-TTS backend).
 -- @return #AICSAR self
-function AICSAR:SetPilotTTSVoice(Voice,Culture,Gender)
+function AICSAR:SetPilotTTSVoice(Voice,Culture,Gender,Speaker)
  self:T(self.lid .. "SetPilotTTSVoice")
  self.SRSPilotVoice = true
  self.SRSPilot = MSRS:New(self.SRSPath,self.SRSFrequency,self.SRSModulation)
  self.SRSPilot:SetCoalition(self.coalition)
  self.SRSPilot:SetVoice(Voice)
+ if Speaker then
+  self.SRSPilot:SetSpeakerPiper(Speaker)
+ end
  self.SRSPilot:SetCulture(Culture or "en-US")
  self.SRSPilot:SetGender(Gender or "male")
  self.SRSPilot:SetLabel("PILOT")
@@ -636,13 +648,17 @@ end
 -- Specific voices override culture and gender!
 -- @param #string Culture (Optional) The culture to be used, defaults to "en-GB"
 -- @param #string Gender (Optional)  The gender to be used, defaults to "female"
+-- @param #string Speaker (Optional) Use a specific speaker for a voice if Piper is used as provider (only Hound-TTS backend).
 -- @return #AICSAR self
-function AICSAR:SetOperatorTTSVoice(Voice,Culture,Gender)
+function AICSAR:SetOperatorTTSVoice(Voice,Culture,Gender,Speaker)
  self:T(self.lid .. "SetOperatorTTSVoice")
  self.SRSOperatorVoice = true
  self.SRSOperator = MSRS:New(self.SRSPath,self.SRSFrequency,self.SRSModulation)
  self.SRSOperator:SetCoalition(self.coalition)
  self.SRSOperator:SetVoice(Voice)
+if Speaker then
+  self.SRSOperator:SetSpeakerPiper(Speaker)
+ end
  self.SRSOperator:SetCulture(Culture or "en-GB")
  self.SRSOperator:SetGender(Gender or "female")
  self.SRSOperator:SetLabel("RESCUE")
@@ -657,8 +673,8 @@ end
 --- [User] Switch sound output on and use normale (DCS) radio
 -- @param #AICSAR self
 -- @param #boolean OnOff Switch on (true) or off (false).
--- @param #number Frequency Defaults to 243 (guard).
--- @param #number Modulation Radio modulation. Defaults to radio.modulation.AM.
+-- @param #number Frequency(Optional)  Defaults to 243 (guard).
+-- @param #number Modulation (Optional) Radio modulation. Defaults to radio.modulation.AM.
 -- @param Wrapper.Group#GROUP Group The group to use as sending station.
 -- @return #AICSAR self
 function AICSAR:SetDCSRadio(OnOff,Frequency,Modulation,Group)

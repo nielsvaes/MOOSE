@@ -198,10 +198,41 @@ function MESSAGE:ToClient( Client, Settings )
   return self
 end
 
+--- Sends a MESSAGE to a SET_GROUP, SET_UNIT, or SET_CLIENT.
+-- @param #MESSAGE self
+-- @param Core.Set#SET_GROUP Set The set to send to.
+-- @param Core.Settings#SETTINGS Settings (Optional) Settings for message display.
+-- @return self
+function MESSAGE:ToSet(Set, Settings)
+ for _,_obj in pairs (Set:GetSetObjects() or {}) do
+    if _obj and _obj:IsAlive() then
+        if _obj:IsInstanceOf("SET_GROUP") then
+         self:ToGroup(_obj, Settings)
+        elseif _obj:IsInstanceOf("SET_CLIENT") or _obj:IsInstanceOf("SET_UNIT") then
+         self:ToUnit(_obj, Settings)
+        end
+    end
+ end
+ return self
+end
+
+--- Sends a MESSAGE to a SET_GROUP, SET_UNIT, or SET_CLIENT if a condition is true.
+-- @param #MESSAGE self
+-- @param Core.Set#SET_GROUP Set The set to send to.
+-- @param #boolean Condition The condition which needs to be true.
+-- @param Core.Settings#SETTINGS Settings (Optional) Settings for message display.
+-- @return self
+function MESSAGE:ToSetIf(Set, Condition, Settings)
+    if Set and Condition == true then
+        self:ToSet(Set, Settings)
+    end
+ return self
+end
+
 --- Sends a MESSAGE to a Group.
 -- @param #MESSAGE self
 -- @param Wrapper.Group#GROUP Group to which the message is displayed.
--- @param Core.Settings#Settings Settings (Optional) Settings for message display.
+-- @param Core.Settings#SETTINGS Settings (Optional) Settings for message display.
 -- @return #MESSAGE Message object.
 function MESSAGE:ToGroup( Group, Settings )
   self:F( Group.GroupName )
@@ -226,7 +257,7 @@ end
 --- Sends a MESSAGE to a Unit. 
 -- @param #MESSAGE self
 -- @param Wrapper.Unit#UNIT Unit to which the message is displayed.
--- @param Core.Settings#Settings Settings (Optional) Settings for message display.
+-- @param Core.Settings#SETTINGS Settings (Optional) Settings for message display.
 -- @return #MESSAGE Message object.
 function MESSAGE:ToUnit( Unit, Settings )
   self:F( Unit.IdentifiableName )
@@ -252,7 +283,7 @@ end
 --- Sends a MESSAGE to a Country. 
 -- @param #MESSAGE self
 -- @param #number Country to which the message is displayed, e.g. country.id.GERMANY. For all country numbers see here: [Hoggit Wiki](https://wiki.hoggitworld.com/view/DCS_enum_country)
--- @param Core.Settings#Settings Settings (Optional) Settings for message display.
+-- @param Core.Settings#SETTINGS Settings (Optional) Settings for message display.
 -- @return #MESSAGE Message object.
 function MESSAGE:ToCountry( Country, Settings )
   self:F(Country )
@@ -274,7 +305,7 @@ end
 -- @param #MESSAGE self
 -- @param #number Country to which the message is displayed, , e.g. country.id.GERMANY. For all country numbers see here: [Hoggit Wiki](https://wiki.hoggitworld.com/view/DCS_enum_country)
 -- @param #boolean Condition Sends the message only if the condition is true.
--- @param Core.Settings#Settings Settings (Optional) Settings for message display.
+-- @param Core.Settings#SETTINGS Settings (Optional) Settings for message display.
 -- @return #MESSAGE Message object.
 function MESSAGE:ToCountryIf( Country, Condition, Settings )
   self:F(Country )
@@ -379,7 +410,7 @@ end
 
 --- Sends a MESSAGE to all players. 
 -- @param #MESSAGE self
--- @param Core.Settings#Settings Settings (Optional) Settings for message display.
+-- @param Core.Settings#SETTINGS Settings (Optional) Settings for message display.
 -- @param #number Delay (Optional) Delay in seconds before the message is send. Default instantly (`nil`).
 -- @return #MESSAGE self
 -- @usage
@@ -464,7 +495,9 @@ _MESSAGESRS = {}
 -- @param #number Volume (optional) Volume, can be between 0.0 and 1.0 (loudest).
 -- @param #string Label (optional) Label, defaults to "MESSAGE" or the Message Category set.
 -- @param Core.Point#COORDINATE Coordinate (optional) Coordinate this messages originates from.
--- @param #string Backend (optional) Backend to be used, can be MSRS.Backend.SRSEXE or MSRS.Backend.GRPC
+-- @param #string Backend (optional) Backend to be used, can be MSRS.Backend.SRSEXE or MSRS.Backend.GRPC or MSRS.Backend.HOUND etc
+-- @param #string Provider (optional) Provider to be used, can be MSRS.Provider.WINDOWS or MSRS.Provider.GOOGLE or MSRS.Provider.PIPER etc
+-- @param #string Speaker (optional) Speaker to be used. Only for select provider PIPER TTS Voices, requires HOUND backend.
 -- @usage
 --          -- Mind the dot here, not using the colon this time around!
 --          -- Needed once only
@@ -472,7 +505,7 @@ _MESSAGESRS = {}
 --          -- later on in your code
 --          MESSAGE:New("Test message!",15,"SPAWN"):ToSRS()
 --          
-function MESSAGE.SetMSRS(PathToSRS,Port,PathToCredentials,Frequency,Modulation,Gender,Culture,Voice,Coalition,Volume,Label,Coordinate,Backend)
+function MESSAGE.SetMSRS(PathToSRS,Port,PathToCredentials,Frequency,Modulation,Gender,Culture,Voice,Coalition,Volume,Label,Coordinate,Backend,Provider,Speaker)
   
   _MESSAGESRS.PathToSRS = PathToSRS or MSRS.path or "C:\\Program Files\\DCS-SimpleRadio-Standalone\\ExternalAudio"
   
@@ -505,6 +538,10 @@ function MESSAGE.SetMSRS(PathToSRS,Port,PathToCredentials,Frequency,Modulation,G
     _MESSAGESRS.MSRS:SetProvider(MSRS.Provider.GOOGLE)
   end
   
+  if Provider then
+    _MESSAGESRS.MSRS:SetProvider(Provider)
+  end
+  
   _MESSAGESRS.label = Label or MSRS.Label or "MESSAGE"
   _MESSAGESRS.MSRS:SetLabel(_MESSAGESRS.label)
 
@@ -515,6 +552,7 @@ function MESSAGE.SetMSRS(PathToSRS,Port,PathToCredentials,Frequency,Modulation,G
   _MESSAGESRS.MSRS:SetVolume(_MESSAGESRS.volume)
   
   if Voice then _MESSAGESRS.MSRS:SetVoice(Voice) end
+  if Speaker then _MESSAGESRS.MSRS:SetSpeakerPiper(Speaker) end
   
   _MESSAGESRS.voice = Voice or MSRS.voice --or MSRS.Voices.Microsoft.Hedda
   

@@ -427,7 +427,7 @@ end
 
 --- (User) Set minimum threat level for target selection, can be 0 (lowest) to 10 (highest).
 -- @param #AUTOLASE self
--- @param #number Level Level used for filtering, defaults to 0. SAM systems and manpads have level 7 to 10, AAA level 6, MTBs and armoured vehicles level 3 to 5, APC, Artillery, Infantry and EWR level 1 to 2.
+-- @param #number Level (Optional) Level used for filtering, defaults to 0. SAM systems and manpads have level 7 to 10, AAA level 6, MTBs and armoured vehicles level 3 to 5, APC, Artillery, Infantry and EWR level 1 to 2.
 -- @return #AUTOLASE self
 -- @usage Filter for level 3 and above:
 --            `myautolase:SetMinThreatLevel(3)`
@@ -502,10 +502,12 @@ end
 -- @param #number Port (Optional) Defaults to 5002
 -- @param #string Voice (Optional) Use a specifc voice with the @{Sound.SRS#SetVoice} function, e.g, `:SetVoice("Microsoft Hedda Desktop")`.
 -- Note that this must be installed on your windows system. Can also be Google voice types, if you are using Google TTS.
--- @param #number Volume (Optional) Volume - between 0.0 (silent) and 1.0 (loudest)
--- @param #string PathToGoogleKey (Optional) Path to your google key if you want to use google TTS
+-- @param #number Volume (Optional) Volume - between 0.0 (silent) and 1.0 (loudest).
+-- @param #string PathToGoogleKey (Optional) Path to your google key if you want to use google TTS.
+-- @param #string Provider (Optional) TTS Provider to be used.
+-- @param #string Speaker (Optional) Use a specific speaker for a voice if Piper is used as provider (only Hound-TTS backend).
 -- @return #AUTOLASE self 
-function AUTOLASE:SetUsingSRS(OnOff,Path,Frequency,Modulation,Label,Gender,Culture,Port,Voice,Volume,PathToGoogleKey)
+function AUTOLASE:SetUsingSRS(OnOff,Path,Frequency,Modulation,Label,Gender,Culture,Port,Voice,Volume,PathToGoogleKey,Provider,Speaker)
   if OnOff then
     self.useSRS = true
     self.SRSPath = Path or MSRS.path or "C:\\Program Files\\DCS-SimpleRadio-Standalone\\ExternalAudio"
@@ -526,11 +528,17 @@ function AUTOLASE:SetUsingSRS(OnOff,Path,Frequency,Modulation,Label,Gender,Cultu
     self.SRS:SetCulture(self.Culture)
     self.SRS:SetPort(self.Port)
     self.SRS:SetVoice(self.Voice)
+    if Speaker then
+      self.SRS:SetSpeakerPiper(Speaker)
+    end
     self.SRS:SetCoalition(self.coalition)
     self.SRS:SetVolume(self.Volume)
-    if self.PathToGoogleKey then
+    if self.PathToGoogleKey and not Provider then
       self.SRS:SetProviderOptionsGoogle(PathToGoogleKey,PathToGoogleKey)
       self.SRS:SetProvider(MSRS.Provider.GOOGLE)
+    end
+    if Provider then
+      self.SRS:SetProvider(Provider)
     end
     self.SRSQueue = MSRSQUEUE:New(self.alias)
   else
@@ -593,8 +601,8 @@ end
 
 --- (User) Function to force laser cooldown and cool down time
 -- @param #AUTOLASE self
--- @param #boolean OnOff Switch cool down on (true) or off (false) - defaults to true
--- @param #number Seconds Number of seconds for cooldown - dafaults to 60 seconds
+-- @param #boolean OnOff (Optional) Switch cool down on (true) or off (false) - defaults to true
+-- @param #number Seconds (Optional) Number of seconds for cooldown - dafaults to 60 seconds
 -- @return #AUTOLASE self 
 function AUTOLASE:SetLaserCoolDown(OnOff, Seconds)
   self.forcecooldown = OnOff and true
@@ -615,8 +623,8 @@ end
 
 --- (User) Function to set lasing distance in meters and duration in seconds
 -- @param #AUTOLASE self
--- @param #number Distance (Max) distance for lasing in meters - default 5000 meters
--- @param #number Duration (Max) duration for lasing in seconds - default 300 secs
+-- @param #number Distance (Optional) Max distance for lasing in meters - default 5000 meters
+-- @param #number Duration (Optional) Max duration for lasing in seconds - default 300 secs
 -- @return #AUTOLASE self 
 function AUTOLASE:SetLasingParameters(Distance, Duration)
   self.LaseDistance = Distance or 5000
@@ -640,7 +648,7 @@ end
 
 --- (User) Function to set rounding precision for BR distance output.
 -- @param #AUTOLASE self
--- @param #number IDP Rounding precision before/after the decimal sign. Defaults to zero. Positive values round right of the decimal sign, negative ones left of the decimal sign. 
+-- @param #number IDP (Optional) Rounding precision before/after the decimal sign. Defaults to zero. Positive values round right of the decimal sign, negative ones left of the decimal sign. 
 -- @return #AUTOLASE self 
 function AUTOLASE:SetRoundingPrecsion(IDP)
   self.RoundingPrecision = IDP or 0

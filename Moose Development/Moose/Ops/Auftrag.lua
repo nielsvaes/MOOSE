@@ -458,6 +458,7 @@ _AUFTRAGSNR=0
 -- @field #string NOTHING Nothing.
 -- @field #string PATROLRACETRACK Patrol Racetrack.
 -- @field #string STRAFING Strafing run.
+-- @field #string FREIGHTTRANSPORT Freight transport.
 AUFTRAG.Type={
   ANTISHIP="Anti Ship",
   AWACS="AWACS",
@@ -506,6 +507,7 @@ AUFTRAG.Type={
   NOTHING="Nothing",
   PATROLRACETRACK="Patrol Racetrack",
   STRAFING="Strafing",
+  FREIGHTTRANSPORT="FREIGHTTRANSPORT",
 }
 
 --- Special task description.
@@ -674,7 +676,7 @@ AUFTRAG.Category={
 
 --- AUFTRAG class version.
 -- @field #string version
-AUFTRAG.version="1.3.0"
+AUFTRAG.version="1.4.2"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- TODO list
@@ -1006,7 +1008,7 @@ end
 --- **[AIR]** Create an ANTI-SHIP mission.
 -- @param #AUFTRAG self
 -- @param Wrapper.Positionable#POSITIONABLE Target The target to attack. Can be passed as a @{Wrapper.Group#GROUP} or @{Wrapper.Unit#UNIT} object.
--- @param #number Altitude Engage altitude in feet. Default 2000 ft.
+-- @param #number Altitude (Optional) Engage altitude in feet. Default 2000 ft.
 -- @return #AUFTRAG self
 function AUFTRAG:NewANTISHIP(Target, Altitude)
 
@@ -1036,10 +1038,10 @@ end
 --- **[AIR ROTARY]** Create an HOVER mission.
 -- @param #AUFTRAG self
 -- @param Core.Point#COORDINATE Coordinate Where to hover.
--- @param #number Altitude Hover altitude in feet AGL. Default is 50 feet above ground.
--- @param #number Time Time in seconds to hold the hover. Default 300 seconds.
--- @param #number Speed Speed in knots to fly to the target coordinate. Default 150kn.
--- @param #number MissionAlt Altitude to fly towards the mission in feet AGL. Default 1000ft.
+-- @param #number Altitude (Optional) Hover altitude in feet AGL. Default is 50 feet above ground.
+-- @param #number Time (Optional) Time in seconds to hold the hover. Default 300 seconds.
+-- @param #number Speed (Optional) Speed in knots to fly to the target coordinate. Default 150kn.
+-- @param #number MissionAlt (Optional) Altitude to fly towards the mission in feet AGL. Default 1000ft.
 -- @return #AUFTRAG self
 function AUFTRAG:NewHOVER(Coordinate, Altitude, Time, Speed, MissionAlt)
 
@@ -1076,9 +1078,9 @@ end
 -- @param Core.Point#COORDINATE Coordinate Where to land.
 -- @param #number OuterRadius (Optional) Vary the coordinate by this many feet, e.g. get a new random coordinate between OuterRadius and (optionally) avoiding InnerRadius of the coordinate.
 -- @param #number InnerRadius (Optional) Vary the coordinate by this many feet, e.g. get a new random coordinate between OuterRadius and (optionally) avoiding InnerRadius of the coordinate.
--- @param #number Time Time in seconds to stay. Default 300 seconds.
--- @param #number Speed Speed in knots to fly to the target coordinate. Default 150kn.
--- @param #number MissionAlt Altitude to fly towards the mission in feet AGL. Default 1000ft.
+-- @param #number Time (Optional) Time in seconds to stay. Default 300 seconds.
+-- @param #number Speed (Optional) Speed in knots to fly to the target coordinate. Default 150kn.
+-- @param #number MissionAlt A(Optional) ltitude to fly towards the mission in feet AGL. Default 1000ft.
 -- @param #boolean CombatLanding (Optional) If true, set the Combat Landing option.
 -- @param #number DirectionAfterLand (Optional) Heading after landing in degrees.
 -- @return #AUFTRAG self
@@ -1166,10 +1168,10 @@ end
 --- **[AIR]** Create an ORBIT mission, which can be either a circular orbit or a race-track pattern.
 -- @param #AUFTRAG self
 -- @param Core.Point#COORDINATE Coordinate Where to orbit.
--- @param #number Altitude Orbit altitude in feet above sea level. Default is y component of `Coordinate`.
--- @param #number Speed Orbit indicated airspeed in knots at the set altitude ASL. Default 350 KIAS.
--- @param #number Heading Heading of race-track pattern in degrees. If not specified, a circular orbit is performed.
--- @param #number Leg Length of race-track in NM. If not specified, a circular orbit is performed.
+-- @param #number Altitude (Optional) Orbit altitude in feet above sea level. Default is y component of `Coordinate`.
+-- @param #number Speed (Optional) Orbit indicated airspeed in knots at the set altitude ASL. Default 350 KIAS.
+-- @param #number Heading (Optional) Heading of race-track pattern in degrees. If not specified, a circular orbit is performed.
+-- @param #number Leg (Optional) Length of race-track in NM. If not specified, a circular orbit is performed.
 -- @return #AUFTRAG self
 function AUFTRAG:NewORBIT(Coordinate, Altitude, Speed, Heading, Leg)
 
@@ -1220,8 +1222,8 @@ end
 --- **[AIR]** Create an ORBIT mission, where the aircraft will go in a circle around the specified coordinate.
 -- @param #AUFTRAG self
 -- @param Core.Point#COORDINATE Coordinate Position where to orbit around.
--- @param #number Altitude Orbit altitude in feet. Default is y component of `Coordinate`.
--- @param #number Speed Orbit indicated airspeed in knots at the set altitude ASL. Default 350 KIAS.
+-- @param #number Altitude (Optional) Orbit altitude in feet. Default is y component of `Coordinate`.
+-- @param #number Speed (Optional) Orbit indicated airspeed in knots at the set altitude ASL. Default 350 KIAS.
 -- @return #AUFTRAG self
 function AUFTRAG:NewORBIT_CIRCLE(Coordinate, Altitude, Speed)
 
@@ -1233,10 +1235,10 @@ end
 --- **[AIR]** Create an ORBIT mission, where the aircraft will fly a race-track pattern.
 -- @param #AUFTRAG self
 -- @param Core.Point#COORDINATE Coordinate Where to orbit.
--- @param #number Altitude Orbit altitude in feet. Default is y component of `Coordinate`.
--- @param #number Speed Orbit indicated airspeed in knots at the set altitude ASL. Default 350 KIAS.
--- @param #number Heading Heading of race-track pattern in degrees. Default random in [0, 360) degrees.
--- @param #number Leg Length of race-track in NM. Default 10 NM.
+-- @param #number Altitude (Optional) Orbit altitude in feet. Default is y component of `Coordinate`.
+-- @param #number Speed (Optional) Orbit indicated airspeed in knots at the set altitude ASL. Default 350 KIAS.
+-- @param #number Heading (Optional) Heading of race-track pattern in degrees. Default random in [0, 360) degrees.
+-- @param #number Leg (Optional) Length of race-track in NM. Default 10 NM.
 -- @return #AUFTRAG self
 function AUFTRAG:NewORBIT_RACETRACK(Coordinate, Altitude, Speed, Heading, Leg)
 
@@ -1251,12 +1253,12 @@ end
 --- **[AIR]** Create an ORBIT mission, where the aircraft will fly a circular or race-track pattern over a given group or unit.
 -- @param #AUFTRAG self
 -- @param Wrapper.Group#GROUP Group Group where to orbit around. Can also be a UNIT object.
--- @param #number Altitude Orbit altitude in feet. Default is 6,000 ft.
--- @param #number Speed Orbit indicated airspeed in knots at the set altitude ASL. Default 350 KIAS.
--- @param #number Leg Length of race-track in NM. Default nil.
--- @param #number Heading Heading of race-track pattern in degrees. Default is heading of the group.
--- @param DCS#Vec2 OffsetVec2 Offset 2D-vector {x=0, y=0} in NM with respect to the group. Default directly overhead. Can also be given in polar coordinates `{r=5, phi=45}`.
--- @param #number Distance Threshold distance in NM before orbit pattern is updated. Default 5 NM.
+-- @param #number Altitude (Optional) Orbit altitude in feet. Default is 6,000 ft.
+-- @param #number Speed (Optional) Orbit indicated airspeed in knots at the set altitude ASL. Default 350 KIAS.
+-- @param #number Leg (Optional) Length of race-track in NM. Default nil.
+-- @param #number Heading (Optional) Heading of race-track pattern in degrees. Default is heading of the group.
+-- @param DCS#Vec2 OffsetVec2 (Optional) Offset 2D-vector {x=0, y=0} in NM with respect to the group. Default directly overhead. Can also be given in polar coordinates `{r=5, phi=45}`.
+-- @param #number Distance (Optional) Threshold distance in NM before orbit pattern is updated. Default 5 NM.
 -- @return #AUFTRAG self
 function AUFTRAG:NewORBIT_GROUP(Group, Altitude, Speed, Leg, Heading, OffsetVec2, Distance)
 
@@ -1299,10 +1301,10 @@ end
 -- themselfs. They wait for the CHIEF to tell them whom to engage.
 -- @param #AUFTRAG self
 -- @param Core.Point#COORDINATE Coordinate Where to orbit.
--- @param #number Altitude Orbit altitude in feet. Default is y component of `Coordinate`.
--- @param #number Speed Orbit indicated airspeed in knots at the set altitude ASL. Default 350 KIAS.
--- @param #number Heading Heading of race-track pattern in degrees. Default random in [0, 360) degrees.
--- @param #number Leg Length of race-track in NM. Default 10 NM.
+-- @param #number Altitude (Optional) Orbit altitude in feet. Default is y component of `Coordinate`.
+-- @param #number Speed (Optional) Orbit indicated airspeed in knots at the set altitude ASL. Default 350 KIAS.
+-- @param #number Heading (Optional) Heading of race-track pattern in degrees. Default random in [0, 360) degrees.
+-- @param #number Leg (Optional) Length of race-track in NM. Default 10 NM.
 -- @return #AUFTRAG self
 function AUFTRAG:NewGCICAP(Coordinate, Altitude, Speed, Heading, Leg)
 
@@ -1326,10 +1328,10 @@ end
 --- **[AIR]** Create a TANKER mission.
 -- @param #AUFTRAG self
 -- @param Core.Point#COORDINATE Coordinate Where to orbit.
--- @param #number Altitude Orbit altitude in feet. Default is y component of `Coordinate`.
--- @param #number Speed Orbit indicated airspeed in knots at the set altitude ASL. Default 350 KIAS.
--- @param #number Heading Heading of race-track pattern in degrees. Default 270 (East to West).
--- @param #number Leg Length of race-track in NM. Default 10 NM. Set to 0 for a simple circular orbit.
+-- @param #number Altitude (Optional) Orbit altitude in feet. Default is y component of `Coordinate`.
+-- @param #number Speed (Optional) Orbit indicated airspeed in knots at the set altitude ASL. Default 350 KIAS.
+-- @param #number Heading (Optional) Heading of race-track pattern in degrees. Default 270 (East to West).
+-- @param #number Leg (Optional) Length of race-track in NM. Default 10 NM. Set to 0 for a simple circular orbit.
 -- @param #number RefuelSystem Refueling system (0=boom, 1=probe). This info is *only* for AIRWINGs so they launch the right tanker type.
 -- @return #AUFTRAG self
 function AUFTRAG:NewTANKER(Coordinate, Altitude, Speed, Heading, Leg, RefuelSystem)
@@ -1364,16 +1366,29 @@ end
 
 --- **[AIR]** Create a AWACS mission.
 -- @param #AUFTRAG self
--- @param Core.Point#COORDINATE Coordinate Where to orbit. Altitude is also taken from the coordinate.
--- @param #number Altitude Orbit altitude in feet. Default is y component of `Coordinate`.
--- @param #number Speed Orbit speed in knots. Default 350 kts.
--- @param #number Heading Heading of race-track pattern in degrees. Default 270 (East to West).
--- @param #number Leg Length of race-track in NM. Default 10 NM.
+-- @param Core.Point#COORDINATE Coordinate Where to orbit. Altitude is also taken from the coordinate. Can also be a UNIT object, *e.g.* a carrier.
+-- @param #number Altitude (Optional) Orbit altitude in feet. Default is y component of `Coordinate`.
+-- @param #number Speed (Optional) Orbit speed in knots. Default 350 kts.
+-- @param #number Heading (Optional) Heading of race-track pattern in degrees. Default 270 (East to West).
+-- @param #number Leg (Optional) Length of race-track in NM. Default 10 NM.
 -- @return #AUFTRAG self
 function AUFTRAG:NewAWACS(Coordinate, Altitude, Speed, Heading, Leg)
 
   -- Create ORBIT first.
-  local mission=AUFTRAG:NewORBIT_RACETRACK(Coordinate, Altitude, Speed, Heading, Leg)
+  local mission=nil --Ops.Auftrag#AUFTRAG
+  
+  if Coordinate:IsInstanceOf("COORDINATE") then
+    -- Racetrack at a given coordinate
+    mission=AUFTRAG:NewORBIT_RACETRACK(Coordinate, Altitude, Speed, Heading, Leg)
+  elseif Coordinate:IsInstanceOf("UNIT") then
+    -- Racetrack wrt a given (moving) unit (e.g. a carrier)
+    local OffsetVec2={r=6, phi=180}
+    mission=AUFTRAG:NewORBIT_GROUP(Coordinate, Altitude, Speed, Leg, Heading, OffsetVec2)
+  else
+    -- Error!
+    BASE:E("ERROR in AUFTRAG:NewAWACS: You must pass a COORDINATE or UNIT object!")
+    return nil
+  end
 
   -- Mission type AWACS.
   mission.type=AUFTRAG.Type.AWACS
@@ -1392,7 +1407,51 @@ function AUFTRAG:NewAWACS(Coordinate, Altitude, Speed, Heading, Leg)
   return mission
 end
 
+--- **[AIRPANE]** Create a RECOVERY TANKER mission.
+-- @param #AUFTRAG self
+-- @param Wrapper.Unit#UNIT Carrier The carrier unit.
+-- @param #number Altitude (Optional) Orbit altitude in feet. Default is 6,000 ft.
+-- @param #number Speed (Optional) Orbit speed in knots. Default 250 KIAS.
+-- @param #number Leg (Optional) Length of race-track in NM. Default 14 NM.
+-- @param #number RelHeading (Optional) Relative heading [0, 360) of race-track pattern in degrees wrt heading of the carrier. Default is heading of the carrier.
+-- @param #number OffsetDist (Optional) Relative distance of the first race-track point wrt to the carrier. Default 6 NM.
+-- @param #number OffsetAngle (Optional) Relative angle of the first race-track point wrt. to the carrier. Default 180 (behind the boat).
+-- @param #number UpdateDistance (Optional) Threshold distance in NM before orbit pattern is updated. Default 5 NM.
+-- @return #AUFTRAG self
+function AUFTRAG:NewRECOVERYTANKER(Carrier, Altitude, Speed, Leg, RelHeading, OffsetDist, OffsetAngle, UpdateDistance)
+ 
+   -- Six NM astern.
+  local OffsetVec2={r=OffsetDist or 6, phi=OffsetAngle or 180}
+  
+  -- Default leg.
+  Leg=Leg or 14
+  
+  -- Default Speed.
+  Speed=Speed or 250
+  
+  local Heading=nil
+  if RelHeading then  
+    Heading=-math.abs(RelHeading)
+  end  
+ 
+  -- Create orbit mission. 
+  local mission=AUFTRAG:NewORBIT_GROUP(Carrier, Altitude, Speed, Leg, Heading, OffsetVec2, UpdateDistance)
 
+  -- Set the type.  
+  mission.type=AUFTRAG.Type.RECOVERYTANKER
+
+  -- Mission options:
+  mission.missionTask=ENUMS.MissionTask.REFUELING
+  mission.missionFraction=0.9
+  mission.optionROE=ENUMS.ROE.WeaponHold
+  mission.optionROT=ENUMS.ROT.NoReaction
+
+  mission.categories={AUFTRAG.Category.AIRPLANE}
+
+  mission.DCStask=mission:GetDCSMissionTask()
+
+  return mission
+end
 
 --- **[AIR]** Create an INTERCEPT mission.
 -- @param #AUFTRAG self
@@ -1420,12 +1479,12 @@ end
 --- **[AIR]** Create a CAP mission.
 -- @param #AUFTRAG self
 -- @param Core.Zone#ZONE_RADIUS ZoneCAP Circular CAP zone. Detected targets in this zone will be engaged.
--- @param #number Altitude Altitude at which to orbit in feet. Default is 10,000 ft.
--- @param #number Speed Orbit speed in knots. Default 350 kts.
--- @param Core.Point#COORDINATE Coordinate Where to orbit. Default is the center of the CAP zone.
--- @param #number Heading Heading of race-track pattern in degrees. If not specified, a simple circular orbit is performed.
--- @param #number Leg Length of race-track in NM. If not specified, a simple circular orbit is performed.
--- @param #table TargetTypes Table of target types. Default {"Air"}.
+-- @param #number Altitude (Optional) Altitude at which to orbit in feet. Default is 10,000 ft.
+-- @param #number Speed (Optional) Orbit speed in knots. Default 350 kts.
+-- @param Core.Point#COORDINATE Coordinate (Optional) Where to orbit. Default is the center of the CAP zone.
+-- @param #number Heading (Optional) Heading of race-track pattern in degrees. If not specified, a simple circular orbit is performed.
+-- @param #number Leg (Optional) Length of race-track in NM. If not specified, a simple circular orbit is performed.
+-- @param #table TargetTypes (Optional) Table of target types. Default {"Air"}.
 -- @return #AUFTRAG self
 function AUFTRAG:NewCAP(ZoneCAP, Altitude, Speed, Coordinate, Heading, Leg, TargetTypes)
 
@@ -1462,15 +1521,15 @@ end
 --- **[AIR]** Create a CAP mission over a (moving) group.
 -- @param #AUFTRAG self
 -- @param Wrapper.Group#GROUP Grp The grp to perform the CAP over.
--- @param #number Altitude Orbit altitude in feet. Default is 6,000 ft.
--- @param #number Speed Orbit speed in knots. Default 250 KIAS.
--- @param #number RelHeading Relative heading [0, 360) of race-track pattern in degrees wrt heading of the carrier. Default is heading of the carrier.
--- @param #number Leg Length of race-track in NM. Default 14 NM.
--- @param #number OffsetDist Relative distance of the first race-track point wrt to the carrier. Default 6 NM.
--- @param #number OffsetAngle Relative angle of the first race-track point wrt. to the carrier. Default 180 (behind the boat).
--- @param #number UpdateDistance Threshold distance in NM before orbit pattern is updated. Default 5 NM.
+-- @param #number Altitude (Optional) Orbit altitude in feet. Default is 6,000 ft.
+-- @param #number Speed (Optional) Orbit speed in knots. Default 250 KIAS.
+-- @param #number RelHeading (Optional) Relative heading [0, 360) of race-track pattern in degrees wrt heading of the carrier. Default is heading of the carrier.
+-- @param #number Leg (Optional) Length of race-track in NM. Default 14 NM.
+-- @param #number OffsetDist (Optional) Relative distance of the first race-track point wrt to the carrier. Default 6 NM.
+-- @param #number OffsetAngle (Optional) Relative angle of the first race-track point wrt. to the carrier. Default 180 (behind the boat).
+-- @param #number UpdateDistance (Optional) Threshold distance in NM before orbit pattern is updated. Default 5 NM.
 -- @param #table TargetTypes (Optional) Table of target types. Default `{"Air"}`.
--- @param #number EngageRange Max range in nautical miles that the escort group(s) will engage enemies. Default 32 NM (60 km).
+-- @param #number EngageRange (Optional) Max range in nautical miles that the escort group(s) will engage enemies. Default 32 NM (60 km).
 -- @return #AUFTRAG self
 function AUFTRAG:NewCAPGROUP(Grp, Altitude, Speed, RelHeading, Leg, OffsetDist, OffsetAngle, UpdateDistance, TargetTypes, EngageRange)
 
@@ -1515,11 +1574,11 @@ end
 --- **[AIR]** Create a CAS mission.
 -- @param #AUFTRAG self
 -- @param Core.Zone#ZONE_RADIUS ZoneCAS Circular CAS zone. Detected targets in this zone will be engaged.
--- @param #number Altitude Altitude at which to orbit. Default is 10,000 ft.
--- @param #number Speed Orbit speed in knots. Default 350 KIAS.
--- @param Core.Point#COORDINATE Coordinate Where to orbit. Default is the center of the CAS zone.
--- @param #number Heading Heading of race-track pattern in degrees. If not specified, a simple circular orbit is performed.
--- @param #number Leg Length of race-track in NM. If not specified, a simple circular orbit is performed.
+-- @param #number Altitude (Optional) Altitude at which to orbit. Default is 10,000 ft.
+-- @param #number Speed (Optional) Orbit speed in knots. Default 350 KIAS.
+-- @param Core.Point#COORDINATE Coordinate (Optional) Where to orbit. Default is the center of the CAS zone.
+-- @param #number Heading (Optional) Heading of race-track pattern in degrees. If not specified, a simple circular orbit is performed.
+-- @param #number Leg (Optional) Length of race-track in NM. If not specified, a simple circular orbit is performed.
 -- @param #table TargetTypes (Optional) Table of target types. Default `{"Helicopters", "Ground Units", "Light armed ships"}`.
 -- @return #AUFTRAG self
 function AUFTRAG:NewCAS(ZoneCAS, Altitude, Speed, Coordinate, Heading, Leg, TargetTypes)
@@ -1553,11 +1612,11 @@ end
 --- **[AIR]** Create a CASENHANCED mission. Group(s) will go to the zone and patrol it randomly.
 -- @param #AUFTRAG self
 -- @param Core.Zone#ZONE CasZone The CAS zone.
--- @param #number Altitude Altitude in feet. Only for airborne units. Default 2000 feet ASL.
--- @param #number Speed Speed in knots.
--- @param #number RangeMax Max range in NM. Only detected targets within this radius from the group will be engaged. Default is 25 NM.
--- @param Core.Set#SET_ZONE NoEngageZoneSet Set of zones in which targets are *not* engaged. Default is nowhere.
--- @param #table TargetTypes Types of target attributes that will be engaged. See [DCS enum attributes](https://wiki.hoggitworld.com/view/DCS_enum_attributes). Default `{"Helicopters", "Ground Units", "Light armed ships"}`.
+-- @param #number Altitude (Optional) Altitude in feet. Only for airborne units. Default 2000 feet ASL.
+-- @param #number Speed (Optional) Speed in knots.
+-- @param #number RangeMax (Optional) Max range in NM. Only detected targets within this radius from the group will be engaged. Default is 25 NM.
+-- @param Core.Set#SET_ZONE NoEngageZoneSet (Optional) Set of zones in which targets are *not* engaged. Default is nowhere.
+-- @param #table TargetTypes (Optional) Types of target attributes that will be engaged. See [DCS enum attributes](https://wiki.hoggitworld.com/view/DCS_enum_attributes). Default `{"Helicopters", "Ground Units", "Light armed ships"}`.
 -- @return #AUFTRAG self
 function AUFTRAG:NewCASENHANCED(CasZone, Altitude, Speed, RangeMax, NoEngageZoneSet, TargetTypes)
 
@@ -1595,11 +1654,10 @@ end
 --- **[AIR, GROUND]** Create a FAC mission. Group(s) will go to the zone and patrol it randomly and act as FAC for detected units.
 -- @param #AUFTRAG self
 -- @param Core.Zone#ZONE FacZone The FAC zone (or name of zone) where to patrol.
--- @param #number Speed Speed in knots.
--- @param #number Altitude Altitude in feet. Only for airborne units. Default 2000 feet ASL. 
--- @param #number Frequency Frequency in MHz.
--- @param #number Modulation Modulation.
--- @return #AUFTRAG self
+-- @param #number Speed (Optional) Speed in knots.
+-- @param #number Altitude (Optional) Altitude in feet. Only for airborne units. Default 2000 feet ASL. 
+-- @param #number Frequency (Optional) Frequency in MHz. Defaults to 133Mhz.
+-- @param #number Modulation (Optional) Modulation. Defaults to radio.modulation.AM
 function AUFTRAG:NewFAC(FacZone, Speed, Altitude, Frequency, Modulation)
 
   local mission=AUFTRAG:New(AUFTRAG.Type.FAC)
@@ -1636,10 +1694,10 @@ end
 --- **[AIR]** Create a FACA mission.
 -- @param #AUFTRAG self
 -- @param Wrapper.Group#GROUP Target Target group. Must be a GROUP object.
--- @param #string Designation Designation of target. See `AI.Task.Designation`. Default `AI.Task.Designation.AUTO`.
--- @param #boolean DataLink Enable data link. Default `true`.
--- @param #number Frequency Radio frequency in MHz the FAC uses for communication. Default is 133 MHz.
--- @param #number Modulation Radio modulation band. Default 0=AM. Use 1 for FM. See radio.modulation.AM or radio.modulaton.FM.
+-- @param #string Designation (Optional) Designation of target. See `AI.Task.Designation`. Default `AI.Task.Designation.AUTO`.
+-- @param #boolean DataLink (Optional) Enable data link. Default `true`.
+-- @param #number Frequency (Optional) Radio frequency in MHz the FAC uses for communication. Default is 133 MHz.
+-- @param #number Modulation (Optional) Radio modulation band. Default 0=AM. Use 1 for FM. See radio.modulation.AM or radio.modulaton.FM.
 -- @return #AUFTRAG self
 function AUFTRAG:NewFACA(Target, Designation, DataLink, Frequency, Modulation)
 
@@ -1673,7 +1731,7 @@ end
 --- **[AIR]** Create a BAI mission.
 -- @param #AUFTRAG self
 -- @param Wrapper.Positionable#POSITIONABLE Target The target to attack. Can be a GROUP, UNIT or STATIC object.
--- @param #number Altitude Engage altitude in feet. Default 5000 ft.
+-- @param #number Altitude (Optional) Engage altitude in feet. Default 5000 ft.
 -- @return #AUFTRAG self
 function AUFTRAG:NewBAI(Target, Altitude)
 
@@ -1703,7 +1761,7 @@ end
 --- **[AIR]** Create a SEAD mission.
 -- @param #AUFTRAG self
 -- @param Wrapper.Positionable#POSITIONABLE Target The target to attack. Can be a GROUP or UNIT object.
--- @param #number Altitude Engage altitude in feet. Default 25000 ft.
+-- @param #number Altitude (Optional) Engage altitude in feet. Default 25000 ft.
 -- @return #AUFTRAG self
 function AUFTRAG:NewSEAD(Target, Altitude)
 
@@ -1733,9 +1791,9 @@ end
 --- **[AIR]** Create a SEAD in Zone mission.
 -- @param #AUFTRAG self
 -- @param Core.Zone#ZONE TargetZone The target zone to attack.
--- @param #number Altitude Engage altitude in feet. Default 25000 ft.
--- @param #table TargetTypes Table of string of DCS known target types, defaults to {"Air Defence"}. See [DCS Target Attributes](https://wiki.hoggitworld.com/view/DCS_enum_attributes)
--- @param #number Duration Engage this much time when the AUFTRAG starts executing.
+-- @param #number Altitude (Optional) Engage altitude in feet. Default 25000 ft.
+-- @param #table TargetTypes (Optional) Table of string of DCS known target types, defaults to {"Air Defence"}. See [DCS Target Attributes](https://wiki.hoggitworld.com/view/DCS_enum_attributes)
+-- @param #number Duration (Optional) Engage this much time when the AUFTRAG starts executing. Default is 1800.
 -- @return #AUFTRAG self
 function AUFTRAG:NewSEADInZone(TargetZone, Altitude, TargetTypes, Duration)
 
@@ -1769,8 +1827,8 @@ end
 --- **[AIR]** Create a STRIKE mission. Flight will attack the closest map object to the specified coordinate.
 -- @param #AUFTRAG self
 -- @param Core.Point#COORDINATE Target The target coordinate. Can also be given as a GROUP, UNIT, STATIC, SET_GROUP, SET_UNIT, SET_STATIC or TARGET object.
--- @param #number Altitude Engage altitude in feet. Default 2000 ft.
--- @param #number EngageWeaponType Which weapon to use. Defaults to auto, ie ENUMS.WeaponFlag.Auto. See ENUMS.WeaponFlag for options.
+-- @param #number Altitude (Optional) Engage altitude in feet. Default 2000 ft.
+-- @param #number EngageWeaponType (Optional) Which weapon to use. Defaults to auto, ie ENUMS.WeaponFlag.Auto. See ENUMS.WeaponFlag for options.
 -- @return #AUFTRAG self
 function AUFTRAG:NewSTRIKE(Target, Altitude, EngageWeaponType)
 
@@ -1801,9 +1859,9 @@ end
 -- See [DCS task bombing](https://wiki.hoggitworld.com/view/DCS_task_bombing).
 -- @param #AUFTRAG self
 -- @param Core.Point#COORDINATE Target Target coordinate. Can also be specified as a GROUP, UNIT, STATIC, SET_GROUP, SET_UNIT, SET_STATIC or TARGET object.
--- @param #number Altitude Engage altitude in feet. Default 25000 ft.
--- @param #number EngageWeaponType Which weapon to use. Defaults to auto, ie ENUMS.WeaponFlag.Auto. See ENUMS.WeaponFlag for options.
--- @param #boolean Divebomb If true, use a dive bombing attack approach.
+-- @param #number Altitude Engage (Optional) altitude in feet. Default 25000 ft.
+-- @param #number EngageWeaponType (Optional) Which weapon to use. Defaults to auto, ie ENUMS.WeaponFlag.Auto. See ENUMS.WeaponFlag for options.
+-- @param #boolean Divebomb (Optional) If true, use a dive bombing attack approach.
 -- @return #AUFTRAG self
 function AUFTRAG:NewBOMBING(Target, Altitude, EngageWeaponType, Divebomb)
 
@@ -1839,8 +1897,8 @@ end
 -- See [DCS task strafing](https://wiki.hoggitworld.com/view/DCS_task_strafing).
 -- @param #AUFTRAG self
 -- @param Core.Point#COORDINATE Target Target coordinate. Can also be specified as a GROUP, UNIT, STATIC or TARGET object.
--- @param #number Altitude Engage altitude in feet. Default 1000 ft.
--- @param #number Length The total length of the strafing target in meters. Default `nil`.
+-- @param #number Altitude (Optional) Engage altitude in feet. Default 1000 ft.
+-- @param #number Length (Optional) The total length of the strafing target in meters. Default `nil`.
 -- @return #AUFTRAG self
 function AUFTRAG:NewSTRAFING(Target, Altitude, Length)
 
@@ -1876,7 +1934,7 @@ end
 --- **[AIR]** Create a BOMBRUNWAY mission.
 -- @param #AUFTRAG self
 -- @param Wrapper.Airbase#AIRBASE Airdrome The airbase to bomb. This must be an airdrome (not a FARP or ship) as these do not have a runway.
--- @param #number Altitude Engage altitude in feet. Default 25000 ft.
+-- @param #number Altitude (Optional) Engage altitude in feet. Default 25000 ft.
 -- @return #AUFTRAG self
 function AUFTRAG:NewBOMBRUNWAY(Airdrome, Altitude)
 
@@ -1914,8 +1972,8 @@ end
 --- **[AIR]** Create a CARPET BOMBING mission.
 -- @param #AUFTRAG self
 -- @param Core.Point#COORDINATE Target Target coordinate. Can also be specified as a GROUP, UNIT or STATIC object.
--- @param #number Altitude Engage altitude in feet. Default 25000 ft.
--- @param #number CarpetLength Length of bombing carpet in meters. Default 500 m.
+-- @param #number Altitude (Optional) Engage altitude in feet. Default 25000 ft.
+-- @param #number CarpetLength (Optional) Length of bombing carpet in meters. Default 500 m.
 -- @return #AUFTRAG self
 function AUFTRAG:NewBOMBCARPET(Target, Altitude, CarpetLength)
 
@@ -1952,8 +2010,8 @@ end
 --- **[AIR/HELO]** Create a GROUNDESCORT (or FOLLOW) mission. Helo will escort a **ground** group and automatically engage certain target types.
 -- @param #AUFTRAG self
 -- @param Wrapper.Group#GROUP EscortGroup The ground group to escort.
--- @param #number OrbitDistance Orbit to/from the lead unit this many NM. Defaults to 1.5 NM.
--- @param #table TargetTypes Types of targets to engage automatically. Default is {"Ground vehicles"}, i.e. all enemy ground units. Use an empty set {} for a simple "FOLLOW" mission.
+-- @param #number OrbitDistance(Optional)  Orbit to/from the lead unit this many NM. Defaults to 1.5 NM.
+-- @param #table TargetTypes (Optional) Types of targets to engage automatically. Default is {"Ground vehicles"}, i.e. all enemy ground units. Use an empty set {} for a simple "FOLLOW" mission.
 -- @return #AUFTRAG self
 function AUFTRAG:NewGROUNDESCORT(EscortGroup, OrbitDistance, TargetTypes)
 
@@ -1990,9 +2048,9 @@ end
 --- **[AIR]** Create an ESCORT (or FOLLOW) mission. Flight will escort another group and automatically engage certain target types.
 -- @param #AUFTRAG self
 -- @param Wrapper.Group#GROUP EscortGroup The group to escort.
--- @param DCS#Vec3 OffsetVector A table with x, y and z components specifying the offset of the flight to the escorted group. Default {x=-100, y=0, z=200} for z=200 meters to the right, same alitude (y=0), x=-100 meters behind.
--- @param #number EngageMaxDistance Max engage distance of targets in nautical miles. Default auto 32 NM.
--- @param #table TargetTypes Types of targets to engage automatically. Default is {"Air"}, i.e. all enemy airborne units. Use an empty set {} for a simple "FOLLOW" mission.
+-- @param DCS#Vec3 OffsetVector (Optional) A table with x, y and z components specifying the offset of the flight to the escorted group. Default {x=-100, y=0, z=200} for z=200 meters to the right, same alitude (y=0), x=-100 meters behind.
+-- @param #number EngageMaxDistance (Optional) Max engage distance of targets in nautical miles. Default auto 32 NM.
+-- @param #table TargetTypes (Optional) Types of targets to engage automatically. Default is {"Air"}, i.e. all enemy airborne units. Use an empty set {} for a simple "FOLLOW" mission.
 -- @return #AUFTRAG self
 function AUFTRAG:NewESCORT(EscortGroup, OffsetVector, EngageMaxDistance, TargetTypes)
 
@@ -2048,59 +2106,12 @@ function AUFTRAG:NewRESCUEHELO(Carrier)
   return mission
 end
 
---- **[AIRPANE]** Create a RECOVERY TANKER mission.
--- @param #AUFTRAG self
--- @param Wrapper.Unit#UNIT Carrier The carrier unit.
--- @param #number Altitude Orbit altitude in feet. Default is 6,000 ft.
--- @param #number Speed Orbit speed in knots. Default 250 KIAS.
--- @param #number Leg Length of race-track in NM. Default 14 NM.
--- @param #number RelHeading Relative heading [0, 360) of race-track pattern in degrees wrt heading of the carrier. Default is heading of the carrier.
--- @param #number OffsetDist Relative distance of the first race-track point wrt to the carrier. Default 6 NM.
--- @param #number OffsetAngle Relative angle of the first race-track point wrt. to the carrier. Default 180 (behind the boat).
--- @param #number UpdateDistance Threshold distance in NM before orbit pattern is updated. Default 5 NM.
--- @return #AUFTRAG self
-function AUFTRAG:NewRECOVERYTANKER(Carrier, Altitude, Speed, Leg, RelHeading, OffsetDist, OffsetAngle, UpdateDistance)
- 
-   -- Six NM astern.
-  local OffsetVec2={r=OffsetDist or 6, phi=OffsetAngle or 180}
-  
-  -- Default leg.
-  Leg=Leg or 14
-  
-  -- Default Speed.
-  Speed=Speed or 250
-  
-  local Heading=nil
-  if RelHeading then  
-    Heading=-math.abs(RelHeading)
-  end  
- 
-  -- Create orbit mission. 
-  local mission=AUFTRAG:NewORBIT_GROUP(Carrier, Altitude, Speed, Leg, Heading, OffsetVec2, UpdateDistance)
-
-  -- Set the type.  
-  mission.type=AUFTRAG.Type.RECOVERYTANKER
-
-  -- Mission options:
-  mission.missionTask=ENUMS.MissionTask.REFUELING
-  mission.missionFraction=0.9
-  mission.optionROE=ENUMS.ROE.WeaponHold
-  mission.optionROT=ENUMS.ROT.NoReaction
-
-  mission.categories={AUFTRAG.Category.AIRPLANE}
-
-  mission.DCStask=mission:GetDCSMissionTask()
-
-  return mission
-end
-
-
 --- **[AIR ROTARY, GROUND]** Create a TROOP TRANSPORT mission.
 -- @param #AUFTRAG self
 -- @param Core.Set#SET_GROUP TransportGroupSet The set group(s) to be transported.
 -- @param Core.Point#COORDINATE DropoffCoordinate Coordinate where the helo will land drop off the the troops.
--- @param Core.Point#COORDINATE PickupCoordinate Coordinate where the helo will land to pick up the the cargo. Default is the first transport group.
--- @param #number PickupRadius Radius around the pickup coordinate in meters. Default 100 m.
+-- @param Core.Point#COORDINATE PickupCoordinate(Optional)  Coordinate where the helo will land to pick up the the cargo. Default is the first transport group.
+-- @param #number PickupRadius (Optional) Radius around the pickup coordinate in meters. Default 100 m.
 -- @return #AUFTRAG self
 function AUFTRAG:NewTROOPTRANSPORT(TransportGroupSet, DropoffCoordinate, PickupCoordinate, PickupRadius)
 
@@ -2141,6 +2152,7 @@ function AUFTRAG:NewTROOPTRANSPORT(TransportGroupSet, DropoffCoordinate, PickupC
 end
 
 --- **[AIR ROTARY]** Create a CARGO TRANSPORT mission.
+-- This mission is for helicopters only, which transport cargo externally via slingload.
 -- **Important Note:**
 -- The dropoff zone has to be a zone defined in the Mission Editor. This is due to a restriction in the used DCS task, which takes the zone ID as input.
 -- Only ME zones have an ID that can be referenced.
@@ -2168,6 +2180,72 @@ function AUFTRAG:NewCARGOTRANSPORT(StaticCargo, DropZone)
   mission.DCStask.params.zoneId=DropZone.ZoneID
   mission.DCStask.params.zone=DropZone
   mission.DCStask.params.cargo=StaticCargo
+  
+  return mission
+end
+
+--- **[AIR]** Create a FREIGHT TRANSPORT mission.
+-- This mission type can be used to transport cargo items internally via suitable transport aircraft (planes and helicopters), e.g. C-130 or CH-47.
+-- It supports transporting one or multiple cargos (weight limits are not checked).
+-- 
+-- All cargo must be within a 40 meter radius around the transport aircraft for the mission to start.
+-- The mission is successful if any cargo item is delivered to the destination.
+-- 
+-- This mission type uses the underlying DCS tasks: "Cargo Transportation (internal)", "Cargo Unload"
+-- @param #AUFTRAG self
+-- @param Wrapper.Static#STATIC StaticCargo Static cargo object. Can also be passed as a `SET_STATIC` object.
+-- @param Wrapper.Airbase#AIRBASE Destination Destination airbase, where the cargo is unloaded.
+-- @return #AUFTRAG self
+function AUFTRAG:NewFREIGHTTRANSPORT(StaticCargo, Destination)
+
+  -- Check if Destination is given
+  if Destination==nil then
+    BASE:E(self.lid..string.format("ERROR: Destination is nil for AUFTRAG:NewFREIGHTTRANSPORT! You must specify the destination airbase"))
+    return nil
+  elseif type(Destination)=="string" then
+    Destination=AIRBASE:FindByName(Destination)
+  end
+  
+  -- Check if Cargo is given
+  if StaticCargo==nil then
+    BASE:E(self.lid..string.format("ERROR: StaticCargo is nil for AUFTRAG:NewFREIGHTTRANSPORT! You must specify the static object that represents the cargo"))
+    return nil  
+  elseif type(StaticCargo)=="string" then
+    StaticCargo=STATIC:FindByName(StaticCargo)
+  end
+  
+  -- Convert static to a set if necessary
+  if StaticCargo:IsInstanceOf("STATIC") then
+    local StaticCargoSet=SET_STATIC:New() --Core.Set#SET_STATIC
+    StaticCargoSet:AddCargo(StaticCargo)
+    StaticCargo=StaticCargoSet
+  end
+  
+  local mission=AUFTRAG:New(AUFTRAG.Type.FREIGHTTRANSPORT)
+  
+  -- Check that the set is not empty
+  local Ncargo=StaticCargo:Count()
+  if Ncargo==0 then
+    mission:E(mission.lid..string.format("ERROR: No cargo items in set!"))
+    return nil
+  else
+    mission:T(mission.lid..string.format("FREIGHTTRANSPORT with N=%d cargo items in set", Ncargo))
+  end  
+
+  mission:_TargetFromObject(StaticCargo)
+
+  mission.missionTask=mission:GetMissionTaskforMissionType(AUFTRAG.Type.FREIGHTTRANSPORT)
+
+  -- Set ROE and ROT.
+  mission.optionROE=ENUMS.ROE.ReturnFire
+  mission.optionROT=ENUMS.ROT.PassiveDefense
+
+  mission.categories={AUFTRAG.Category.HELICOPTER, AUFTRAG.Category.AIRCRAFT}
+
+  mission.DCStask=mission:GetDCSMissionTask()
+  
+  mission.DCStask.params.cargo=StaticCargo
+  mission.DCStask.params.destination=Destination
   
   return mission
 end
@@ -2218,9 +2296,9 @@ end
 -- **Note** that it is recommended to set the weapon range via the `OPSGROUP:AddWeaponRange()` function as this cannot be retrieved from the DCS API.
 -- @param #AUFTRAG self
 -- @param Core.Point#COORDINATE Target Center of the firing solution.
--- @param #number Nshots Number of shots to be fired. Default `#nil`. If value is in (0,1), it is interpreted as per cent of available ammo.
--- @param #number Radius Radius of the shells in meters. Default 100 meters.
--- @param #number Altitude Altitude in meters. Can be used to setup a Barrage. Default `#nil`.
+-- @param #number Nshots (Optional) Number of shots to be fired. Default `#nil`. If value is in (0,1), it is interpreted as per cent of available ammo.
+-- @param #number Radius (Optional) Radius of the shells in meters. Default 100 meters.
+-- @param #number Altitude (Optional) Altitude in meters. Can be used to setup a Barrage. Default `#nil`.
 -- @return #AUFTRAG self
 function AUFTRAG:NewARTY(Target, Nshots, Radius, Altitude)
 
@@ -2253,11 +2331,11 @@ end
 --- **[GROUND, NAVAL]** Create an BARRAGE mission. Assigned groups will move to a random coordinate within a given zone and start firing into the air.
 -- @param #AUFTRAG self
 -- @param Core.Zone#ZONE Zone The zone where the unit will go.
--- @param #number Heading Heading in degrees. Default random heading [0, 360).
--- @param #number Angle Shooting angle in degrees. Default random [45, 85].
--- @param #number Radius Radius of the shells in meters. Default 100 meters.
--- @param #number Altitude Altitude in meters. Default 500 m.
--- @param #number Nshots Number of shots to be fired. Default is until ammo is empty (`#nil`).
+-- @param #number Heading (Optional) Heading in degrees. Default random heading [0, 360).
+-- @param #number Angle (Optional) Shooting angle in degrees. Default random [45, 85].
+-- @param #number Radius (Optional) Radius of the shells in meters. Default 100 meters.
+-- @param #number Altitude (Optional) Altitude in meters. Default 500 m.
+-- @param #number Nshots (Optional) Number of shots to be fired. Default is until ammo is empty (`#nil`).
 -- @return #AUFTRAG self
 function AUFTRAG:NewBARRAGE(Zone, Heading, Angle, Radius, Altitude, Nshots)
 
@@ -2292,8 +2370,8 @@ end
 -- @param #AUFTRAG self
 -- @param Core.Zone#ZONE Zone The patrol zone.
 -- @param #number Speed Speed in knots.
--- @param #number Altitude Altitude in feet. Only for airborne units. Default 2000 feet ASL.
--- @param #string Formation Formation used by ground units during patrol. Default "Off Road".
+-- @param #number Altitude (Optional) Altitude in feet. Only for airborne units. Default 2000 feet ASL.
+-- @param #string Formation (Optional) Formation used by ground units during patrol. Default "Off Road".
 -- @return #AUFTRAG self
 function AUFTRAG:NewPATROLZONE(Zone, Speed, Altitude, Formation)
 
@@ -2330,8 +2408,8 @@ end
 -- @param Ops.OpsZone#OPSZONE OpsZone The OPS zone to capture.
 -- @param #number Coalition The coalition which should capture the zone for the mission to be successful.
 -- @param #number Speed Speed in knots.
--- @param #number Altitude Altitude in feet. Only for airborne units. Default 2000 feet ASL.
--- @param #string Formation Formation used by ground units during patrol. Default "Off Road".
+-- @param #number Altitude (Optional) Altitude in feet. Only for airborne units. Default 2000 feet ASL.
+-- @param #string Formation (Optional) Formation used by ground units during patrol. Default "Off Road".
 -- @param #number StayInZoneTime Stay this many seconds in the zone when done, only then drive back.
 -- @return #AUFTRAG self
 function AUFTRAG:NewCAPTUREZONE(OpsZone, Coalition, Speed, Altitude, Formation, StayInZoneTime)
@@ -2395,8 +2473,8 @@ end
 -- Therefore, we resort to this workaround, which guides the attacking group to the vicinity of the target. Then they start shooting on their own, once they detect the target.
 -- @param #AUFTRAG self
 -- @param Wrapper.Positionable#POSITIONABLE Target The target to attack. Can be a GROUP, UNIT or STATIC object.
--- @param #number Speed Speed in knots. Default max.
--- @param #string Formation The attack formation, e.g. "Wedge", "Vee" etc. Default `ENUMS.Formation.Vehicle.Vee`. Only working for ground, not naval!
+-- @param #number Speed (Optional) Speed in knots. Default max.
+-- @param #string Formation (Optional) The attack formation, e.g. "Wedge", "Vee" etc. Default `ENUMS.Formation.Vehicle.Vee`. Only working for ground, not naval!
 -- @return #AUFTRAG self
 function AUFTRAG:NewGROUNDATTACK(Target, Speed, Formation)
 
@@ -2428,8 +2506,8 @@ end
 -- Therefore, we resort to this workaround, which guides the attacking group to the vicinity of the target. Then they start shooting on their own, once they detect the target.
 -- @param #AUFTRAG self
 -- @param Wrapper.Positionable#POSITIONABLE Target The target to attack. Can be a GROUP, UNIT or STATIC object.
--- @param #number Speed Speed in knots. Default max.
--- @param #number Depth The attack depth in meters. Only for submarines!
+-- @param #number Speed (Optional) Speed in knots. Default max.
+-- @param #number Depth (Optional) The attack depth in meters. Only for submarines! Defaults to 0.
 -- @return #AUFTRAG self
 function AUFTRAG:NewNAVALENGAGEMENT(Target, Speed, Depth)
 
@@ -2458,8 +2536,8 @@ end
 --- **[AIR, GROUND, NAVAL]** Create a RECON mission.
 -- @param #AUFTRAG self
 -- @param Core.Set#SET_ZONE ZoneSet The recon zones.
--- @param #number Speed Speed in knots.
--- @param #number Altitude Altitude in feet. Only for airborne units. Default 2000 feet ASL.
+-- @param #number Speed (Optional) Speed in knots.
+-- @param #number Altitude (Optional) Altitude in feet. Only for airborne units. Default 2000 feet ASL.
 -- @param #boolean Adinfinitum If `true`, the group will start over again after reaching the final zone.
 -- @param #boolean Randomly If `true`, the group will select a random zone.
 -- @param #string Formation Formation used during recon route.
@@ -2951,7 +3029,7 @@ end
 
 --- Set mission start and stop time.
 -- @param #AUFTRAG self
--- @param #string ClockStart Time the mission is started, e.g. "05:00" for 5 am. If specified as a #number, it will be relative (in seconds) to the current mission time. Default is 5 seconds after mission was added.
+-- @param #string ClockStart (Optional) Time the mission is started, e.g. "05:00" for 5 am. If specified as a #number, it will be relative (in seconds) to the current mission time. Default is 5 seconds after mission was added.
 -- @param #string ClockStop (Optional) Time the mission is stopped, e.g. "13:00" for 1 pm. If mission could not be started at that time, it will be removed from the queue. If specified as a #number it will be relative (in seconds) to the current mission time.
 -- @return #AUFTRAG self
 function AUFTRAG:SetTime(ClockStart, ClockStop)
@@ -3037,9 +3115,9 @@ end
 
 --- Set mission priority and (optional) urgency. Urgent missions can cancel other running missions.
 -- @param #AUFTRAG self
--- @param #number Prio Priority 1=high, 100=low. Default 50.
+-- @param #number Prio (Optional) Priority 1=high, 100=low. Default 50.
 -- @param #boolean Urgent If *true*, another running mission might be cancelled if it has a lower priority.
--- @param #number Importance Number 1-10. If missions with lower value are in the queue, these have to be finished first. Default is `nil`.
+-- @param #number Importance (Optional) Number 1-10. If missions with lower value are in the queue, these have to be finished first. Default is `nil`.
 -- @return #AUFTRAG self
 function AUFTRAG:SetPriority(Prio, Urgent, Importance)
   self.prio=Prio or 50
@@ -3050,7 +3128,7 @@ end
 
 --- **[LEGION, COMMANDER, CHIEF]** Set how many times the mission is repeated. Only valid if the mission is handled by a LEGION (AIRWING, BRIGADE, FLEET) or higher level.
 -- @param #AUFTRAG self
--- @param #number Nrepeat Number of repeats. Default 0.
+-- @param #number Nrepeat (Optional) Number of repeats. Default 0.
 -- @return #AUFTRAG self
 function AUFTRAG:SetRepeat(Nrepeat)
   self.Nrepeat=Nrepeat or 0
@@ -3060,7 +3138,7 @@ end
 
 --- **[LEGION, COMMANDER, CHIEF]** Set the repeat delay in seconds after a mission is successful/failed. Only valid if the mission is handled by a LEGION (AIRWING, BRIGADE, FLEET) or higher level.
 -- @param #AUFTRAG self
--- @param #number RepeatDelay Repeat delay in seconds. Default 1.
+-- @param #number RepeatDelay (Optional) Repeat delay in seconds. Default 1.
 -- @return #AUFTRAG self
 function AUFTRAG:SetRepeatDelay(RepeatDelay)
   self.repeatDelay = RepeatDelay
@@ -3069,7 +3147,7 @@ end
 
 --- **[LEGION, COMMANDER, CHIEF]** Set how many times the mission is repeated if it fails. Only valid if the mission is handled by a LEGION (AIRWING, BRIGADE, FLEET) or higher level.
 -- @param #AUFTRAG self
--- @param #number Nrepeat Number of repeats. Default 0.
+-- @param #number Nrepeat (Optional) Number of repeats. Default 0.
 -- @return #AUFTRAG self
 function AUFTRAG:SetRepeatOnFailure(Nrepeat)
   self.NrepeatFailure=Nrepeat or 0
@@ -3078,7 +3156,7 @@ end
 
 --- **[LEGION, COMMANDER, CHIEF]** Set how many times the mission is repeated if it was successful. Only valid if the mission is handled by a LEGION (AIRWING, BRIGADE, FLEET) or higher level.
 -- @param #AUFTRAG self
--- @param #number Nrepeat Number of repeats. Default 0.
+-- @param #number Nrepeat (Optional) Number of repeats. Default 0.
 -- @return #AUFTRAG self
 function AUFTRAG:SetRepeatOnSuccess(Nrepeat)
   self.NrepeatSuccess=Nrepeat or 0
@@ -3099,8 +3177,8 @@ end
 
 --- **[LEGION, COMMANDER, CHIEF]** Define how many assets are required to do the job. Only used if the mission is handled by a **LEGION** (AIRWING, BRIGADE, ...) or higher level.
 -- @param #AUFTRAG self
--- @param #number NassetsMin Minimum number of asset groups. Default 1.
--- @param #number NassetsMax Maximum Number of asset groups. Default is same as `NassetsMin`.
+-- @param #number NassetsMin (Optional) Minimum number of asset groups. Default 1.
+-- @param #number NassetsMax (Optional) Maximum Number of asset groups. Default is same as `NassetsMin`.
 -- @return #AUFTRAG self
 function AUFTRAG:SetRequiredAssets(NassetsMin, NassetsMax)
 
@@ -3167,11 +3245,11 @@ end
 --- **[LEGION, COMMANDER, CHIEF]** Define how many assets are required that escort the mission assets. 
 -- Only used if the mission is handled by a **LEGION** (AIRWING, BRIGADE, FLEET) or higher level.
 -- @param #AUFTRAG self
--- @param #number NescortMin Minimum number of asset groups. Default 1.
--- @param #number NescortMax Maximum Number of asset groups. Default is same as `NassetsMin`.
--- @param #string MissionType Mission type assets will be optimized for and payload selected, *e.g.* `AUFTRAG.Type.SEAD`. Default nil.
--- @param #table TargetTypes Target Types that will be engaged by the escort group(s). Default `{"Air"}` for aircraft and `{"Ground Units"}` for helos. Set, *e.g.*, `{"Air Defence"}` for SEAD.
--- @param #number EngageRange Max range in nautical miles that the escort group(s) will engage enemies. Default 32 NM (60 km).
+-- @param #number NescortMin (Optional) Minimum number of asset groups. Default 1.
+-- @param #number NescortMax (Optional) Maximum Number of asset groups. Default is same as `NassetsMin`.
+-- @param #string MissionType (Optional) Mission type assets will be optimized for and payload selected, *e.g.* `AUFTRAG.Type.SEAD`. Default nil.
+-- @param #table TargetTypes (Optional) Target Types that will be engaged by the escort group(s). Default `{"Air"}` for aircraft and `{"Ground Units"}` for helos. Set, *e.g.*, `{"Air Defence"}` for SEAD.
+-- @param #number EngageRange (Optional) Max range in nautical miles that the escort group(s) will engage enemies. Default 32 NM (60 km).
 -- @return #AUFTRAG self
 function AUFTRAG:SetRequiredEscorts(NescortMin, NescortMax, MissionType, TargetTypes, EngageRange)
 
@@ -3197,7 +3275,7 @@ end
 
 --- Set mission name.
 -- @param #AUFTRAG self
--- @param #string Name Name of the mission. Default is "Auftrag Nr. X", where X is a running number, which is automatically increased.
+-- @param #string Name (Optional) Name of the mission. Default is "Auftrag Nr. X", where X is a running number, which is automatically increased.
 -- @return #AUFTRAG self
 function AUFTRAG:SetName(Name)
   self.name=Name or string.format("Auftrag Nr. %d", self.auftragsnummer)
@@ -3206,7 +3284,7 @@ end
 
 --- Enable markers, which dispay the mission status on the F10 map.
 -- @param #AUFTRAG self
--- @param #number Coalition The coaliton side to which the markers are dispayed. Default is to all.
+-- @param #number Coalition (Optional) The coaliton side to which the markers are dispayed. Default is to all.
 -- @return #AUFTRAG self
 function AUFTRAG:SetEnableMarkers(Coalition)
   self.markerOn=true
@@ -3216,7 +3294,7 @@ end
 
 --- Set verbosity level.
 -- @param #AUFTRAG self
--- @param #number VerbosityLevel Level of output (higher=more). Default 0.
+-- @param #number VerbosityLevel (Optional) Level of output (higher=more). Default 0.
 -- @return #AUFTRAG self
 function AUFTRAG:SetVerbosity(VerbosityLevel)
   self.verbose=VerbosityLevel or 0
@@ -3225,7 +3303,7 @@ end
 
 --- Set weapon type used for the engagement.
 -- @param #AUFTRAG self
--- @param #number WeaponType Weapon type. Default is `ENUMS.WeaponFlag.Auto`.
+-- @param #number WeaponType (Optional) Weapon type. Default is `ENUMS.WeaponFlag.Auto`.
 -- @return #AUFTRAG self
 function AUFTRAG:SetWeaponType(WeaponType)
 
@@ -3239,7 +3317,7 @@ end
 
 --- Set number of weapons to expend.
 -- @param #AUFTRAG self
--- @param #number WeaponExpend How much of the weapon load is expended during the attack, e.g. `AI.Task.WeaponExpend.ALL`. Default "Auto".
+-- @param #number WeaponExpend (Optional) How much of the weapon load is expended during the attack, e.g. `AI.Task.WeaponExpend.ALL`. Default "Auto".
 -- @return #AUFTRAG self
 function AUFTRAG:SetWeaponExpend(WeaponExpend)
 
@@ -3271,7 +3349,7 @@ end
 
 --- Set engage altitude. This is the altitude passed to the DCS task. In the ME it is the tickbox ALTITUDE ABOVE.
 -- @param #AUFTRAG self
--- @param #string Altitude Altitude in feet. Default 6000 ft.
+-- @param #string Altitude (Optional) Altitude in feet. Default 6000 ft.
 -- @return #AUFTRAG self
 function AUFTRAG:SetEngageAltitude(Altitude)
 
@@ -3283,12 +3361,26 @@ function AUFTRAG:SetEngageAltitude(Altitude)
   return self
 end
 
+--- Set engage quantity. This is the number of times the attack group/unit DCS task is carried out.
+-- @param #AUFTRAG self
+-- @param #number Quantity (Optional) Number of times the group will engage the target.
+-- @return #AUFTRAG self
+function AUFTRAG:SetEngageQuantity(Quantity)
+
+  self.engageQuantity=Quantity
+
+   -- Update the DCS task parameter.
+  self.DCStask=self:GetDCSMissionTask()
+
+  return self
+end
+
 --- Enable to automatically engage detected targets.
 -- @param #AUFTRAG self
--- @param #number RangeMax Max range in NM. Only detected targets within this radius from the group will be engaged. Default is 25 NM.
--- @param #table TargetTypes Types of target attributes that will be engaged. See [DCS enum attributes](https://wiki.hoggitworld.com/view/DCS_enum_attributes). Default "All".
--- @param Core.Set#SET_ZONE EngageZoneSet Set of zones in which targets are engaged. Default is anywhere.
--- @param Core.Set#SET_ZONE NoEngageZoneSet Set of zones in which targets are *not* engaged. Default is nowhere.
+-- @param #number RangeMax (Optional) Max range in NM. Only detected targets within this radius from the group will be engaged. Default is 25 NM.
+-- @param #table TargetTypes (Optional) Types of target attributes that will be engaged. See [DCS enum attributes](https://wiki.hoggitworld.com/view/DCS_enum_attributes). Default "All".
+-- @param Core.Set#SET_ZONE EngageZoneSet (Optional) Set of zones in which targets are engaged. Default is anywhere.
+-- @param Core.Set#SET_ZONE NoEngageZoneSet (Optional) Set of zones in which targets are *not* engaged. Default is nowhere.
 -- @return #AUFTRAG self
 function AUFTRAG:SetEngageDetected(RangeMax, TargetTypes, EngageZoneSet, NoEngageZoneSet)
 
@@ -3341,7 +3433,7 @@ end
 
 --- Set max mission range. Only applies if the AUFTRAG is handled by an AIRWING or CHIEF. This is the max allowed distance from the airbase to the target.
 -- @param #AUFTRAG self
--- @param #number Range Max range in NM. Default 100 NM.
+-- @param #number Range (Optional) Max range in NM. Default 100 NM.
 -- @return #AUFTRAG self
 function AUFTRAG:SetMissionRange(Range)
   self.engageRange=UTILS.NMToMeters(Range or 100)
@@ -3367,8 +3459,8 @@ end
 --- **[LEGION, COMMANDER, CHIEF]** Attach OPS transport to the mission. Mission assets will be transported before the mission is started at the OPSGROUP level.
 -- @param #AUFTRAG self
 -- @param Core.Zone#ZONE DeployZone Zone where assets are deployed.
--- @param #number NcarriersMin Number of carriers *at least* required. Default 1.
--- @param #number NcarriersMax Number of carriers *at most* used for transportation. Default is same as `NcarriersMin`.
+-- @param #number NcarriersMin (Optional) Number of carriers *at least* required. Default 1.
+-- @param #number NcarriersMax (Optional) Number of carriers *at most* used for transportation. Default is same as `NcarriersMin`.
 -- @param Core.Zone#ZONE DisembarkZone Zone where assets are disembarked to.
 -- @param #table Categories Group categories.
 -- @param #table Attributes Generalizes group attributes.
@@ -3430,8 +3522,8 @@ end
 
 --- **[LEGION, COMMANDER, CHIEF]** Set number of required carrier groups if an OPSTRANSPORT assignment is required.
 -- @param #AUFTRAG self
--- @param #number NcarriersMin Number of carriers *at least* required. Default 1.
--- @param #number NcarriersMax Number of carriers *at most* used for transportation. Default is same as `NcarriersMin`.
+-- @param #number NcarriersMin (Optional) Number of carriers *at least* required. Default 1.
+-- @param #number NcarriersMax (Optional) Number of carriers *at most* used for transportation. Default is same as `NcarriersMin`.
 -- @param #table Categories Group categories.
 -- @param #table Attributes Group attributes. See `GROUP.Attribute.`
 -- @param #table Properties DCS attributes.
@@ -3696,7 +3788,7 @@ end
 --- Set radio frequency and modulation for this mission.
 -- @param #AUFTRAG self
 -- @param #number Frequency Frequency in MHz.
--- @param #number Modulation Radio modulation. Default 0=AM.
+-- @param #number Modulation (Optional) Radio modulation. Default 0=AM.
 -- @return #AUFTRAG self
 function AUFTRAG:SetRadio(Frequency, Modulation)
 
@@ -3710,9 +3802,9 @@ end
 --- Set TACAN beacon channel and Morse code for this mission.
 -- @param #AUFTRAG self
 -- @param #number Channel TACAN channel.
--- @param #string Morse Morse code. Default "XXX".
--- @param #string UnitName Name of the unit in the group for which acts as TACAN beacon. Default is the first unit in the group.
--- @param #string Band Tacan channel mode ("X" or "Y"). Default is "X" for ground/naval and "Y" for aircraft.
+-- @param #string Morse (Optional) Morse code. Default "XXX".
+-- @param #string UnitName (Optional) Name of the unit in the group for which acts as TACAN beacon. Default is the first unit in the group.
+-- @param #string Band (Optional) Tacan channel mode ("X" or "Y"). Default is "X" for ground/naval and "Y" for aircraft.
 -- @return #AUFTRAG self
 function AUFTRAG:SetTACAN(Channel, Morse, UnitName, Band)
 
@@ -3728,8 +3820,8 @@ end
 --- Set ICLS beacon channel and Morse code for this mission.
 -- @param #AUFTRAG self
 -- @param #number Channel ICLS channel.
--- @param #string Morse Morse code. Default "XXX".
--- @param #string UnitName Name of the unit in the group for which acts as ICLS beacon. Default is the first unit in the group.
+-- @param #string Morse (Optional) Morse code. Default "XXX".
+-- @param #string UnitName (Optional) Name of the unit in the group for which acts as ICLS beacon. Default is the first unit in the group.
 -- @return #AUFTRAG self
 function AUFTRAG:SetICLS(Channel, Morse, UnitName)
 
@@ -3743,7 +3835,7 @@ end
 
 --- Set time interval between mission done and success/failure evaluation.
 -- @param #AUFTRAG self
--- @param #number Teval Time in seconds before the mission result is evaluated. Default depends on mission type.
+-- @param #number Teval (Optional) Time in seconds before the mission result is evaluated. Default depends on mission type.
 -- @return #AUFTRAG self
 function AUFTRAG:SetEvaluationTime(Teval)
 
@@ -4173,6 +4265,28 @@ function AUFTRAG:IsReadyToGo()
   if not startme then
     return false
   end
+  
+  if self.type==AUFTRAG.Type.FREIGHTTRANSPORT then
+  
+    local cargoset=self.DCStask.params.cargo --Core.Set#SET_STATIC
+    
+    for _,_opsgroup in pairs(self:GetOpsGroups()) do
+      local opsgroup=_opsgroup --Ops.OpsGroup#OPSGROUP
+      
+      local vec2=opsgroup.group:GetFirstUnitAlive():GetVec2()
+      
+      local zone=ZONE_RADIUS:New("Freighttransport", vec2, 40, true)
+    
+      local inzone=cargoset:IsInZone(zone)
+      
+      if not inzone then
+        self:T(self.lid.."FREIGHTTRANSPORT: cargo is not inside zone ==> mission not ready to start yet!")
+        return false
+      end
+      
+    end
+    
+  end
 
 
   -- We're good to go!
@@ -4515,6 +4629,22 @@ function AUFTRAG:Evaluate()
       if cargo and zone then
         failed=not cargo:IsInZone(zone)
       else
+        failed=true
+      end
+      
+    elseif self.type==AUFTRAG.Type.FREIGHTTRANSPORT then
+    
+      local cargoset=self.DCStask.params.cargo --Core.Set#SET_STATIC
+      
+      -- Get the destination airbase zone
+      local dest=self.DCStask.params.destination --Wrapper.Airbase#AIRBASE
+      local zone=dest:GetZone()
+    
+      -- Check if ANY cargo is inside the zone (might want to make it optional that all cargo needs to be)
+      local inzone=cargoset:IsInZone(zone, true)
+      
+      if not inzone then
+        self:I(self.lid.."FF Freight/cargo not delivered to airbase zone")
         failed=true
       end
 
@@ -5613,6 +5743,27 @@ function AUFTRAG:GetTargetLife()
   end
 end
 
+--- Get cargo items as set SET object.
+-- This returns the cargo item(s) as set `SET` object for mission types `CARGOTRANSPORT`, `TROOPTRANSPORT` and `FREIGHTTRANSPORT`.
+-- @param #AUFTRAG self
+-- @return Core.Set#SET_BASE The cargo set.
+function AUFTRAG:GetCargoSet()
+
+  if self.type==AUFTRAG.Type.CARGOTRANSPORT then
+    local set=SET_STATIC:New()
+    set:AddObject(self.DCStask.params.cargo)
+    return set  
+  elseif self.type==AUFTRAG.Type.TROOPTRANSPORT then
+    return self.transportGroupSet  
+  elseif self.type==AUFTRAG.Type.FREIGHTTRANSPORT then
+    return self.DCStask.params.cargo  
+  else
+    self:E(self.lid.."ERROR: GetCargoSet() is only for transport types!")
+    return nil
+  end
+
+end
+
 --- Get target.
 -- @param #AUFTRAG self
 -- @return Ops.Target#TARGET The target object. Could be many things.
@@ -5882,7 +6033,7 @@ end
 
 --- Set randomization of the mission waypoint coordinate. Each assigned group will get a random ingress coordinate, where the mission is executed.
 -- @param #AUFTRAG self
--- @param #number Radius Distance in meters. Default `#nil`.
+-- @param #number Radius (Optional) Distance in meters. Default `#nil`.
 -- @return #AUFTRAG self
 function AUFTRAG:SetMissionWaypointRandomization(Radius)
   self.missionWaypointRadius=Radius
@@ -6201,8 +6352,9 @@ end
 
 --- Get DCS task table for the given mission.
 -- @param #AUFTRAG self
+-- @param Wrapper.Group#GROUP MissionGroup (Optional) Group that is supposed to carry out the mission. This might not exist when the AUFTRAG is created but only when the AUFTRAG is passed to a certain group.
 -- @return DCS#Task The DCS task table. If multiple tasks are necessary, this is returned as a combo task.
-function AUFTRAG:GetDCSMissionTask()
+function AUFTRAG:GetDCSMissionTask(MissionGroup)
 
   local DCStasks={}
 
@@ -6544,6 +6696,34 @@ function AUFTRAG:GetDCSMissionTask()
     }
     
     table.insert(DCStasks, TaskCargoTransportation)
+
+  elseif self.type==AUFTRAG.Type.FREIGHTTRANSPORT then
+
+    ------------------------------
+    -- FREIGHTTRANSPORT Mission --
+    ------------------------------
+        
+    local statics=self.engageTarget:GetObjects()
+    
+    for _, StaticObject in pairs(statics) do
+      local static=StaticObject --Wrapper.Static#STATIC
+      
+      self:T(static)
+    
+      -- Task to unload the cargo     
+      local TaskCargoUnload={
+        ["id"] = "CargoUnloadPlane",
+        ["params"] = 
+        {
+          ["groupId"] = static:GetID(),
+          ["unitId"]  = static:GetID(),
+        }
+      }        
+    
+    
+      table.insert(DCStasks, TaskCargoUnload)
+      
+    end
 
   elseif self.type==AUFTRAG.Type.RESCUEHELO then
 
@@ -7044,7 +7224,7 @@ function AUFTRAG:_GetDCSAttackTask(Target, DCStasks)
 
     elseif target.Type==TARGET.ObjectType.UNIT or target.Type==TARGET.ObjectType.STATIC then
 
-      local DCStask=CONTROLLABLE.TaskAttackUnit(nil, target.Object, self.engageAsGroup, self.WeaponExpend, self.engageQuantity, self.engageDirection, self.engageAltitude, self.engageWeaponType)
+      local DCStask=CONTROLLABLE.TaskAttackUnit(nil, target.Object, self.engageAsGroup, self.engageWeaponExpend, self.engageQuantity, self.engageDirection, self.engageAltitude, self.engageWeaponType)
 
       table.insert(DCStasks, DCStask)
 
@@ -7109,6 +7289,8 @@ function AUFTRAG:GetMissionTaskforMissionType(MissionType)
     mtask=ENUMS.MissionTask.TRANSPORT
   elseif MissionType==AUFTRAG.Type.CARGOTRANSPORT then
     mtask=ENUMS.MissionTask.TRANSPORT
+  elseif MissionType==AUFTRAG.Type.FREIGHTTRANSPORT then
+    mtask=ENUMS.MissionTask.TRANSPORT    
   elseif MissionType==AUFTRAG.Type.ARMORATTACK then
     mtask=ENUMS.MissionTask.NOTHING
   elseif MissionType==AUFTRAG.Type.HOVER then

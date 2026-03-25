@@ -68,7 +68,7 @@ ARMYGROUP = {
 
 --- Army Group version.
 -- @field #string version
-ARMYGROUP.version="1.0.3"
+ARMYGROUP.version="1.0.4"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- TODO list
@@ -463,10 +463,10 @@ end
 -- @param #ARMYGROUP self
 -- @param Core.Point#COORDINATE Coordinate Coordinate of the target.
 -- @param #string Clock Time when to start the attack.
--- @param #number Radius Radius in meters. Default 100 m.
--- @param #number Nshots Number of shots to fire. Default 3.
--- @param #number WeaponType Type of weapon. Default auto.
--- @param #number Prio Priority of the task.
+-- @param #number Radius (Optional) Radius in meters. Default 100 m.
+-- @param #number Nshots (Optional) Number of shots to fire. Default 3.
+-- @param #number WeaponType (Optional) Type of weapon. Default auto.
+-- @param #number Prio (Optional) Priority of the task. Defaults to 50.
 -- @return Ops.OpsGroup#OPSGROUP.Task The task table.
 function ARMYGROUP:AddTaskFireAtPoint(Coordinate, Clock, Radius, Nshots, WeaponType, Prio)
 
@@ -485,10 +485,10 @@ end
 -- @param #number Heading Heading min in Degrees.
 -- @param #number Alpha Shooting angle in Degrees.
 -- @param #number Altitude Altitude in meters.
--- @param #number Radius Radius in meters. Default 100 m.
--- @param #number Nshots Number of shots to fire. Default nil.
--- @param #number WeaponType Type of weapon. Default auto.
--- @param #number Prio Priority of the task.
+-- @param #number Radius (Optional) Radius in meters. Default 100 m.
+-- @param #number Nshots (Optional) Number of shots to fire. Default nil.
+-- @param #number WeaponType (Optional) Type of weapon. Default auto.
+-- @param #number Prio (Optional) Priority of the task. Defaults to 50.
 -- @return Ops.OpsGroup#OPSGROUP.Task The task table.
 function ARMYGROUP:AddTaskBarrage(Clock, Heading, Alpha, Altitude, Radius, Nshots, WeaponType, Prio)
 
@@ -516,11 +516,11 @@ end
 --- Add a *waypoint* task to fire at a given coordinate.
 -- @param #ARMYGROUP self
 -- @param Core.Point#COORDINATE Coordinate Coordinate of the target.
--- @param Ops.OpsGroup#OPSGROUP.Waypoint Waypoint Where the task is executed. Default is next waypoint.
--- @param #number Radius Radius in meters. Default 100 m.
--- @param #number Nshots Number of shots to fire. Default 3.
--- @param #number WeaponType Type of weapon. Default auto.
--- @param #number Prio Priority of the task.
+-- @param Ops.OpsGroup#OPSGROUP.Waypoint Waypoint (Optional) Where the task is executed. Default is next waypoint.
+-- @param #number Radius (Optional) Radius in meters. Default 100 m.
+-- @param #number Nshots (Optional) Number of shots to fire. Default 3.
+-- @param #number WeaponType (Optional) Type of weapon. Default auto.
+-- @param #number Prio (Optional) Priority of the task. Defaults to 50.
 -- @return Ops.OpsGroup#OPSGROUP.Task The task table.
 function ARMYGROUP:AddTaskWaypointFireAtPoint(Coordinate, Waypoint, Radius, Nshots, WeaponType, Prio)
 
@@ -538,10 +538,10 @@ end
 --- Add a *scheduled* task.
 -- @param #ARMYGROUP self
 -- @param Wrapper.Group#GROUP TargetGroup Target group.
--- @param #number WeaponExpend How much weapons does are used.
--- @param #number WeaponType Type of weapon. Default auto.
--- @param #string Clock Time when to start the attack.
--- @param #number Prio Priority of the task.
+-- @param #number WeaponExpend (Optional) How much weapons does are used. Defaults to "Auto".
+-- @param #number WeaponType (Optional) Type of weapon. Default auto.
+-- @param #string Clock (Optional) Time when to start the attack. Defaults to 5.
+-- @param #number Prio (Optional) Priority of the task. Defaults to 50.
 -- @return Ops.OpsGroup#OPSGROUP.Task The task table.
 function ARMYGROUP:AddTaskAttackGroup(TargetGroup, WeaponExpend, WeaponType, Clock, Prio)
 
@@ -574,7 +574,7 @@ end
 
 --- Define a set of possible retreat zones.
 -- @param #ARMYGROUP self
--- @param Core.Set#SET_ZONE RetreatZoneSet The retreat zone set. Default is an empty set.
+-- @param Core.Set#SET_ZONE RetreatZoneSet (Optional) The retreat zone set. Default is an empty set.
 -- @return #ARMYGROUP self
 function ARMYGROUP:SetRetreatZones(RetreatZoneSet)
   self.retreatZones=RetreatZoneSet or SET_ZONE:New()
@@ -592,7 +592,7 @@ end
 
 --- Set suppression on. average, minimum and maximum time a unit is suppressed each time it gets hit.
 -- @param #ARMYGROUP self
--- @param #number Tave Average time [seconds] a group will be suppressed. Default is 15 seconds.
+-- @param #number Tave (Optional) Average time [seconds] a group will be suppressed. Default is 15 seconds.
 -- @param #number Tmin (Optional) Minimum time [seconds] a group will be suppressed. Default is 5 seconds.
 -- @param #number Tmax (Optional) Maximum time a group will be suppressed. Default is 25 seconds.
 -- @return #ARMYGROUP self
@@ -995,10 +995,10 @@ end
 -- @param #string From From state.
 -- @param #string Event Event.
 -- @param #string To To state.
--- @param #number n Next waypoint index. Default is the one coming after that one that has been passed last.
--- @param #number N Waypoint  Max waypoint index to be included in the route. Default is the final waypoint.
--- @param #number Speed Speed in knots. Default cruise speed.
--- @param #number Formation Formation of the group.
+-- @param #number n (Optional) Next waypoint index. Default is the one coming after that one that has been passed last.
+-- @param #number N (Optional) Waypoint  Max waypoint index to be included in the route. Default is the final waypoint.
+-- @param #number Speed (Optional) Speed in knots. Default cruise speed.
+-- @param #number Formation (Optional) Formation of the group.
 function ARMYGROUP:onbeforeUpdateRoute(From, Event, To, n, N, Speed, Formation)
 
   -- Is transition allowed? We assume yes until proven otherwise.
@@ -1082,10 +1082,10 @@ end
 -- @param #string From From state.
 -- @param #string Event Event.
 -- @param #string To To state.
--- @param #number n Next waypoint index. Default is the one coming after that one that has been passed last.
--- @param #number N Waypoint  Max waypoint index to be included in the route. Default is the final waypoint.
--- @param #number Speed Speed in knots. Default cruise speed.
--- @param #number Formation Formation of the group.
+-- @param #number n (Optional) Next waypoint index. Default is the one coming after that one that has been passed last.
+-- @param #number N (Optional) Waypoint  Max waypoint index to be included in the route. Default is the final waypoint.
+-- @param #number Speed (Optional) Speed in knots. Default cruise speed.
+-- @param #number Formation (Optional) Formation of the group.
 function ARMYGROUP:onafterUpdateRoute(From, Event, To, n, N, Speed, Formation)
 
   -- Update route from this waypoint number onwards.
@@ -1358,7 +1358,7 @@ end
 -- @param #string Event Event.
 -- @param #string To To state.
 -- @param Core.Point#COORDINATE Coordinate Coordinate where to go.
--- @param #number Speed Speed in knots. Default cruise speed.
+-- @param #number Speed (Optional) Speed in knots. Default cruise speed.
 -- @param #number Formation Formation of the group.
 -- @param #number ResumeRoute If true, resume route after detour point was reached. If false, the group will stop at the detour point and wait for futher commands.
 function ARMYGROUP:onafterDetour(From, Event, To, Coordinate, Speed, Formation, ResumeRoute)
@@ -1738,7 +1738,7 @@ end
 -- @param #string To To state.
 -- @param Wrapper.Group#GROUP Group the group to be engaged.
 -- @param #number Speed Speed in knots.
--- @param #string Formation Formation used in the engagement. Default `ENUMS.Formation.Vehicle.Vee`.
+-- @param #string Formation (Optional) Formation used in the engagement. Default `ENUMS.Formation.Vehicle.Vee`.
 function ARMYGROUP:onbeforeEngageTarget(From, Event, To, Target, Speed, Formation)
 
   local dt=nil
@@ -1779,7 +1779,7 @@ end
 -- @param #string To To state.
 -- @param Ops.Target#TARGET Target The target to be engaged. Can also be a group or unit.
 -- @param #number Speed Attack speed in knots.
--- @param #string Formation Formation used in the engagement. Default `ENUMS.Formation.Vehicle.Vee`.
+-- @param #string Formation (Optional) Formation used in the engagement. Default `ENUMS.Formation.Vehicle.Vee`.
 function ARMYGROUP:onafterEngageTarget(From, Event, To, Target, Speed, Formation)
   self:T(self.lid.."Engaging Target")
 
@@ -1983,10 +1983,10 @@ end
 --- Add an a waypoint to the route.
 -- @param #ARMYGROUP self
 -- @param Core.Point#COORDINATE Coordinate The coordinate of the waypoint.
--- @param #number Speed Speed in knots. Default is default cruise speed or 70% of max speed.
--- @param #number AfterWaypointWithID Insert waypoint after waypoint given ID. Default is to insert as last waypoint.
--- @param #string Formation Formation the group will use.
--- @param #boolean Updateroute If true or nil, call UpdateRoute. If false, no call.
+-- @param #number Speed (Optional) Speed in knots. Default is default cruise speed or 70% of max speed.
+-- @param #number AfterWaypointWithID (Optional) Insert waypoint after waypoint given ID. Default is to insert as last waypoint.
+-- @param #string Formation (Optional) Formation the group will use.
+-- @param #boolean Updateroute (Optional) If true or nil, call UpdateRoute. If false, no call.
 -- @return Ops.OpsGroup#OPSGROUP.Waypoint Waypoint table.
 function ARMYGROUP:AddWaypoint(Coordinate, Speed, AfterWaypointWithID, Formation, Updateroute)
 
@@ -2047,8 +2047,8 @@ end
 
 --- Initialize group parameters. Also initializes waypoints if self.waypoints is nil.
 -- @param #ARMYGROUP self
--- @param #table Template Template used to init the group. Default is `self.template`.
--- @param #number Delay Delay in seconds before group is initialized. Default `nil`, *i.e.* instantaneous.
+-- @param #table Template (Optional) Template used to init the group. Default is `self.template`.
+-- @param #number Delay (Optional) Delay in seconds before group is initialized. Default `nil`, *i.e.* instantaneous.
 -- @return #ARMYGROUP self
 function ARMYGROUP:_InitGroup(Template, Delay)
 
@@ -2145,9 +2145,9 @@ end
 
 --- Switch to a specific formation.
 -- @param #ARMYGROUP self
--- @param #number Formation New formation the group will fly in. Default is the setting of `SetDefaultFormation()`.
--- @param #boolean Permanently If true, formation always used from now on.
--- @param #boolean NoRouteUpdate If true, route is not updated.
+-- @param #number Formation (Optional) New formation the group will fly in. Default is the setting of `SetDefaultFormation()`.
+-- @param #boolean Permanently (Optional) If true, formation always used from now on. Defaults to false.
+-- @param #boolean NoRouteUpdate (Optional) If true, route is not updated. Defaults to false.
 -- @return #ARMYGROUP self
 function ARMYGROUP:SwitchFormation(Formation, Permanently, NoRouteUpdate)
 
@@ -2191,7 +2191,7 @@ end
 
 --- Find the neares ammo supply group within a given radius.
 -- @param #ARMYGROUP self
--- @param #number Radius Search radius in NM. Default 30 NM.
+-- @param #number Radius (Optional) Search radius in NM. Default 30 NM.
 -- @return Wrapper.Group#GROUP Closest ammo supplying group or `nil` if no group is in the given radius.
 -- @return #number Distance to closest group in meters.
 function ARMYGROUP:FindNearestAmmoSupply(Radius)
@@ -2331,6 +2331,213 @@ function ARMYGROUP:onafterUnsuppressed(From, Event, To)
   end
 
 end
+
+----------------------------------------------------------------
+-- HuntingPatrol.lua
+--
+-- Adds simple "hunting patrol" behavior on top of ARMYGROUP:
+--
+--  * Group patrols normally using its existing waypoints
+--  * While combat-ready, periodically scans a zone for enemies
+--  * When an enemy is found, lock it and call EngageTarget()
+--  * Stay on that target until it dies
+--  * When target is dead, Disengage() and let ARMYGROUP resume patrol
+----------------------------------------------------------------
+
+--- Module table
+ARMYGROUP.HuntingPatrol = {}
+
+----------------------------------------------------------------
+-- ARMYGROUP extension state
+----------------------------------------------------------------
+-- We store a few extra fields on ARMYGROUP:
+--   hp_zone       : ZONE object to hunt inside
+--   hp_speed      : speed in knots when engaging
+--   hp_formation  : formation string when engaging
+--   hp_target     : currently locked UNIT (or nil)
+--   hp_timer      : TIMER object for periodic updates
+--   hp_interval   : scan interval in seconds
+----------------------------------------------------------------
+
+--- Enable hunting patrol behavior for this ARMYGROUP.
+-- @param #ARMYGROUP self
+-- @param Core.Zone#ZONE_BASE Zone The zone to hunt inside.
+-- @param #number Speed Speed in knots when engaging.
+-- @param #string Formation Formation used during engagement (optional).
+-- @param #number Interval Scan interval in seconds (optional, default 5).
+-- @return #ARMYGROUP self
+function ARMYGROUP:EnableHuntingPatrol(Zone, Speed, Formation, Interval)
+
+  self.hp_zone      = Zone
+  self.hp_speed     = tonumber(Speed) or 20
+  self.hp_formation = Formation or nil
+
+  -- Force numeric, safe interval
+  local intervalNum = tonumber(Interval)
+  if not intervalNum or intervalNum <= 0 then
+    intervalNum = 5
+  end
+  self.hp_interval  = intervalNum
+
+  self.hp_target    = nil
+
+  if self.hp_timer then
+    self.hp_timer:Stop()
+    self.hp_timer = nil
+  end
+
+  self.hp_timer = TIMER:New(self._HuntingPatrolUpdate, self):Start(1, self.hp_interval)
+
+  self:T(self.lid .. "HuntingPatrol: enabled. Interval=" .. tostring(self.hp_interval))
+  return self
+end
+
+--- Disable hunting patrol behavior.
+-- @param #ARMYGROUP self
+-- @return #ARMYGROUP self
+function ARMYGROUP:DisableHuntingPatrol()
+  if self.hp_timer then
+    self.hp_timer:Stop()
+    self.hp_timer = nil
+  end
+  if self.HuntingEnemySet then
+    self.HuntingEnemySet:FilterStop()
+    self.HuntingEnemySet = nil
+  end
+  self.hp_target = nil
+  self:T(self.lid .. "HuntingPatrol: disabled.")
+  return self
+end
+
+----------------------------------------------------------------
+-- Internal: periodic update
+----------------------------------------------------------------
+-- This is called by the TIMER created in EnableHuntingPatrol().
+-- It:
+--   
+--   - checks if group is alive & combat-ready  
+--   - if a target is locked, checks if it is still alive    
+--   - if no target, scans the zone for enemies and locks one
+--   - uses ARMYGROUP:EngageTarget() / Disengage()   
+--   
+----------------------------------------------------------------
+-- @param #ARMYGROUP self
+-- @return #ARMYGROUP self
+function ARMYGROUP:_HuntingPatrolUpdate()
+
+  -- If group is dead, stop.
+  if not self:IsAlive() then
+    self:DisableHuntingPatrol()
+    return
+  end
+
+  -- Only run during PATROLZONE missions
+  local mission = self:GetMissionCurrent()
+  if not mission or mission.type ~= AUFTRAG.Type.PATROLZONE then
+    return
+  end
+
+  -- Only act when combat-ready
+  if not self:IsCombatReady() then
+    return
+  end
+
+  -- If we have a locked target, keep or drop it
+  if self.hp_target then
+    if not self.hp_target:IsAlive() then
+      self.hp_target = nil
+      self:Disengage()
+    end
+    return
+  end
+
+  -- No target → scan for new enemies
+  local enemy = self:_HuntingPatrolFindEnemyInZone(self.hp_zone)
+  if enemy then
+    self.hp_target = enemy
+    self:EngageTarget(enemy, self.hp_speed, self.hp_formation)
+  end
+end
+
+----------------------------------------------------------------
+-- Internal: find one enemy ground unit inside a zone
+----------------------------------------------------------------
+-- Very simple: build a SET_UNIT, filter by coalition and zone,
+-- and pick the closest unit to this ARMYGROUP.
+----------------------------------------------------------------
+-- @param #ARMYGROUP self
+-- @param Core.Zone#ZONE Zone The zont to look at
+-- @return Wrapper.Unit#UNIT Enemy The nearest enemy UNIT in zone
+function ARMYGROUP:_HuntingPatrolFindEnemyInZone(Zone)
+
+  if not Zone then return nil end
+
+  -- Determine our coalition.
+  local myCoalition = self:GetCoalition()
+  
+  if not self.HuntingEnemySet then
+  
+    self.HuntingEnemySet = SET_UNIT:New()
+      :FilterActive(true)
+      :FilterCategories("ground")
+      :FilterStart()
+    
+  end
+
+  local enemies = {}
+
+  self.HuntingEnemySet:ForEachUnitCompletelyInZone(Zone, function(unit)
+    if unit:GetCoalition() ~= myCoalition and unit:IsAlive() then
+      table.insert(enemies, unit)
+    end
+  end)
+
+  if #enemies == 0 then
+    return nil
+  end
+
+  -- Pick the closest enemy.
+  local myCoord = self:GetCoordinate()
+
+  table.sort(enemies, function(a, b)
+    return myCoord:Get2DDistance(a:GetCoordinate()) <
+           myCoord:Get2DDistance(b:GetCoordinate())
+  end)
+
+  return enemies[1]
+end
+
+----------------------------------------------------------------
+-- Optional helper: convenience wrapper for your campaign code
+----------------------------------------------------------------
+-- Example usage in your ArmyManagement:
+--
+--   local group = GROUP:FindByName("MyDefenseGroup")
+--   local army  = ARMYGROUP:New(group)
+--   army:SetPatrolAdInfinitum(true)
+--   army:EnableHuntingPatrol(myZone, 20, "Off Road", 5)
+--
+-- ARMYGROUP will:
+-- 
+--   * patrol its waypoints forever
+--   * periodically scan myZone
+--   * when an enemy appears, EngageTarget()
+--   * when target dies, Disengage() and resume patrol
+--   
+----------------------------------------------------------------
+-- @param Wrapper.Group#GROUP group The GROUP object to be made into an ARMYGROUP and send hunting.
+-- @param Core.Zone#ZONE zone The zone object where to search for enemies.
+-- @param #number speed Speed in knots when engaging.
+-- @param #string formation Formation used during engagement (optional).
+-- @param #number interval Scan interval in seconds (optional, default 5).
+-- @return #ARMYGROUP ArmyGroup The new ArmyGroup.
+function ARMYGROUP.EnableHuntingPatrolForGroup(group, zone, speed, formation, interval)
+  local army = ARMYGROUP:New(group)
+  army:SetPatrolAdInfinitum(true)
+  army:EnableHuntingPatrol(zone, speed, formation, interval)
+  return army
+end
+
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

@@ -802,7 +802,7 @@ end
 
 --- [Airplane - F15/16/18/AWACS/B1B/Tanker only] Set the STN Link16 starting number of the Group; each unit of the spawned group will have a consecutive STN set.
 -- @param #SPAWN self
--- @param #number Octal The octal number (digits 1..7, max 5 digits, i.e. 1..77777) to set the STN to. Every STN needs to be unique!
+-- @param #number Octal The octal number (digits 0..7, max 5 digits, i.e. 1..77777, cannot be zero) to set the STN to. Every STN needs to be unique!
 -- @return #SPAWN self
 function SPAWN:InitSTN(Octal)
   --self:F( { Octal = Octal } )
@@ -820,7 +820,7 @@ end
 
 --- [Airplane - A10-C II only] Set the SADL TN starting number of the Group; each unit of the spawned group will have a consecutive SADL set.
 -- @param #SPAWN self
--- @param #number Octal The octal number (digits 1..7, max 4 digits, i.e. 1..7777) to set the SADL to. Every SADL needs to be unique!
+-- @param #number Octal The octal number (digits 0..7, max 4 digits, i.e. 1..7777, cannot be zero) to set the SADL to. Every SADL needs to be unique!
 -- @return #SPAWN self
 function SPAWN:InitSADL(Octal)
   --self:F( { Octal = Octal } )
@@ -1295,7 +1295,7 @@ end
 
 --- Respawn group after landing.
 -- @param #SPAWN self
--- @param #number WaitingTime Wait this many seconds before despawning the alive group after landing. Defaults to 3 .
+-- @param #number WaitingTime (Optional) Wait this many seconds before despawning the alive group after landing. Defaults to 3 .
 -- @return #SPAWN self
 -- @usage
 --
@@ -1601,7 +1601,7 @@ end
 -- This method can be used to "reset" the spawn counter to a specific index number.
 -- This will actually enable a respawn of groups from the specific index.
 -- @param #SPAWN self
--- @param #string SpawnIndex The index of the group from where the spawning will start again. The default value would be 0, which means a complete reset of the spawnindex.
+-- @param #string SpawnIndex (Optional) The index of the group from where the spawning will start again. The default value would be 0, which means a complete reset of the spawnindex.
 -- @return #SPAWN self
 function SPAWN:SetSpawnIndex( SpawnIndex )
   self.SpawnIndex = SpawnIndex or 0
@@ -2285,6 +2285,7 @@ function SPAWN:SpawnAtAirbase( SpawnAirbase, Takeoff, TakeoffAltitude, TerminalT
             end
 
             Takeoff = GROUP.Takeoff.Air
+            spawnonground = false
           else
             self:E( string.format( "WARNING: Group %s has no parking spots at %s ==> No emergency air start or uncontrolled spawning ==> No spawn!", self.SpawnTemplatePrefix, SpawnAirbase:GetName() ) )
             return nil

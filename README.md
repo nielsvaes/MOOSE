@@ -1,11 +1,11 @@
-[![Moose-Includes](https://github.com/FlightControl-Master/MOOSE/actions/workflows/build-includes.yml/badge.svg?branch=master)](https://github.com/FlightControl-Master/MOOSE/actions/workflows/build-includes.yml)
+[![Moose-Includes](https://github.com/FlightControl-Master/MOOSE/actions/workflows/build-includes.yml/badge.svg?branch=master-ng)](https://github.com/FlightControl-Master/MOOSE/actions/workflows/build-includes.yml)
 
 <img src="https://github.com/FlightControl-Master/MOOSE/blob/master/docs/images/classes/overview.jpg" alt="MOOSE" style="width:600px;"/>
 
 You can find documentation for MOOSE in the following places:
 
 - Generated documentation of all MOOSE classes:
-  - For the `master` branch: [MOOSE_DOCS]
+  - For the `master-ng` branch: [MOOSE_DOCS]
   - For the `develop` branch: [MOOSE_DOCS_DEVELOP]
 - Documentation:
   - The old Guides can be found in our [archive].

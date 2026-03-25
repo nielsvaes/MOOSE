@@ -54,7 +54,7 @@
 
 do -- SET_BASE
   
-  ---
+  --- SET_BASE class.
   -- @type SET_BASE
   -- @field #table Filter Table of filters.
   -- @field #table Set Table of objects.
@@ -62,6 +62,7 @@ do -- SET_BASE
   -- @field #table List Unused table.
   -- @field Core.Scheduler#SCHEDULER CallScheduler
   -- @field #SET_BASE.Filters Filter Filters
+  -- @field #booleaen filterNoRegex If true, FilterPrefix ignores special characters and evaluates plain string.
   -- @extends Core.Base#BASE
 
   --- The @{Core.Set#SET_BASE} class defines the core functions that define a collection of objects.
@@ -100,6 +101,7 @@ do -- SET_BASE
         ["neutral"] = coalition.side.NEUTRAL,
         },
       },
+    filterNoRegex=false,
   }
 
   --- Filters
@@ -243,6 +245,26 @@ do -- SET_BASE
     local ObjectFound = self.Set[ObjectName]
     return ObjectFound
   end
+
+
+  --- Compares string for FilterPrefix function.
+  -- @param #SET_BASE self
+  -- @param #string Name The Name of the object.
+  -- @param #string Pattern The pattern that is contained in the Name.
+  -- @param #boolean NoRegex (Optional) If `true`, special characters in the Name are interpreted as plain text and not regular expressions. Default is `self.filterNoregex`. 
+  -- @param #boolean ReplaceDash If `true`, dashes are not used as regex.
+  -- @return #boolean Returns `true`, if the pattern is contained in the name and false otherwise.
+  function SET_BASE:_SearchPattern(Name, Pattern, NoRegex, ReplaceDash)
+    NoRegex=NoRegex or self.filterNoRegex
+    if ReplaceDash==true then
+      -- Not sure why "-" is replaced by "%-" ?! - So we can still match group names with a dash in them
+      -- reason is that the string is interpreted as a pattern and "-" is a special character then. For interpreting it as a string, fourth parameter needs to be set to true.
+      Pattern=Pattern:gsub("-", "%%-")
+    end
+    local contain=string.find(Name, Pattern, 1, NoRegex)
+    return contain
+  end  
+  
 
   --- Gets the Set.
   -- @param #SET_BASE self
@@ -551,7 +573,7 @@ do -- SET_BASE
 
   --- Define the SET iterator **"limit"**.
   -- @param #SET_BASE self
-  -- @param #number Limit Defines how many objects are evaluated of the set as part of the Some iterators. The default is 1.
+  -- @param #number Limit (Optional) Defines how many objects are evaluated of the set as part of the Some iterators. The default is 1.
   -- @return #SET_BASE self
   function SET_BASE:SetSomeIteratorLimit(Limit)
 
@@ -979,6 +1001,28 @@ do -- SET_BASE
 
     return ObjectNames
   end
+  
+  --- Checks whether all or optionally any objects is inside a given zone.
+  -- @param #SET_BASE self
+  -- @param Core.Zone#ZONE Zone The zone.
+  -- @param #boolean Any If `true`, at least one object has to be inside the zone. If `false` or `nil`, all objects need to be in the zone.
+  -- @return #boolean Retruns `true` if objects are in the zone and `false` otherwise.
+  function SET_BASE:IsInZone(Zone, Any)
+  
+    for ObjectName, Object in pairs(self.Set) do
+      local object=Object --Wrapper.Positionable#POSITIONABLE
+      local inzone=object:IsInZone(Zone)
+      if inzone and Any then
+        -- We want at least one and this one is
+        return true
+      elseif not inzone then
+        -- We want all but at least one is not
+        return false
+      end
+    end    
+  
+    return true
+  end  
 
   --- Flushes the current SET_BASE contents in the log ... (for debugging reasons).
   -- @param #SET_BASE self
@@ -1103,30 +1147,6 @@ do
   --
   --        function SetHelicopter:OnAfterDead(From, Event, To, GroupObject)
   --          --self:F({ GroupObject = GroupObject:GetName() })
-  --        end
-  --
-  -- While this is a good example, there is a catch.
-  -- Imagine you want to execute the code above, the the self would need to be from the object declared outside (above) the OnAfterDead method.
-  -- So, the self would need to contain another object. Fortunately, this can be done, but you must use then the **`.`** notation for the method.
-  -- See the modified example:
-  --
-  --        -- Now we have a constructor of the class AI_CARGO_DISPATCHER, that receives the SetHelicopter as a parameter.
-  --        -- Within that constructor, we want to set an enclosed event handler OnAfterDead for SetHelicopter.
-  --        -- But within the OnAfterDead method, we want to refer to the self variable of the AI_CARGO_DISPATCHER.
-  --
-  --        function AI_CARGO_DISPATCHER:New(SetCarrier, SetCargo, SetDeployZones)
-  --
-  --          local self = BASE:Inherit(self, FSM:New()) -- #AI_CARGO_DISPATCHER
-  --
-  --          -- Put a Dead event handler on SetCarrier, to ensure that when a carrier is destroyed, that all internal parameters are reset.
-  --          -- Note the "." notation, and the explicit declaration of SetHelicopter, which would be using the ":" notation the implicit self variable declaration.
-  --
-  --          function SetHelicopter.OnAfterDead(SetHelicopter, From, Event, To, GroupObject)
-  --            SetHelicopter:F({ GroupObject = GroupObject:GetName() })
-  --            self.PickupCargo[GroupObject] = nil  -- So here I clear the PickupCargo table entry of the self object AI_CARGO_DISPATCHER.
-  --            self.CarrierHome[GroupObject] = nil
-  --          end
-  --
   --        end
   --
   -- ===
@@ -1558,7 +1578,7 @@ do
   
   --- Set filter timer interval for FilterZones if using active filtering with FilterStart().
   -- @param #SET_GROUP self
-  -- @param #number Seconds Seconds between check intervals, defaults to 30. **Caution** - do not be too agressive with timing! Groups are usually not moving fast enough
+  -- @param #number Seconds (Optional) Seconds between check intervals, defaults to 30. **Caution** - do not be too agressive with timing! Groups are usually not moving fast enough
   -- to warrant a check of below 10 seconds.
   -- @return #SET_GROUP self
   function SET_GROUP:FilterZoneTimer(Seconds)
@@ -2096,19 +2116,16 @@ do
     if self.Filter.GroupPrefixes and MGroupInclude then
       local MGroupPrefix = false
       for GroupPrefixId, GroupPrefix in pairs(self.Filter.GroupPrefixes) do
-        --self:I({ "Prefix:", MGroup:GetName(), GroupPrefix })
-        if string.find(MGroup:GetName(), string.gsub(GroupPrefix,"-","%%-"),1) then
+        if self:_SearchPattern(MGroup:GetName(), GroupPrefix, false, true) then
           MGroupPrefix = true
         end
       end
       MGroupInclude = MGroupInclude and MGroupPrefix
-      --self:I("Is Included: "..tostring(MGroupInclude))
     end
     
     if self.Filter.Zones and MGroupInclude then
       local MGroupZone = false
       for ZoneName, Zone in pairs(self.Filter.Zones) do
-        --self:T("Zone:", ZoneName)
         if MGroup:IsInZone(Zone) then
           MGroupZone = true
         end
@@ -2122,7 +2139,6 @@ do
       MGroupInclude = MGroupInclude and MGroupFunc
     end
      
-    --self:I(MGroupInclude)
     return MGroupInclude
   end
 
@@ -2268,28 +2284,6 @@ do -- SET_UNIT
   --          --self:F({ UnitObject = UnitObject:GetName() })
   --        end
   --
-  -- While this is a good example, there is a catch.
-  -- Imagine you want to execute the code above, the the self would need to be from the object declared outside (above) the OnAfterDead method.
-  -- So, the self would need to contain another object. Fortunately, this can be done, but you must use then the **`.`** notation for the method.
-  -- See the modified example:
-  --
-  --        -- Now we have a constructor of the class AI_CARGO_DISPATCHER, that receives the SetHelicopter as a parameter.
-  --        -- Within that constructor, we want to set an enclosed event handler OnAfterDead for SetHelicopter.
-  --        -- But within the OnAfterDead method, we want to refer to the self variable of the AI_CARGO_DISPATCHER.
-  --
-  --        function ACLASS:New(SetCarrier, SetCargo, SetDeployZones)
-  --
-  --          local self = BASE:Inherit(self, FSM:New()) -- #AI_CARGO_DISPATCHER
-  --
-  --          -- Put a Dead event handler on SetCarrier, to ensure that when a carrier is destroyed, that all internal parameters are reset.
-  --          -- Note the "." notation, and the explicit declaration of SetHelicopter, which would be using the ":" notation the implicit self variable declaration.
-  --
-  --          function SetHelicopter.OnAfterDead(SetHelicopter, From, Event, To, UnitObject)
-  --            SetHelicopter:F({ UnitObject = UnitObject:GetName() })
-  --            self.array[UnitObject] = nil  -- So here I clear the array table entry of the self object ACLASS.
-  --          end
-  --
-  --        end
   -- ===
   -- @field #SET_UNIT SET_UNIT
   SET_UNIT = {
@@ -2661,7 +2655,7 @@ do -- SET_UNIT
   
   --- Set filter timer interval for FilterZones if using active filtering with FilterStart().
   -- @param #SET_UNIT self
-  -- @param #number Seconds Seconds between check intervals, defaults to 30. **Caution** - do not be too agressive with timing! Groups are usually not moving fast enough
+  -- @param #number Seconds (Optional) Seconds between check intervals, defaults to 30. **Caution** - do not be too agressive with timing! Groups are usually not moving fast enough
   -- to warrant a check of below 10 seconds.
   -- @return #SET_UNIT self
   function SET_UNIT:FilterZoneTimer(Seconds)
@@ -3353,9 +3347,8 @@ do -- SET_UNIT
 
       if self.Filter.UnitPrefixes and MUnitInclude then
         local MUnitPrefix = false
-        for UnitPrefixId, UnitPrefix in pairs(self.Filter.UnitPrefixes) do
-          --self:T3({ "Prefix:", string.find(MUnit:GetName(), UnitPrefix, 1), UnitPrefix })
-          if string.find(MUnit:GetName(), UnitPrefix, 1) then
+        for UnitPrefixId, UnitPrefix in pairs(self.Filter.UnitPrefixes) do          
+          if self:_SearchPattern(MUnit:GetName(), UnitPrefix, false, true) then
             MUnitPrefix = true
           end
         end
@@ -4126,8 +4119,7 @@ do -- SET_STATIC
     if self.Filter.StaticPrefixes then
       local MStaticPrefix = false
       for StaticPrefixId, StaticPrefix in pairs(self.Filter.StaticPrefixes) do
-        --self:T(3({ "Prefix:", string.find(MStatic:GetName(), StaticPrefix, 1), StaticPrefix })
-        if string.find(MStatic:GetName(), StaticPrefix, 1) then
+        if self:_SearchPattern(MStatic:GetName(), StaticPrefix, false, true) then
           MStaticPrefix = true
         end
       end
@@ -4584,7 +4576,7 @@ do -- SET_CLIENT
 
   --- Set filter timer interval for FilterZones if using active filtering with FilterStart().
   -- @param #SET_CLIENT self
-  -- @param #number Seconds Seconds between check intervals, defaults to 30. **Caution** - do not be too agressive with timing! Groups are usually not moving fast enough
+  -- @param #number Seconds (Optional) Seconds between check intervals, defaults to 30. **Caution** - do not be too agressive with timing! Groups are usually not moving fast enough
   -- to warrant a check of below 10 seconds.
   -- @return #SET_CLIENT self
   function SET_CLIENT:FilterZoneTimer(Seconds)
@@ -4910,12 +4902,10 @@ do -- SET_CLIENT
       if self.Filter.ClientPrefixes and MClientInclude then
         local MClientPrefix = false
         for ClientPrefixId, ClientPrefix in pairs(self.Filter.ClientPrefixes) do
-          --self:T3({ "Prefix:", string.find(MClient.UnitName, ClientPrefix, 1), ClientPrefix })
-          if string.find(MClient.UnitName, ClientPrefix, 1) then
+          if self:_SearchPattern(MClient.UnitName, ClientPrefix) then          
             MClientPrefix = true
           end
         end
-        --self:T({ "Evaluated Prefix", MClientPrefix })
         MClientInclude = MClientInclude and MClientPrefix
       end
 
@@ -4936,7 +4926,7 @@ do -- SET_CLIENT
       local playername = MClient:GetPlayerName() or "Unknown"
       --self:T(playername)
       for _,_Playername in pairs(self.Filter.Playernames) do
-        if playername and string.find(playername,_Playername) then
+        if playername and self:_SearchPattern(playername,_Playername) then
           MClientPlayername = true
         end
       end
@@ -4949,7 +4939,7 @@ do -- SET_CLIENT
       local callsign = MClient:GetCallsign()
       --self:I(callsign)
       for _,_Callsign in pairs(self.Filter.Callsigns) do
-        if callsign and string.find(callsign,_Callsign,1,true) then
+        if callsign and self:_SearchPattern(callsign,_Callsign, true) then
           MClientCallsigns = true
         end
       end
@@ -5370,12 +5360,10 @@ do -- SET_PLAYER
       if self.Filter.ClientPrefixes then
         local MClientPrefix = false
         for ClientPrefixId, ClientPrefix in pairs(self.Filter.ClientPrefixes) do
-          --self:T(3({ "Prefix:", string.find(MClient.UnitName, ClientPrefix, 1), ClientPrefix })
-          if string.find(MClient.UnitName, ClientPrefix, 1) then
+          if self:_SearchPattern(MClient.UnitName,ClientPrefix) then
             MClientPrefix = true
           end
         end
-        --self:T(({ "Evaluated Prefix", MClientPrefix })
         MClientInclude = MClientInclude and MClientPrefix
       end
     end
@@ -5780,6 +5768,7 @@ do -- SET_AIRBASE
 
 end
 
+
 do -- SET_ZONE
   
   ---
@@ -6023,12 +6012,12 @@ do -- SET_ZONE
 
   --- Draw all zones in the set on the F10 map.
   -- @param #SET_ZONE self
-  -- @param #number Coalition Coalition: All=-1, Neutral=0, Red=1, Blue=2. Default -1=All.
+  -- @param #number Coalition (Optional) Coalition: All=-1, Neutral=0, Red=1, Blue=2. Default -1=All.
   -- @param #table Color RGB color table {r, g, b}, e.g. {1,0,0} for red.
-  -- @param #number Alpha Transparency [0,1]. Default 1.
-  -- @param #table FillColor RGB color table {r, g, b}, e.g. {1,0,0} for red. Default is same as `Color` value.
-  -- @param #number FillAlpha Transparency [0,1]. Default 0.15.
-  -- @param #number LineType Line type: 0=No line, 1=Solid, 2=Dashed, 3=Dotted, 4=Dot dash, 5=Long dash, 6=Two dash. Default 1=Solid.
+  -- @param #number Alpha (Optional) Transparency [0,1]. Default 1.
+  -- @param #table FillColor (Optional) RGB color table {r, g, b}, e.g. {1,0,0} for red. Default is same as `Color` value.
+  -- @param #number FillAlpha (Optional) Transparency [0,1]. Default 0.15.
+  -- @param #number LineType (Optional) Line type: 0=No line, 1=Solid, 2=Dashed, 3=Dotted, 4=Dot dash, 5=Long dash, 6=Two dash. Default 1=Solid.
   -- @param #boolean ReadOnly (Optional) Mark is readonly and cannot be removed by users. Default false.
   -- @return #SET_ZONE self
   function SET_ZONE:DrawZone(Coalition, Color, Alpha, FillColor, FillAlpha, LineType, ReadOnly)
@@ -6079,12 +6068,10 @@ do -- SET_ZONE
       if self.Filter.Prefixes then
         local MZonePrefix = false
         for ZonePrefixId, ZonePrefix in pairs(self.Filter.Prefixes) do
-          --self:T(2({ "Prefix:", string.find(MZoneName, ZonePrefix, 1), ZonePrefix })
-          if string.find(MZoneName, ZonePrefix, 1) then
+          if self:_SearchPattern(MZoneName, ZonePrefix, false, true) then
             MZonePrefix = true
           end
         end
-        --self:T(({ "Evaluated Prefix", MZonePrefix })
         MZoneInclude = MZoneInclude and MZonePrefix
       end
     end
@@ -6170,7 +6157,7 @@ do -- SET_ZONE
   
   --- Set the check time for SET_ZONE:Trigger()
   -- @param #SET_ZONE self
-  -- @param #number seconds Check every seconds for objects entering or leaving the zone. Defaults to 5 secs.
+  -- @param #number seconds (Optional) Check every seconds for objects entering or leaving the zone. Defaults to 5 secs.
   -- @return #SET_ZONE self
   function SET_ZONE:SetCheckTime(seconds)
     self.Checktime = seconds or 5
@@ -6590,12 +6577,10 @@ do -- SET_ZONE_GOAL
       if self.Filter.Prefixes then
         local MZonePrefix = false
         for ZonePrefixId, ZonePrefix in pairs(self.Filter.Prefixes) do
-          --self:T(3({ "Prefix:", string.find(MZoneName, ZonePrefix, 1), ZonePrefix })
-          if string.find(MZoneName, ZonePrefix, 1) then
+          if self:_SearchPattern(MZoneName, ZonePrefix, false, true) then          
             MZonePrefix = true
           end
         end
-        --self:T(({ "Evaluated Prefix", MZonePrefix })
         MZoneInclude = MZoneInclude and MZonePrefix
       end
     end
@@ -6952,17 +6937,13 @@ do -- SET_OPSZONE
         -- Loop over prefixes.
         for ZonePrefixId, ZonePrefix in pairs(self.Filter.Prefixes) do
         
-          -- Prifix
-          --self:T(3({ "Prefix:", string.find(MZoneName, ZonePrefix, 1), ZonePrefix })
-          
-          if string.find(MZoneName, ZonePrefix, 1) then
+          -- Prefix
+          if self:_SearchPattern(MZoneName, ZonePrefix, false, true) then
             MZonePrefix = true
             break --Break the loop as we found the prefix.
           end
           
         end
-        
-        --self:T(({ "Evaluated Prefix", MZonePrefix })
         
         MZoneInclude = MZoneInclude and MZonePrefix
       end
@@ -7751,7 +7732,7 @@ function SET_OPSGROUP:_EventOnBirth(Event)
       local MGroupPrefix = false
       
       for GroupPrefixId, GroupPrefix in pairs(self.Filter.GroupPrefixes) do
-        if string.find(MGroup:GetName(), GroupPrefix:gsub ("-", "%%-"), 1) then --Not sure why "-" is replaced by "%-" ?! - So we can still match group names with a dash in them
+        if self:_SearchPattern(MGroup:GetName(), GroupPrefix, false, true) then
           MGroupPrefix = true
         end
       end
@@ -7879,7 +7860,7 @@ do -- SET_SCENERY
 
     local AddSceneryNamesArray = (type(AddSceneryNames) == "table") and AddSceneryNames or { AddSceneryNames }
 
-    --self:T((AddSceneryNamesArray)
+    --UTILS.PrintTableToLog(AddSceneryNamesArray)
     for AddSceneryID, AddSceneryName in pairs(AddSceneryNamesArray) do
       self:Add(AddSceneryName, SCENERY:FindByZoneName(AddSceneryName))
     end
@@ -8085,12 +8066,10 @@ do -- SET_SCENERY
       if self.Filter.Prefixes then
         local MSceneryPrefix = false
         for ZonePrefixId, ZonePrefix in pairs(self.Filter.Prefixes) do
-          --self:T(({ "Prefix:", string.find(MSceneryName, ZonePrefix, 1), ZonePrefix })
-          if string.find(MSceneryName, ZonePrefix, 1) then
+          if self:_SearchPattern(MSceneryName, ZonePrefix, false, true) then
             MSceneryPrefix = true
           end
         end
-        --self:T(({ "Evaluated Prefix", MSceneryPrefix })
         MSceneryInclude = MSceneryInclude and MSceneryPrefix
       end
       
@@ -8358,8 +8337,7 @@ do -- SET_DYNAMICCARGO
     if self.Filter.StaticPrefixes then
       local DCargoPrefix = false
       for StaticPrefixId, StaticPrefix in pairs(self.Filter.StaticPrefixes) do
-        --self:T2({ "Prefix:", string.find(DCargo:GetName(), StaticPrefix, 1), StaticPrefix })
-        if string.find(DCargo:GetName(), StaticPrefix, 1) then
+        if self:_SearchPattern(DCargo:GetName(), StaticPrefix, false, true) then
           DCargoPrefix = true
         end
       end
@@ -8527,7 +8505,7 @@ do -- SET_DYNAMICCARGO
   function SET_DYNAMICCARGO:FilterCurrentOwner(PlayerName)
     self:FilterFunction(
       function(cargo)
-        if cargo and cargo.Owner and string.find(cargo.Owner,PlayerName,1,true) then
+        if cargo and cargo.Owner and self:_SearchPattern(cargo.Owner, PlayerName, true) then
           return true
         else
           return false
@@ -8653,7 +8631,7 @@ do -- SET_DYNAMICCARGO
   
   --- Set filter timer interval for FilterZones if using active filtering with FilterStart().
   -- @param #SET_DYNAMICCARGO self
-  -- @param #number Seconds Seconds between check intervals, defaults to 30. **Caution** - do not be too agressive with timing! Objects are usually not moving fast enough
+  -- @param #number Seconds (Optional) Seconds between check intervals, defaults to 30. **Caution** - do not be too agressive with timing! Objects are usually not moving fast enough
   -- to warrant a check of below 10 seconds.
   -- @return #SET_DYNAMICCARGO self
   function SET_DYNAMICCARGO:FilterZoneTimer(Seconds) 
