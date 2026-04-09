@@ -5,7 +5,7 @@ STRAFE_AREA = {
 function STRAFE_AREA:New(area, targets, heading, name)
     BASE:I("making strafe area")
     local self = BASE:Inherit(self, BASE:New())
-    
+
     self.area = area
     self.targets = targets
     self.player_data = {}
@@ -18,7 +18,7 @@ function STRAFE_AREA:New(area, targets, heading, name)
 
     self:I(string.format("Strafe area created: %s", self.area:GetName()))
     return self
-end 
+end
 
 function STRAFE_AREA:GetGunAmmoCount(player_unit)
     local ammo = player_unit:GetAmmo()
@@ -36,35 +36,34 @@ function STRAFE_AREA:PlayerInZone(player_unit)
     if self.area:ContainsPoint(player_unit:GetVec2()) then
         return true
     end
-    return false
+    return true
 end
 
 function STRAFE_AREA:OnEventShootingStart(event_data)
     local player_unit = event_data.IniUnit
-    
+
     if not self:PlayerInZone(player_unit) then
         BASE:I(player_unit:GetName() .. " is not in the zone")
         return
     end
-    
+
     self:ResetPlayerData(player_unit)
 
     self.player_data[player_unit]["count"]    = self:GetGunAmmoCount(player_unit)
     self.player_data[player_unit]["expended"] = 0
     self.player_data[player_unit]["heading"]  = player_unit:GetHeading()
     self.player_data[player_unit]["kias"]     = player_unit:GetAirspeedIndicated()
-
 end
 
 function STRAFE_AREA:OnEventShootingEnd(event_data)
     local player_unit = event_data.IniUnit
-    
+
     if not self:PlayerInZone(player_unit) then
         return
     end
 
-    local previous_ammo_count = self.player_data[player_unit]["count"]
-    local expended_rounds = previous_ammo_count - self:GetGunAmmoCount(player_unit)
+    local previous_ammo_count                 = self.player_data[player_unit]["count"]
+    local expended_rounds                     = previous_ammo_count - self:GetGunAmmoCount(player_unit)
 
     self.player_data[player_unit]["count"]    = self:GetGunAmmoCount(player_unit)
     self.player_data[player_unit]["expended"] = expended_rounds
@@ -81,7 +80,15 @@ end
 function STRAFE_AREA:OnEventHit(event_data)
     local player_unit = event_data.IniUnit
     local target = event_data.TgtUnitName
-    
+
+    if player_unit == nil then
+        return
+    end
+
+    if not table.contains(self.targets, target) then
+        return
+    end
+
     if not self:PlayerInZone(player_unit) then
         return
     end
@@ -94,14 +101,14 @@ function STRAFE_AREA:OnEventHit(event_data)
 end
 
 function STRAFE_AREA:ShowHitData(player_unit)
-    local expended = self.player_data[player_unit]["expended"]
-    local hits     = self.player_data[player_unit]["hits"]
-    local heading  = self.player_data[player_unit]["heading"]
-    local kias     = self.player_data[player_unit]["kias"]
-    local altitude  = self.player_data[player_unit]["altitude"]
-    local pct = (100 / expended) * hits
+    local expended       = self.player_data[player_unit]["expended"]
+    local hits           = self.player_data[player_unit]["hits"]
+    local heading        = self.player_data[player_unit]["heading"]
+    local kias           = self.player_data[player_unit]["kias"]
+    local altitude       = self.player_data[player_unit]["altitude"]
+    local pct            = (100 / expended) * hits
 
-    local overall = "Pass"
+    local overall        = "Pass"
 
     local heading_rating = "(Pass)"
     if not UTILS.AngleBetween(heading, self.heading - 15, self.heading + 15) then
@@ -153,4 +160,3 @@ function STRAFE_AREA:ResetPlayerData(player_unit)
     self.player_data[player_unit]["kias"] = 0
     self.player_data[player_unit]["altitude"] = 0
 end
-
