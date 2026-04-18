@@ -112,6 +112,7 @@ Ops/OpsZone.lua
 Ops/ArmyGroup.lua
 Ops/OpsTransport.lua
 Ops/Target.lua
+Ops/TARS.lua
 
 Sound/UserSound.lua
 Sound/SoundOutput.lua

@@ -2581,7 +2581,7 @@ end
 -- @return #boolean Returns `true` if given cohort can meet all requirements.
 function LEGION._CohortCan(Cohort, MissionType, Categories, Attributes, Properties, WeaponTypes, TargetVec2, RangeMax, RefuelSystem, CargoWeight, MaxWeight, RangeMin)
 
-  RangeMin = RangeMin or 0
+  RangeMin = RangeMin or -1
 
   --- Function to check category.
   local function CheckCategory(_cohort)
